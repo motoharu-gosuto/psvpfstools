@@ -89,4 +89,4 @@ struct files_db_t
 
 #pragma pack(pop)
 
-bool parseUnicvDb(boost::filesystem::path filepath, files_db_t& fdb);
+int parseUnicvDb(std::string title_id_path);

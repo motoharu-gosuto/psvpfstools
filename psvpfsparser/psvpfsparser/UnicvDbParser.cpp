@@ -282,3 +282,15 @@ bool parseUnicvDb(boost::filesystem::path filepath, files_db_t& fdb)
 
    return true;
 }
+
+int parseUnicvDb(std::string title_id_path)
+{
+   boost::filesystem::path filepath = boost::filesystem::path(title_id_path) / "sce_pfs\\unicv.db";
+   
+   files_db_t fdb;
+   parseUnicvDb(filepath, fdb);
+   
+   //printUnicvDb(fdb);
+
+   return 0;
+}
