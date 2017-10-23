@@ -7,6 +7,7 @@
 #include <boost/filesystem.hpp>
 
 #include "UnicvDbParser.h"
+#include "UnicvDbPrint.h"
 
 int main(int argc, char* argv[])
 {
@@ -19,8 +20,9 @@ int main(int argc, char* argv[])
    boost::filesystem::path filepath = boost::filesystem::path(argv[1]) / "sce_pfs\\unicv.db";
    
    files_db_t fdb;
-   parseFilesDb(filepath, fdb);
-   debugPrint(fdb);
+   parseUnicvDb(filepath, fdb);
+   
+   //printUnicvDb(fdb);
 
 	return 0;
 }
