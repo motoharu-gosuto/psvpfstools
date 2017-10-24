@@ -186,14 +186,17 @@ bool readDataBlock(std::ifstream& inputStream, uint64_t& i, files_ft_t& fft)
    }
 }
 
-bool parseUnicvDb(boost::filesystem::path filepath, files_db_t& fdb)
+bool parseUnicvDb(std::ifstream& inputStream, files_db_t& fdb)
 {
-   std::ifstream inputStream(filepath.generic_string().c_str(), std::ios::in | std::ios::binary);
-
+   //get stream size
+   inputStream.seekg(0, std::ios::end);
+   uint64_t fileSize = inputStream.tellg();
+   inputStream.seekg(0, std::ios::beg);
+   
+   //read header
    inputStream.read((char*)&fdb.dbHeader, sizeof(db_header_t));
 
    //check file size field
-   uint64_t fileSize = boost::filesystem::file_size(filepath);
    if(fileSize != (fdb.dbHeader.dataSize + fdb.dbHeader.blockSize)) //do not forget to count header
    {
       std::cout << "Incorrect block size or data size" << std::endl;
@@ -275,14 +278,12 @@ bool parseUnicvDb(boost::filesystem::path filepath, files_db_t& fdb)
    return true;
 }
 
-int parseUnicvDb(std::string title_id_path)
+int parseUnicvDb(std::string title_id_path, files_db_t& fdb)
 {
    boost::filesystem::path filepath = boost::filesystem::path(title_id_path) / "sce_pfs\\unicv.db";
+   std::ifstream inputStream(filepath.generic_string().c_str(), std::ios::in | std::ios::binary);
    
-   files_db_t fdb;
-   parseUnicvDb(filepath, fdb);
+   parseUnicvDb(inputStream, fdb);
    
-   //printUnicvDb(fdb);
-
    return 0;
 }

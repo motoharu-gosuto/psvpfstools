@@ -89,4 +89,4 @@ struct files_db_t
 
 #pragma pack(pop)
 
-int parseUnicvDb(std::string title_id_path);
+int parseUnicvDb(std::string title_id_path, files_db_t& fdb);

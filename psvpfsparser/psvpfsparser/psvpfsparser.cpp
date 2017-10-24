@@ -19,10 +19,11 @@ int main(int argc, char* argv[])
 
    std::string titleId(argv[1]);
 
-   //parseUnicvDb(titleId);
+   files_db_t unicv;
+   parseUnicvDb(titleId, unicv);
 
-   std::vector<sce_ng_pfs_file_t> filesResult;
-   parseFilesDb(titleId, filesResult);
+   std::vector<sce_ng_pfs_file_t> files;
+   parseFilesDb(titleId, files);
 
 	return 0;
 }
