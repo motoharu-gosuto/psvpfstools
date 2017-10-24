@@ -19,7 +19,7 @@ int main(int argc, char* argv[])
 
    std::string titleId(argv[1]);
 
-   //parse_unicv();
+   //parseUnicvDb(titleId);
 
    parseAndFlattenFilesDb(titleId);
 

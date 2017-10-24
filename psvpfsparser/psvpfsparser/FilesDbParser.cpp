@@ -6,8 +6,10 @@
 #include <algorithm>
 #include <map>
 #include <iomanip>
+#include <set>
 
 #include <boost/filesystem.hpp>
+#include <boost/range/adaptor/reversed.hpp>
 
 #include "FilesDbParser.h"
 
@@ -156,6 +158,282 @@ bool parseFilesDb(std::ifstream& inputStream, sce_ng_pfs_header_t& header, std::
    return true;
 }
 
+//build child index -> parent index relationship map
+bool constructDirmatrix(const std::vector<sce_ng_pfs_block_t>& blocks, std::map<uint32_t, uint32_t>& dirMatrix)
+{   
+   for(auto& block : blocks)
+   {
+      for(uint32_t i = 0; i < block.header.nFiles; i++)
+      {
+         if(block.infos[i].type != directory)
+            continue;
+
+         uint32_t child = block.infos[i].idx;
+         uint32_t parent = block.files[i].index;
+
+         std::string fileName = std::string((const char*)block.files[i].fileName);
+
+         if(block.infos[i].size != 0)
+         {
+            std::cout << "Directory " << fileName << " size is invalid" << std::endl;
+            return false;
+         }
+
+         if(child == INVALID_FILE_INDEX)
+         {
+            std::cout << "Directory " << fileName << " index is invalid" << std::endl;
+            return false;
+         }
+
+         if(dirMatrix.find(child) != dirMatrix.end())
+         {
+            std::cout << "Directory " << fileName << " index " << child << " is not unique" << std::endl;
+            return false;
+         }
+
+         dirMatrix.insert(std::make_pair(child, parent));
+      }
+   }
+
+   return true;
+}
+
+//build child index -> parent index relationship map
+bool constructFileMatrix(const std::vector<sce_ng_pfs_block_t>& blocks, std::map<uint32_t, uint32_t>& fileMatrix)
+{
+   for(auto& block : blocks)
+   {
+      for(uint32_t i = 0; i < block.header.nFiles; i++)
+      {
+         if(block.infos[i].type == directory)
+            continue;
+
+         uint32_t child = block.infos[i].idx;
+         uint32_t parent = block.files[i].index;
+
+         std::string fileName = std::string((const char*)block.files[i].fileName);
+
+         if(block.infos[i].size == 0)
+         {   
+            if(block.infos[i].type == unexisting)
+            {
+               std::cout << "[EMPTY] File " << fileName << " index " << child << std::endl;
+               continue; // can not add unexisting files - they will conflict by index in the fileMatrix!
+            }
+            else
+            {
+               std::cout << "[EMPTY] File " << fileName << " index " << child << " has invalid type" << std::endl;
+               return false;
+            }
+         }
+
+         if(child == INVALID_FILE_INDEX)
+         {
+            std::cout << "Directory " << fileName << " index is invalid" << std::endl;
+            return false;
+         }
+
+         if(fileMatrix.find(child) != fileMatrix.end())
+         {
+            std::cout << "File " << fileName << " index " << child << " is not unique" << std::endl;
+            return false;
+         }
+
+         fileMatrix.insert(std::make_pair(child, parent));
+      }
+   }
+
+   return true;
+}
+
+//convert list of blocks to list of files
+//assign global index to files
+void flattenBlocks(const std::vector<sce_ng_pfs_block_t>& blocks, std::vector<sce_ng_pfs_flat_block_t>& flatBlocks)
+{
+   int global_index = 0;
+
+   for(auto& block : blocks)
+   {
+      for(uint32_t i = 0; i < block.header.nFiles; i++)
+      {
+         //have to skip unexisting files
+         if(block.infos[i].size == 0 && block.infos[i].type == unexisting)
+            continue;
+
+         flatBlocks.push_back(sce_ng_pfs_flat_block_t());
+         sce_ng_pfs_flat_block_t& fb = flatBlocks.back();
+
+         fb.header = block.header;
+         fb.file = block.files[i];
+         fb.info = block.infos[i];
+         fb.hash = block.hashes[i];
+
+         fb.global_index = global_index++;
+      }
+   }
+}
+
+//find directory flat block by index
+const std::vector<sce_ng_pfs_flat_block_t>::const_iterator findFlatBlockDir(const std::vector<sce_ng_pfs_flat_block_t>& flatBlocks, uint32_t index)
+{
+   size_t i = 0;
+   for(auto& block : flatBlocks)
+   {
+      if(block.info.idx == index && block.info.type == directory)
+         return flatBlocks.begin() + i;
+      i++;
+   }
+   return flatBlocks.end();
+}
+
+//find file flat block by index
+const std::vector<sce_ng_pfs_flat_block_t>::const_iterator findFlatBlockFile(const std::vector<sce_ng_pfs_flat_block_t>& flatBlocks, uint32_t index)
+{
+   size_t i = 0;
+   for(auto& block : flatBlocks)
+   {
+      if(block.info.idx == index && block.info.type != directory)
+         return flatBlocks.begin() + i;
+      i++;
+   }
+   return flatBlocks.end();
+}
+
+//convert list of flat blocks to list of file paths
+bool constructFilePaths(boost::filesystem::path rootPath, std::map<uint32_t, uint32_t>& dirMatrix, const std::map<uint32_t, uint32_t>& fileMatrix, const std::vector<sce_ng_pfs_flat_block_t>& flatBlocks, std::vector<sce_ng_pfs_file_t>& filesResult)
+{
+   for(auto& file_entry : fileMatrix)
+   {
+      //start searching from file up to root
+      uint32_t childIndex = file_entry.first;
+      uint32_t parentIndex = file_entry.second;
+
+      std::vector<uint32_t> indexes;
+
+      //search till the root - get all indexes for the path
+      while(parentIndex != 0)
+      {
+         auto directory =  dirMatrix.find(parentIndex);
+         if(directory == dirMatrix.end())
+         {
+            std::cout << "Missing parent directory index " << parentIndex  << std::endl;
+            return false;
+         }
+         
+         indexes.push_back(directory->first); //child - directory that was found
+         parentIndex = directory->second; //parent - specify next directory to search
+      }
+
+      //find file flat block
+      auto fileFlatBlock = findFlatBlockFile(flatBlocks, childIndex);
+      if(fileFlatBlock == flatBlocks.end())
+      {
+         std::cout << "Missing file with index" << childIndex << std::endl;
+         return false;
+      }
+
+      //find directory flat blocks and get directory names
+      std::vector<std::string> dirNames;
+      std::vector<sce_ng_pfs_flat_block_t> dirFlatBlocks;
+
+      for(auto& dirIndex : indexes)
+      {
+         auto dirFlatBlock = findFlatBlockDir(flatBlocks, dirIndex);
+         if(dirFlatBlock == flatBlocks.end())
+         {
+            std::cout << "Missing parent directory index " << dirIndex  << std::endl;
+            return false;
+         }
+
+         dirFlatBlocks.push_back(*dirFlatBlock);
+         dirNames.push_back(std::string((const char*)dirFlatBlock->file.fileName));
+      }
+
+      //get file name
+      std::string fileName((const char*)fileFlatBlock->file.fileName);
+
+      //construct full path
+      boost::filesystem::path path = rootPath;
+      for(auto& dname : boost::adaptors::reverse(dirNames))
+      {
+         path /= dname;
+      }
+      path /= fileName;
+
+      filesResult.push_back(sce_ng_pfs_file_t());
+      sce_ng_pfs_file_t& ft = filesResult.back();
+      ft.path = path;
+      ft.file = *fileFlatBlock;
+      ft.dirs = dirFlatBlocks;
+   }
+
+   return true;
+}
+
+std::string fileTypeToString(sce_ng_pfs_file_types ft)
+{
+   switch(ft)
+   {
+   case unexisting:
+      return "unexisting";
+   case normal_file:
+      return "normal_file";
+   case directory:
+      return "directory";
+   case unencrypted_system_file:
+      return "unencrypted_system_file";
+   case encrypted_system_file:
+      return "encrypted_system_file";
+   default:
+      return "unknown";
+   }
+}
+
+//checks that files exist
+//checks that file size is correct
+bool validateFilepaths(std::vector<sce_ng_pfs_file_t> files)
+{
+   for(auto& file : files)
+   {
+      //std::cout << file.path << " : ";
+      
+      if(!boost::filesystem::exists(file.path))
+      {
+         std::cout << "File " << file.path.generic_string() << " does not exist" << std::endl;
+         return false;
+      }
+      
+      uint64_t size = boost::filesystem::file_size(file.path);
+      if(size != file.file.info.size)
+      {
+         std::cout << "File " << file.path.generic_string() << " size incorrect" << std::endl;
+         return false;
+      }
+
+      //std::cout << fileTypeToString(file.file.info.type)<< " : ";
+
+      //std::cout << std::hex << std::setw(8) << std::setfill('0') << file.file.info.size << std::endl;
+   }
+   return true;
+}
+
+//get files recoursively
+void getFileList(boost::filesystem::path path, std::set<std::string>& files)
+{
+   if (!path.empty())
+   {
+      boost::filesystem::path apk_path(path);
+      boost::filesystem::recursive_directory_iterator end;
+
+      for (boost::filesystem::recursive_directory_iterator i(apk_path); i != end; ++i)
+      {
+         const boost::filesystem::path cp = (*i);
+         files.insert(cp.string());
+      }
+   }
+}
+
+/*
 bool operator < (const sce_ng_pfs_file_info_t& fi1, const sce_ng_pfs_file_info_t& fi2)
 {
    return fi1.idx < fi2.idx;
@@ -192,248 +470,79 @@ void constructIndexLists(const std::vector<sce_ng_pfs_block_t>& blocks)
 
    std::sort(infos.begin(), infos.end());
 }
+*/
 
-bool constructDirmatrix(const std::vector<sce_ng_pfs_block_t>& blocks, std::map<uint32_t, uint32_t>& dirMatrix)
+//TODO: need to validate that each file exists
+//TODO: need to validate that all files are covered
+
+int match_file_lists(std::vector<sce_ng_pfs_file_t>& filesResult, std::set<std::string> files)
 {
-   //child -> parent matrix
+   std::set<std::string> fileResultPaths;
 
-   for(std::vector<sce_ng_pfs_block_t>::const_iterator it = blocks.begin(); it != blocks.end(); ++it)
+   for(auto& f :  filesResult)
    {
-      for(uint32_t i = 0; i < it->header.nFiles; i++)
+      fileResultPaths.insert(f.path.string());
+   }
+
+   for(auto& p : files)
+   {
+      if(fileResultPaths.find(p) == fileResultPaths.end())
       {
-         if(it->infos[i].type != directory)
-            continue;
-
-         uint32_t child = it->infos[i].idx;
-         uint32_t parent = it->files[i].index;
-
-         if(dirMatrix.find(child) != dirMatrix.end())
-         {
-            std::string fileName = std::string((const char*)it->files[i].fileName);
-            std::cout << "Directory " << fileName << " index " << child << " is not unique" << std::endl;
-            return false;
-         }
-
-         std::pair<uint32_t, uint32_t> key = std::make_pair(child, parent);
-         dirMatrix.insert(key);
+         std::cout << p << std::endl;
       }
    }
 
-   return true;
-}
-
-bool constructFileMatrix(const std::vector<sce_ng_pfs_block_t>& blocks, std::map<uint32_t, uint32_t>& fileMatrix)
-{
-   //child -> parent matrix
-
-   for(std::vector<sce_ng_pfs_block_t>::const_iterator it = blocks.begin(); it != blocks.end(); ++it)
+   for(auto& p : fileResultPaths)
    {
-      for(uint32_t i = 0; i < it->header.nFiles; i++)
+      if(files.find(p) == files.end())
       {
-         if(it->infos[i].type == directory)
-            continue;
-
-         uint32_t child = it->infos[i].idx;
-         uint32_t parent = it->files[i].index;
-
-         std::string fileName = std::string((const char*)it->files[i].fileName);
-
-         if(it->infos[i].size == 0 && it->infos[i].type == unexisting)
-         {   
-            std::cout << "[EMPTY] File " << fileName << " index " << child << std::endl;
-            continue;
-         }
-
-         if(fileMatrix.find(child) != fileMatrix.end())
-         {
-            std::cout << "File " << fileName << " index " << child << " is not unique" << std::endl;
-            return false;
-         }
-
-         std::pair<uint32_t, uint32_t> key = std::make_pair(child, parent);
-         fileMatrix.insert(key);
+         std::cout << p << std::endl;
       }
    }
 
-   return true;
-}
-
-void flattenBlocks(const std::vector<sce_ng_pfs_block_t>& blocks, std::vector<sce_ng_pfs_flat_block_t>& flatBlocks)
-{
-   for(std::vector<sce_ng_pfs_block_t>::const_iterator it = blocks.begin(); it != blocks.end(); ++it)
-   {
-      for(uint32_t i = 0; i < it->header.nFiles; i++)
-      {
-         if(it->infos[i].size == 0 && it->infos[i].type == unexisting)
-            continue;
-
-         flatBlocks.push_back(sce_ng_pfs_flat_block_t());
-         sce_ng_pfs_flat_block_t& fb = flatBlocks.back();
-
-         fb.header = it->header;
-         fb.file = it->files[i];
-         fb.info = it->infos[i];
-         fb.hash = it->hashes[i];
-      }
-   }
-}
-
-const std::vector<sce_ng_pfs_flat_block_t>::const_iterator findFlatBlockDir(const std::vector<sce_ng_pfs_flat_block_t>& flatBlocks, uint32_t index)
-{
-   size_t i = 0;
-
-   for(std::vector<sce_ng_pfs_flat_block_t>::const_iterator it = flatBlocks.begin(); it != flatBlocks.end(); ++it, i++)
-   {
-      if(it->info.idx == index && it->info.type == directory)
-         return flatBlocks.begin() + i;
-   }
-   
-   return flatBlocks.end();
-}
-
-const std::vector<sce_ng_pfs_flat_block_t>::const_iterator findFlatBlockFile(const std::vector<sce_ng_pfs_flat_block_t>& flatBlocks, uint32_t index)
-{
-   size_t i = 0;
-
-   for(std::vector<sce_ng_pfs_flat_block_t>::const_iterator it = flatBlocks.begin(); it != flatBlocks.end(); ++it, i++)
-   {
-      if(it->info.idx == index && it->info.type != directory)
-         return flatBlocks.begin() + i;
-   }
-   
-   return flatBlocks.end();
-}
-
-bool constructFilePaths(std::string rootPath, std::map<uint32_t, uint32_t>& dirMatrix, const std::map<uint32_t, uint32_t>& fileMatrix, const std::vector<sce_ng_pfs_flat_block_t>& flatBlocks, std::vector<sce_ng_pfs_file_t>& filesResult)
-{
-   for(std::map<uint32_t, uint32_t>::const_iterator it = fileMatrix.begin(); it != fileMatrix.end(); ++it)
-   {
-      uint32_t child = it->first;
-      uint32_t parent = it->second;
-
-      std::vector<uint32_t> indexes;
-
-      while(parent != 0)
-      {
-         std::map<uint32_t, uint32_t>::const_iterator dit =  dirMatrix.find(parent);
-         if(dit == dirMatrix.end())
-         {
-            std::cout << "Missing parent directory index " << parent  << std::endl;
-            return false;
-         }
-         
-         indexes.push_back(dit->first);
-         parent = dit->second;
-      }
-
-      std::vector<sce_ng_pfs_flat_block_t>::const_iterator fileBlockIt = findFlatBlockFile(flatBlocks, child);
-      if(fileBlockIt == flatBlocks.end())
-      {
-         std::cout << "Missing file with index" << child << std::endl;
-         return false;
-      }
-
-      std::string fileName((const char*)fileBlockIt->file.fileName);
-
-      std::vector<std::string> dirNames;
-
-      for(std::vector<uint32_t>::const_iterator indit = indexes.begin(); indit != indexes.end(); ++indit)
-      {
-         uint32_t idx = *indit;
-
-         std::vector<sce_ng_pfs_flat_block_t>::const_iterator blockIt = findFlatBlockDir(flatBlocks, idx);
-         if(blockIt == flatBlocks.end())
-         {
-            std::cout << "Missing parent directory index " << idx  << std::endl;
-            return false;
-         }
-
-         dirNames.push_back(std::string((const char*)blockIt->file.fileName));
-      }
-
-      std::string path = "";
-      for(std::vector<std::string>::const_reverse_iterator pit = dirNames.rbegin(); pit != dirNames.rend(); ++pit)
-      {
-         path = path + *pit + "/";
-      }
-
-      path = rootPath + path + fileName;
-
-      filesResult.push_back(sce_ng_pfs_file_t());
-      sce_ng_pfs_file_t& ft = filesResult.back();
-      ft.path = path;
-      ft.block = *fileBlockIt;
-   }
-
-   return true;
-}
-
-std::string fileTypeToString(sce_ng_pfs_file_types ft)
-{
-   switch(ft)
-   {
-   case unexisting:
-      return "unexisting";
-   case normal_file:
-      return "normal_file";
-   case directory:
-      return "directory";
-   case unencrypted_system_file:
-      return "unencrypted_system_file";
-   case encrypted_system_file:
-      return "encrypted_system_file";
-   default:
-      return "unknown";
-   }
+   return 0;
 }
 
 int parseAndFlattenFilesDb(std::string title_id_path)
 {
-   boost::filesystem::path filepath = boost::filesystem::path(title_id_path) / "sce_pfs\\files.db";
+   boost::filesystem::path root(title_id_path);
 
+   boost::filesystem::path filepath = root / "sce_pfs\\files.db";
    std::ifstream inputStream(filepath.generic_string().c_str(), std::ios::in | std::ios::binary);
 
+   //parse data into raw structures
    sce_ng_pfs_header_t header;
    std::vector<sce_ng_pfs_block_t> blocks;
    if(!parseFilesDb(inputStream, header, blocks))
       return -1;
 
+   //build child index -> parent index relationship map
    std::map<uint32_t, uint32_t> dirMatrix;
    if(!constructDirmatrix(blocks, dirMatrix))
       return -1;
 
+   //build child index -> parent index relationship map
    std::map<uint32_t, uint32_t> fileMatrix;
    if(!constructFileMatrix(blocks, fileMatrix))
       return -1;
    
+   //convert list of blocks to list of files
    std::vector<sce_ng_pfs_flat_block_t> flatBlocks;
    flattenBlocks(blocks, flatBlocks);
 
+   //convert flat blocks to file paths
    std::vector<sce_ng_pfs_file_t> filesResult;
-   if(!constructFilePaths(boost::filesystem::path(title_id_path).generic_string() , dirMatrix, fileMatrix, flatBlocks, filesResult))
+   if(!constructFilePaths(root, dirMatrix, fileMatrix, flatBlocks, filesResult))
       return -1;
 
-   for(std::vector<sce_ng_pfs_file_t>::const_iterator it = filesResult.begin(); it != filesResult.end(); ++it)
-   {
-      std::cout << it->path << std::endl;
-      
-      if(!boost::filesystem::exists(it->path))
-      {
-         std::cout << "File " << it->path.generic_string() << " does not exist" << std::endl;
-         continue;
-      }
-      
-      uint64_t size = boost::filesystem::file_size(it->path);
-      if(size != it->block.info.size)
-      {
-         std::cout << "File " << it->path.generic_string() << " size incorrect" << std::endl;
-         continue;
-      }
+   //validate results
+   if(!validateFilepaths(filesResult))
+      return -1;
 
-      std::cout << fileTypeToString(it->block.info.type)<< std::endl;
+   std::set<std::string> files;
+   getFileList(root, files);
 
-      std::cout << std::hex << std::setw(8) << std::setfill('0') << it->block.info.size << std::endl;
-   }
+   match_file_lists(filesResult, files);
 
    //debug stuff
    /*

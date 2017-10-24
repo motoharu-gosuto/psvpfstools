@@ -47,7 +47,7 @@ struct sce_ng_pfs_header_t
 enum sce_ng_pfs_block_types : uint32_t
 {
    regular = 0,
-   unknown_block_type = 1
+   unknown_block_type = 1 //still have to figure out
 };
 
 struct sce_ng_pfs_block_header_t
@@ -96,6 +96,9 @@ struct sce_ng_pfs_block_t
 {
    sce_ng_pfs_block_header_t header; //size = 16
    std::vector<sce_ng_pfs_file_header_t> files; // size = 72 * 9 = 648
+
+   //infos may contain non INVALID_FILE_INDEX as last element
+   //still dont know the purpose of this
    std::vector<sce_ng_pfs_file_info_t> infos; // size = 16 * 10 = 160
    std::vector<sce_ng_pfs_hash_t> hashes; // size = 20 * 10 = 200
 };
@@ -106,12 +109,15 @@ struct sce_ng_pfs_flat_block_t
    sce_ng_pfs_file_header_t file;
    sce_ng_pfs_file_info_t info;
    sce_ng_pfs_hash_t hash;
+
+   int global_index;
 };
 
 struct sce_ng_pfs_file_t
 {
    boost::filesystem::path path;
-   sce_ng_pfs_flat_block_t block;
+   sce_ng_pfs_flat_block_t file;
+   std::vector<sce_ng_pfs_flat_block_t> dirs;
 };
 
 #pragma pack(pop)
