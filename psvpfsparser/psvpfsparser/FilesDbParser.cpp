@@ -15,9 +15,9 @@
 
 using namespace std;
 
-bool parseFilesDb(ifstream& inputStream, header_t& header, vector<block_t>& blocks)
+bool parseFilesDb(ifstream& inputStream, sce_ng_pfs_header_t& header, vector<sce_ng_pfs_block_t>& blocks)
 {
-   inputStream.read((char*)&header, sizeof(header_t));
+   inputStream.read((char*)&header, sizeof(sce_ng_pfs_header_t));
 
    if(std::string((char*)header.magic, 8) != MAGIC_WORD)
    {
@@ -62,13 +62,13 @@ bool parseFilesDb(ifstream& inputStream, header_t& header, vector<block_t>& bloc
       if(currentBlockPos >= cunksEndPos)
          break;
 
-      blocks.push_back(block_t());
-      block_t& block = blocks.back();
+      blocks.push_back(sce_ng_pfs_block_t());
+      sce_ng_pfs_block_t& block = blocks.back();
 
-      inputStream.read((char*)&block.header, sizeof(block_header_t));
+      inputStream.read((char*)&block.header, sizeof(sce_ng_pfs_block_header_t));
 
-      if(block.header.type != block_types::regular && 
-         block.header.type != block_types::unknown_block_type)
+      if(block.header.type != sce_ng_pfs_block_types::regular && 
+         block.header.type != sce_ng_pfs_block_types::unknown_block_type)
       {
          cout << "Unexpected type" << endl;
          return false;
@@ -83,14 +83,14 @@ bool parseFilesDb(ifstream& inputStream, header_t& header, vector<block_t>& bloc
       //read file records
       for(uint32_t i = 0; i < block.header.nFiles; i++)
       {
-         block.files.push_back(file_header_t());
-         file_header_t& fh = block.files.back();
-         inputStream.read((char*)&fh, sizeof(file_header_t));
+         block.files.push_back(sce_ng_pfs_file_header_t());
+         sce_ng_pfs_file_header_t& fh = block.files.back();
+         inputStream.read((char*)&fh, sizeof(sce_ng_pfs_file_header_t));
       }
 
       //skip / test / read unused data
       uint32_t nUnused = MAX_FILES_IN_BLOCK - block.header.nFiles;
-      uint32_t nUnusedSize1 = nUnused * sizeof(file_header_t);
+      uint32_t nUnusedSize1 = nUnused * sizeof(sce_ng_pfs_file_header_t);
       if(nUnusedSize1 > 0)
       {
          std::vector<uint8_t> unusedData1(nUnusedSize1);
@@ -111,9 +111,9 @@ bool parseFilesDb(ifstream& inputStream, header_t& header, vector<block_t>& bloc
       //some of the records may contain INVALID_FILE_INDEX as idx
       for(uint32_t i = 0; i < 10; i++)
       {
-         block.infos.push_back(file_info_t());
-         file_info_t& fi = block.infos.back();
-         inputStream.read((char*)&fi, sizeof(file_info_t));
+         block.infos.push_back(sce_ng_pfs_file_info_t());
+         sce_ng_pfs_file_info_t& fi = block.infos.back();
+         inputStream.read((char*)&fi, sizeof(sce_ng_pfs_file_info_t));
 
          //check file type
          if(fi.type != unexisting && fi.type != normal_file && fi.type != directory && fi.type != unencrypted_system_file && fi.type != encrypted_system_file)
@@ -140,10 +140,10 @@ bool parseFilesDb(ifstream& inputStream, header_t& header, vector<block_t>& bloc
 
       for(int32_t i = 0; i < 10; i++)
       {
-         block.hashes.push_back(hash_t());
-         hash_t& h = block.hashes.back();
+         block.hashes.push_back(sce_ng_pfs_hash_t());
+         sce_ng_pfs_hash_t& h = block.hashes.back();
 
-         inputStream.read((char*)&h.data, sizeof(hash_t));
+         inputStream.read((char*)&h.data, sizeof(sce_ng_pfs_hash_t));
       }
 
       //validate next position - check that read operations we not out of bounds of current block
@@ -158,18 +158,18 @@ bool parseFilesDb(ifstream& inputStream, header_t& header, vector<block_t>& bloc
    return true;
 }
 
-bool operator < (const file_info_t& fi1, const file_info_t& fi2)
+bool operator < (const sce_ng_pfs_file_info_t& fi1, const sce_ng_pfs_file_info_t& fi2)
 {
    return fi1.idx < fi2.idx;
 }
 
-void constructIndexLists(const vector<block_t>& blocks)
+void constructIndexLists(const vector<sce_ng_pfs_block_t>& blocks)
 {
    std::vector<std::pair<uint32_t, std::string> > files;
 
-   for(vector<block_t>::const_iterator it = blocks.begin(); it != blocks.end(); ++it)
+   for(vector<sce_ng_pfs_block_t>::const_iterator it = blocks.begin(); it != blocks.end(); ++it)
    {
-      for(vector<file_header_t>::const_iterator fit = it->files.begin(); fit != it->files.end(); ++fit)
+      for(vector<sce_ng_pfs_file_header_t>::const_iterator fit = it->files.begin(); fit != it->files.end(); ++fit)
       {
          files.push_back(std::make_pair(fit->index, std::string((const char*)fit->fileName)));
       }
@@ -182,11 +182,11 @@ void constructIndexLists(const vector<block_t>& blocks)
       std::cout << it->first << " " << it->second << std::endl;
    }
 
-   std::vector<std::pair<uint32_t, file_info_t> > infos;
+   std::vector<std::pair<uint32_t, sce_ng_pfs_file_info_t> > infos;
 
-   for(vector<block_t>::const_iterator it = blocks.begin(); it != blocks.end(); ++it)
+   for(vector<sce_ng_pfs_block_t>::const_iterator it = blocks.begin(); it != blocks.end(); ++it)
    {
-      for(vector<file_info_t>::const_iterator fit = it->infos.begin(); fit != it->infos.end(); ++ fit)
+      for(vector<sce_ng_pfs_file_info_t>::const_iterator fit = it->infos.begin(); fit != it->infos.end(); ++ fit)
       {
          infos.push_back(std::make_pair(fit->idx, *fit));
       }
@@ -195,11 +195,11 @@ void constructIndexLists(const vector<block_t>& blocks)
    std::sort(infos.begin(), infos.end());
 }
 
-bool constructDirmatrix(const vector<block_t>& blocks, std::map<uint32_t, uint32_t>& dirMatrix)
+bool constructDirmatrix(const vector<sce_ng_pfs_block_t>& blocks, std::map<uint32_t, uint32_t>& dirMatrix)
 {
    //child -> parent matrix
 
-   for(vector<block_t>::const_iterator it = blocks.begin(); it != blocks.end(); ++it)
+   for(vector<sce_ng_pfs_block_t>::const_iterator it = blocks.begin(); it != blocks.end(); ++it)
    {
       for(uint32_t i = 0; i < it->header.nFiles; i++)
       {
@@ -224,11 +224,11 @@ bool constructDirmatrix(const vector<block_t>& blocks, std::map<uint32_t, uint32
    return true;
 }
 
-bool constructFileMatrix(const vector<block_t>& blocks, std::map<uint32_t, uint32_t>& fileMatrix)
+bool constructFileMatrix(const vector<sce_ng_pfs_block_t>& blocks, std::map<uint32_t, uint32_t>& fileMatrix)
 {
    //child -> parent matrix
 
-   for(vector<block_t>::const_iterator it = blocks.begin(); it != blocks.end(); ++it)
+   for(vector<sce_ng_pfs_block_t>::const_iterator it = blocks.begin(); it != blocks.end(); ++it)
    {
       for(uint32_t i = 0; i < it->header.nFiles; i++)
       {
@@ -260,17 +260,17 @@ bool constructFileMatrix(const vector<block_t>& blocks, std::map<uint32_t, uint3
    return true;
 }
 
-void flattenBlocks(const vector<block_t>& blocks, vector<flat_block_t>& flatBlocks)
+void flattenBlocks(const vector<sce_ng_pfs_block_t>& blocks, vector<sce_ng_pfs_flat_block_t>& flatBlocks)
 {
-   for(vector<block_t>::const_iterator it = blocks.begin(); it != blocks.end(); ++it)
+   for(vector<sce_ng_pfs_block_t>::const_iterator it = blocks.begin(); it != blocks.end(); ++it)
    {
       for(uint32_t i = 0; i < it->header.nFiles; i++)
       {
          if(it->infos[i].size == 0 && it->infos[i].type == unexisting)
             continue;
 
-         flatBlocks.push_back(flat_block_t());
-         flat_block_t& fb = flatBlocks.back();
+         flatBlocks.push_back(sce_ng_pfs_flat_block_t());
+         sce_ng_pfs_flat_block_t& fb = flatBlocks.back();
 
          fb.header = it->header;
          fb.file = it->files[i];
@@ -280,11 +280,11 @@ void flattenBlocks(const vector<block_t>& blocks, vector<flat_block_t>& flatBloc
    }
 }
 
-const vector<flat_block_t>::const_iterator findFlatBlockDir(const vector<flat_block_t>& flatBlocks, uint32_t index)
+const vector<sce_ng_pfs_flat_block_t>::const_iterator findFlatBlockDir(const vector<sce_ng_pfs_flat_block_t>& flatBlocks, uint32_t index)
 {
    size_t i = 0;
 
-   for(vector<flat_block_t>::const_iterator it = flatBlocks.begin(); it != flatBlocks.end(); ++it, i++)
+   for(vector<sce_ng_pfs_flat_block_t>::const_iterator it = flatBlocks.begin(); it != flatBlocks.end(); ++it, i++)
    {
       if(it->info.idx == index && it->info.type == directory)
          return flatBlocks.begin() + i;
@@ -293,11 +293,11 @@ const vector<flat_block_t>::const_iterator findFlatBlockDir(const vector<flat_bl
    return flatBlocks.end();
 }
 
-const vector<flat_block_t>::const_iterator findFlatBlockFile(const vector<flat_block_t>& flatBlocks, uint32_t index)
+const vector<sce_ng_pfs_flat_block_t>::const_iterator findFlatBlockFile(const vector<sce_ng_pfs_flat_block_t>& flatBlocks, uint32_t index)
 {
    size_t i = 0;
 
-   for(vector<flat_block_t>::const_iterator it = flatBlocks.begin(); it != flatBlocks.end(); ++it, i++)
+   for(vector<sce_ng_pfs_flat_block_t>::const_iterator it = flatBlocks.begin(); it != flatBlocks.end(); ++it, i++)
    {
       if(it->info.idx == index && it->info.type != directory)
          return flatBlocks.begin() + i;
@@ -306,7 +306,7 @@ const vector<flat_block_t>::const_iterator findFlatBlockFile(const vector<flat_b
    return flatBlocks.end();
 }
 
-bool constructFilePaths(std::string rootPath, std::map<uint32_t, uint32_t>& dirMatrix, const std::map<uint32_t, uint32_t>& fileMatrix, const vector<flat_block_t>& flatBlocks, std::vector<file_t>& filesResult)
+bool constructFilePaths(std::string rootPath, std::map<uint32_t, uint32_t>& dirMatrix, const std::map<uint32_t, uint32_t>& fileMatrix, const vector<sce_ng_pfs_flat_block_t>& flatBlocks, std::vector<sce_ng_pfs_file_t>& filesResult)
 {
    for(std::map<uint32_t, uint32_t>::const_iterator it = fileMatrix.begin(); it != fileMatrix.end(); ++it)
    {
@@ -328,7 +328,7 @@ bool constructFilePaths(std::string rootPath, std::map<uint32_t, uint32_t>& dirM
          parent = dit->second;
       }
 
-      vector<flat_block_t>::const_iterator fileBlockIt = findFlatBlockFile(flatBlocks, child);
+      vector<sce_ng_pfs_flat_block_t>::const_iterator fileBlockIt = findFlatBlockFile(flatBlocks, child);
       if(fileBlockIt == flatBlocks.end())
       {
          cout << "Missing file with index" << child << endl;
@@ -343,7 +343,7 @@ bool constructFilePaths(std::string rootPath, std::map<uint32_t, uint32_t>& dirM
       {
          uint32_t idx = *indit;
 
-         vector<flat_block_t>::const_iterator blockIt = findFlatBlockDir(flatBlocks, idx);
+         vector<sce_ng_pfs_flat_block_t>::const_iterator blockIt = findFlatBlockDir(flatBlocks, idx);
          if(blockIt == flatBlocks.end())
          {
             cout << "Missing parent directory index " << idx  << endl;
@@ -361,8 +361,8 @@ bool constructFilePaths(std::string rootPath, std::map<uint32_t, uint32_t>& dirM
 
       path = rootPath + path + fileName;
 
-      filesResult.push_back(file_t());
-      file_t& ft = filesResult.back();
+      filesResult.push_back(sce_ng_pfs_file_t());
+      sce_ng_pfs_file_t& ft = filesResult.back();
       ft.path = path;
       ft.block = *fileBlockIt;
    }
@@ -370,7 +370,7 @@ bool constructFilePaths(std::string rootPath, std::map<uint32_t, uint32_t>& dirM
    return true;
 }
 
-std::string fileTypeToString(file_types ft)
+std::string fileTypeToString(sce_ng_pfs_file_types ft)
 {
    switch(ft)
    {
@@ -395,14 +395,11 @@ int parseAndFlattenFilesDb(std::string title_id_path)
 
    ifstream inputStream(filepath.generic_string().c_str(), ios::in | ios::binary);
 
-   header_t header;
-   vector<block_t> blocks;
+   sce_ng_pfs_header_t header;
+   vector<sce_ng_pfs_block_t> blocks;
    if(!parseFilesDb(inputStream, header, blocks))
       return -1;
 
-   //printBlocks(blocks);
-   //printHashes(blocks);
-   
    std::map<uint32_t, uint32_t> dirMatrix;
    if(!constructDirmatrix(blocks, dirMatrix))
       return -1;
@@ -411,14 +408,14 @@ int parseAndFlattenFilesDb(std::string title_id_path)
    if(!constructFileMatrix(blocks, fileMatrix))
       return -1;
    
-   vector<flat_block_t> flatBlocks;
+   vector<sce_ng_pfs_flat_block_t> flatBlocks;
    flattenBlocks(blocks, flatBlocks);
 
-   std::vector<file_t> filesResult;
+   std::vector<sce_ng_pfs_file_t> filesResult;
    if(!constructFilePaths(boost::filesystem::path(title_id_path).generic_string() , dirMatrix, fileMatrix, flatBlocks, filesResult))
       return -1;
 
-   for(std::vector<file_t>::const_iterator it = filesResult.begin(); it != filesResult.end(); ++it)
+   for(std::vector<sce_ng_pfs_file_t>::const_iterator it = filesResult.begin(); it != filesResult.end(); ++it)
    {
       std::cout << it->path << endl;
       
@@ -436,19 +433,6 @@ int parseAndFlattenFilesDb(std::string title_id_path)
       }
 
       cout << fileTypeToString(it->block.info.type)<< endl;
-
-      //TODO: for now just skip big files - will fix later
-      //if(size > 0x00000000b0000000)
-      //   continue;
-
-      //tried sha-1 but hash is obviously not sha-1
-      //sha1(it->path.generic_string());
-      //printHash(it->block.hash);
-
-      //std::cout << std::hex << std::setw(8) << std::setfill('0') << it->block.hash_header.unk1 << " ";
-      //std::cout << std::hex << std::setw(8) << std::setfill('0') << it->block.hash_header.unk2 << " ";
-      //std::cout << std::hex << std::setw(8) << std::setfill('0') << it->block.hash_header.unk3 << " ";
-      //std::cout << std::hex << std::setw(8) << std::setfill('0') << it->block.hash_header.unk4 << std::endl;
 
       std::cout << std::hex << std::setw(8) << std::setfill('0') << it->block.info.size << std::endl;
    }

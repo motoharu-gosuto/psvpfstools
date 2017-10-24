@@ -9,7 +9,7 @@
 
 #include "FilesDbParser.h"
 
-void printBlocks(const std::vector<block_t>& root)
+void printBlocks(const std::vector<sce_ng_pfs_block_t>& root)
 {
    for(size_t i = 0; i < root.size(); i++)
    {
@@ -31,16 +31,16 @@ void printBlocks(const std::vector<block_t>& root)
    }
 }
 
-void printHash(const hash_t& hash)
+void printHash(const sce_ng_pfs_hash_t& hash)
 {
-   for(size_t k = 0; k < sizeof(hash_t); k++)
+   for(size_t k = 0; k < sizeof(sce_ng_pfs_hash_t); k++)
    {
       std::cout << std::hex << std::setw(2) << std::setfill('0') << (int32_t)hash.data[k];
    }
    std::cout << std::endl;
 }
 
-void printHashes(const std::vector<block_t>& blocks)
+void printHashes(const std::vector<sce_ng_pfs_block_t>& blocks)
 {
    for(size_t i = 0; i < blocks.size(); i++)
    {
