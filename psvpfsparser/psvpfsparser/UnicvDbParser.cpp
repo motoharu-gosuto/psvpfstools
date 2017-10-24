@@ -8,15 +8,7 @@
 
 #include <boost/filesystem.hpp>
 
-bool isZeroVector(std::vector<uint8_t> data)
-{
-   for(std::vector<uint8_t>::const_iterator it = data.begin(); it != data.end(); ++it)
-   {
-      if((*it) != 0)
-         return false;
-   }
-   return true;
-}
+#include "Utils.h"
 
 bool readSignatureBlock(std::ifstream& inputStream, ft_header_t& ftHeader, uint32_t sizeCheck, signatures_dt_t& fdt)
 {

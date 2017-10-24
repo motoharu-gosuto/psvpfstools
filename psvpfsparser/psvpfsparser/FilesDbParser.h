@@ -20,6 +20,8 @@
 
 #define MAX_FILES_IN_BLOCK 9
 
+#define EXPECTED_BLOCK_SIZE 0x400
+
 struct header_t
 {
    uint8_t magic[8];
@@ -28,23 +30,33 @@ struct header_t
    uint32_t blockSize;
    uint32_t unk3; // this is probably related to number of blocks
    uint32_t unk4; // this is probably related to number of blocks
-   uint32_t unk5;
+   uint32_t salt0; // first salt value used for key derrivation
    uint64_t unk6;
-   uint32_t tailSize;
+   uint32_t tailSize; // size of data after this header
    uint32_t unk7;
    uint32_t unk8;
    uint32_t unk9;
    uint8_t data[0x3c8];
 };
 
-struct block_header_t
+//still have to figure out
+enum block_types : uint32_t
 {
-   uint32_t id; // looks like 0x02 for block with general files, 0x0d for block with deleted files
-   uint32_t type;
-   uint32_t nFiles;
-   uint32_t unk1;
+   regular = 0,
+   unknown_block_type = 1
 };
 
+struct block_header_t
+{
+   uint32_t id; // this field is either flag or some number that can vary a lot 
+                // int simple example looks like it is 0x02 for block with general files, 0x0d for block with deleted files
+                // however in examples with many files - this can take lots of different values
+   block_types type;
+   uint32_t nFiles;
+   uint32_t padding; // probably padding ? always 0
+};
+
+//there can be 9 files at max in one block
 struct file_header_t
 {
    uint32_t index; //parent index
@@ -62,11 +74,11 @@ enum file_types : uint16_t
 
 struct file_info_t
 {
-   uint32_t idx; // this file index
+   uint32_t idx; // this file index. can be 0xFFFFFFFF
    file_types type;
-   uint16_t unk1;
+   uint16_t padding0; //probably padding ? always 0
    uint32_t size;
-   uint32_t unk2;
+   uint32_t padding1; //probably padding ? always 0
 };
 
 struct hash_header_t
@@ -84,11 +96,10 @@ struct hash_t
 
 struct block_t
 {
-   block_header_t header;
-   std::vector<file_header_t> files;
-   std::vector<file_info_t> infos;
-   hash_header_t hash_header;
-   std::vector<hash_t> hashes;
+   block_header_t header; //size = 16
+   std::vector<file_header_t> files; // size = 72 * 9 = 648
+   std::vector<file_info_t> infos; // size = 16 * 10 = 160
+   std::vector<hash_t> hashes; // size = 20 * 10 = 200
 };
 
 struct flat_block_t
@@ -96,7 +107,6 @@ struct flat_block_t
    block_header_t header;
    file_header_t file;
    file_info_t info;
-   hash_header_t hash_header;
    hash_t hash;
 };
 

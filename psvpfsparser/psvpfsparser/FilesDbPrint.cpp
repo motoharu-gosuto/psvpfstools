@@ -25,8 +25,8 @@ void printBlocks(const std::vector<block_t>& root)
          std::cout << std::hex << "size: " << root[i].infos[j].size << std::endl;
          std::cout << std::hex << "type: " << root[i].infos[j].type << std::endl;
          
-         std::cout << std::hex << "unk1: " << root[i].infos[j].unk1 << std::endl;
-         std::cout << std::hex << "unk2: " << root[i].infos[j].unk2 << std::endl;
+         std::cout << std::hex << "unk1: " << root[i].infos[j].padding0 << std::endl;
+         std::cout << std::hex << "unk2: " << root[i].infos[j].padding1 << std::endl;
       }
    }
 }
@@ -47,10 +47,6 @@ void printHashes(const std::vector<block_t>& blocks)
       std::cout << "---------------------" << std::endl;
 
       std::cout << std::dec << blocks[i].header.nFiles << std::endl;
-      std::cout << std::dec << blocks[i].hash_header.unk1 << std::endl;
-      std::cout << std::dec << blocks[i].hash_header.unk2 << std::endl;
-      std::cout << std::dec << blocks[i].hash_header.unk3 << std::endl;
-      std::cout << std::dec << blocks[i].hash_header.unk4 << std::endl;
 
       for(size_t j = 0; j < blocks[i].hashes.size(); j++)
       {

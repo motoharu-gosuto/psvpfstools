@@ -11,6 +11,8 @@
 
 #include "FilesDbParser.h"
 
+#include "Utils.h"
+
 using namespace std;
 
 bool parseFilesDb(ifstream& inputStream, header_t& header, vector<block_t>& blocks)
@@ -23,17 +25,27 @@ bool parseFilesDb(ifstream& inputStream, header_t& header, vector<block_t>& bloc
       return false;
    }
 
+   //calculate tail size
    int64_t chunksBeginPos = inputStream.tellg();
    inputStream.seekg(0, ios_base::end);
    int64_t cunksEndPos = inputStream.tellg();
    int64_t dataSize = cunksEndPos - chunksBeginPos;
 
+   //confirm tail size
    if(dataSize != header.tailSize)
    {
       cout << "Unexpected tail size" << endl;
       return false;
    }
 
+   //check block size
+   if(header.blockSize != EXPECTED_BLOCK_SIZE)
+   {
+      cout << "Invalid block size" << endl;
+      return false;
+   }
+
+   //seek back to the beginning of tail
    inputStream.seekg(chunksBeginPos, ios_base::beg);
 
    while(true)
@@ -48,6 +60,20 @@ bool parseFilesDb(ifstream& inputStream, header_t& header, vector<block_t>& bloc
 
       inputStream.read((char*)&block.header, sizeof(block_header_t));
 
+      if(block.header.type != block_types::regular && 
+         block.header.type != block_types::unknown_block_type)
+      {
+         cout << "Unexpected type" << endl;
+         return false;
+      }
+
+      if(block.header.padding != 0)
+      {
+         cout << "Unexpected padding" << endl;
+         return false;
+      }
+
+      //read file records
       for(uint32_t i = 0; i < block.header.nFiles; i++)
       {
          block.files.push_back(file_header_t());
@@ -55,23 +81,54 @@ bool parseFilesDb(ifstream& inputStream, header_t& header, vector<block_t>& bloc
          inputStream.read((char*)&fh, sizeof(file_header_t));
       }
 
+      //skip / test / read unused data
       uint32_t nUnused = MAX_FILES_IN_BLOCK - block.header.nFiles;
       uint32_t nUnusedSize1 = nUnused * sizeof(file_header_t);
-      inputStream.seekg(nUnusedSize1, ios_base::cur);
+      if(nUnusedSize1 > 0)
+      {
+         std::vector<uint8_t> unusedData1(nUnusedSize1);
+         inputStream.read((char*)unusedData1.data(), nUnusedSize1);
 
-      for(uint32_t i = 0; i < block.header.nFiles; i++)
+         if(!isZeroVector(unusedData1))
+         {
+            std::cout << "Unexpected data instead of padding" << std::endl;
+            return false;
+         }
+      }
+      
+      //skip will be faster
+      //inputStream.seekg(nUnusedSize1, ios_base::cur);
+
+      //read file information records
+      //looks like there are 9 + 1 records in total
+      //some of the records may contain 0xFFFFFFFF as idx
+      for(uint32_t i = 0; i < 10; i++)
       {
          block.infos.push_back(file_info_t());
          file_info_t& fi = block.infos.back();
          inputStream.read((char*)&fi, sizeof(file_info_t));
+
+         //check file type
+         if(fi.type != unexisting && fi.type != normal_file && fi.type != directory && fi.type != unencrypted_system_file && fi.type != encrypted_system_file)
+         {
+            std::cout << "Unexpected file type" << std::endl;
+            return false;
+         }
+
+         if(fi.padding0 != 0)
+         {
+            cout << "Unexpected padding" << endl;
+            return false;
+         }
+
+         if(fi.padding1 != 0)
+         {
+            cout << "Unexpected unk1" << endl;
+            return false;
+         }
       }
 
-      uint32_t nUnusedSize2 = nUnused * sizeof(file_info_t);
-      inputStream.seekg(nUnusedSize2, ios_base::cur);
-
-
-      inputStream.read((char*)&block.hash_header, sizeof(hash_header_t));
-
+      //read hash table ?
       int64_t currentBlockPos2 = inputStream.tellg();
 
       for(int32_t i = 0; i < 10; i++)
@@ -82,8 +139,8 @@ bool parseFilesDb(ifstream& inputStream, header_t& header, vector<block_t>& bloc
          inputStream.read((char*)&h.data, sizeof(hash_t));
       }
 
+      //validate next position - check that read operations we not out of bounds of current block
       int64_t nextBlockPos = currentBlockPos + header.blockSize;
-
       if((int64_t)inputStream.tellg() != nextBlockPos)
       {
          cout << "Block overlay" << endl;
@@ -211,7 +268,6 @@ void flattenBlocks(const vector<block_t>& blocks, vector<flat_block_t>& flatBloc
          fb.header = it->header;
          fb.file = it->files[i];
          fb.info = it->infos[i];
-         fb.hash_header = it->hash_header;
          fb.hash = it->hashes[i];
       }
    }
