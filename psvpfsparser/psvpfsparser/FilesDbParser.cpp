@@ -13,35 +13,33 @@
 
 #include "Utils.h"
 
-using namespace std;
-
-bool parseFilesDb(ifstream& inputStream, sce_ng_pfs_header_t& header, vector<sce_ng_pfs_block_t>& blocks)
+bool parseFilesDb(std::ifstream& inputStream, sce_ng_pfs_header_t& header, std::vector<sce_ng_pfs_block_t>& blocks)
 {
    inputStream.read((char*)&header, sizeof(sce_ng_pfs_header_t));
 
    if(std::string((char*)header.magic, 8) != MAGIC_WORD)
    {
-      cout << "Magic word is incorrect" << endl;
+      std::cout << "Magic word is incorrect" << std::endl;
       return false;
    }
 
    //calculate tail size
    int64_t chunksBeginPos = inputStream.tellg();
-   inputStream.seekg(0, ios_base::end);
+   inputStream.seekg(0, std::ios_base::end);
    int64_t cunksEndPos = inputStream.tellg();
    int64_t dataSize = cunksEndPos - chunksBeginPos;
 
    //confirm tail size
    if(dataSize != header.tailSize)
    {
-      cout << "Unexpected tail size" << endl;
+      std::cout << "Unexpected tail size" << std::endl;
       return false;
    }
 
    //check block size
    if(header.blockSize != EXPECTED_BLOCK_SIZE)
    {
-      cout << "Invalid block size" << endl;
+      std::cout << "Invalid block size" << std::endl;
       return false;
    }
 
@@ -53,7 +51,7 @@ bool parseFilesDb(ifstream& inputStream, sce_ng_pfs_header_t& header, vector<sce
    }
 
    //seek back to the beginning of tail
-   inputStream.seekg(chunksBeginPos, ios_base::beg);
+   inputStream.seekg(chunksBeginPos, std::ios_base::beg);
 
    while(true)
    {
@@ -70,13 +68,13 @@ bool parseFilesDb(ifstream& inputStream, sce_ng_pfs_header_t& header, vector<sce
       if(block.header.type != sce_ng_pfs_block_types::regular && 
          block.header.type != sce_ng_pfs_block_types::unknown_block_type)
       {
-         cout << "Unexpected type" << endl;
+         std::cout << "Unexpected type" << std::endl;
          return false;
       }
 
       if(block.header.padding != 0)
       {
-         cout << "Unexpected padding" << endl;
+         std::cout << "Unexpected padding" << std::endl;
          return false;
       }
 
@@ -124,13 +122,13 @@ bool parseFilesDb(ifstream& inputStream, sce_ng_pfs_header_t& header, vector<sce
 
          if(fi.padding0 != 0)
          {
-            cout << "Unexpected padding" << endl;
+            std::cout << "Unexpected padding" << std::endl;
             return false;
          }
 
          if(fi.padding1 != 0)
          {
-            cout << "Unexpected unk1" << endl;
+            std::cout << "Unexpected unk1" << std::endl;
             return false;
          }
       }
@@ -150,7 +148,7 @@ bool parseFilesDb(ifstream& inputStream, sce_ng_pfs_header_t& header, vector<sce
       int64_t nextBlockPos = currentBlockPos + header.blockSize;
       if((int64_t)inputStream.tellg() != nextBlockPos)
       {
-         cout << "Block overlay" << endl;
+         std::cout << "Block overlay" << std::endl;
          return false;
       }
    }
@@ -163,13 +161,13 @@ bool operator < (const sce_ng_pfs_file_info_t& fi1, const sce_ng_pfs_file_info_t
    return fi1.idx < fi2.idx;
 }
 
-void constructIndexLists(const vector<sce_ng_pfs_block_t>& blocks)
+void constructIndexLists(const std::vector<sce_ng_pfs_block_t>& blocks)
 {
    std::vector<std::pair<uint32_t, std::string> > files;
 
-   for(vector<sce_ng_pfs_block_t>::const_iterator it = blocks.begin(); it != blocks.end(); ++it)
+   for(std::vector<sce_ng_pfs_block_t>::const_iterator it = blocks.begin(); it != blocks.end(); ++it)
    {
-      for(vector<sce_ng_pfs_file_header_t>::const_iterator fit = it->files.begin(); fit != it->files.end(); ++fit)
+      for(std::vector<sce_ng_pfs_file_header_t>::const_iterator fit = it->files.begin(); fit != it->files.end(); ++fit)
       {
          files.push_back(std::make_pair(fit->index, std::string((const char*)fit->fileName)));
       }
@@ -184,9 +182,9 @@ void constructIndexLists(const vector<sce_ng_pfs_block_t>& blocks)
 
    std::vector<std::pair<uint32_t, sce_ng_pfs_file_info_t> > infos;
 
-   for(vector<sce_ng_pfs_block_t>::const_iterator it = blocks.begin(); it != blocks.end(); ++it)
+   for(std::vector<sce_ng_pfs_block_t>::const_iterator it = blocks.begin(); it != blocks.end(); ++it)
    {
-      for(vector<sce_ng_pfs_file_info_t>::const_iterator fit = it->infos.begin(); fit != it->infos.end(); ++ fit)
+      for(std::vector<sce_ng_pfs_file_info_t>::const_iterator fit = it->infos.begin(); fit != it->infos.end(); ++ fit)
       {
          infos.push_back(std::make_pair(fit->idx, *fit));
       }
@@ -195,11 +193,11 @@ void constructIndexLists(const vector<sce_ng_pfs_block_t>& blocks)
    std::sort(infos.begin(), infos.end());
 }
 
-bool constructDirmatrix(const vector<sce_ng_pfs_block_t>& blocks, std::map<uint32_t, uint32_t>& dirMatrix)
+bool constructDirmatrix(const std::vector<sce_ng_pfs_block_t>& blocks, std::map<uint32_t, uint32_t>& dirMatrix)
 {
    //child -> parent matrix
 
-   for(vector<sce_ng_pfs_block_t>::const_iterator it = blocks.begin(); it != blocks.end(); ++it)
+   for(std::vector<sce_ng_pfs_block_t>::const_iterator it = blocks.begin(); it != blocks.end(); ++it)
    {
       for(uint32_t i = 0; i < it->header.nFiles; i++)
       {
@@ -212,7 +210,7 @@ bool constructDirmatrix(const vector<sce_ng_pfs_block_t>& blocks, std::map<uint3
          if(dirMatrix.find(child) != dirMatrix.end())
          {
             std::string fileName = std::string((const char*)it->files[i].fileName);
-            cout << "Directory " << fileName << " index " << child << " is not unique" << endl;
+            std::cout << "Directory " << fileName << " index " << child << " is not unique" << std::endl;
             return false;
          }
 
@@ -224,11 +222,11 @@ bool constructDirmatrix(const vector<sce_ng_pfs_block_t>& blocks, std::map<uint3
    return true;
 }
 
-bool constructFileMatrix(const vector<sce_ng_pfs_block_t>& blocks, std::map<uint32_t, uint32_t>& fileMatrix)
+bool constructFileMatrix(const std::vector<sce_ng_pfs_block_t>& blocks, std::map<uint32_t, uint32_t>& fileMatrix)
 {
    //child -> parent matrix
 
-   for(vector<sce_ng_pfs_block_t>::const_iterator it = blocks.begin(); it != blocks.end(); ++it)
+   for(std::vector<sce_ng_pfs_block_t>::const_iterator it = blocks.begin(); it != blocks.end(); ++it)
    {
       for(uint32_t i = 0; i < it->header.nFiles; i++)
       {
@@ -242,13 +240,13 @@ bool constructFileMatrix(const vector<sce_ng_pfs_block_t>& blocks, std::map<uint
 
          if(it->infos[i].size == 0 && it->infos[i].type == unexisting)
          {   
-            cout << "[EMPTY] File " << fileName << " index " << child << endl;
+            std::cout << "[EMPTY] File " << fileName << " index " << child << std::endl;
             continue;
          }
 
          if(fileMatrix.find(child) != fileMatrix.end())
          {
-            cout << "File " << fileName << " index " << child << " is not unique" << endl;
+            std::cout << "File " << fileName << " index " << child << " is not unique" << std::endl;
             return false;
          }
 
@@ -260,9 +258,9 @@ bool constructFileMatrix(const vector<sce_ng_pfs_block_t>& blocks, std::map<uint
    return true;
 }
 
-void flattenBlocks(const vector<sce_ng_pfs_block_t>& blocks, vector<sce_ng_pfs_flat_block_t>& flatBlocks)
+void flattenBlocks(const std::vector<sce_ng_pfs_block_t>& blocks, std::vector<sce_ng_pfs_flat_block_t>& flatBlocks)
 {
-   for(vector<sce_ng_pfs_block_t>::const_iterator it = blocks.begin(); it != blocks.end(); ++it)
+   for(std::vector<sce_ng_pfs_block_t>::const_iterator it = blocks.begin(); it != blocks.end(); ++it)
    {
       for(uint32_t i = 0; i < it->header.nFiles; i++)
       {
@@ -280,11 +278,11 @@ void flattenBlocks(const vector<sce_ng_pfs_block_t>& blocks, vector<sce_ng_pfs_f
    }
 }
 
-const vector<sce_ng_pfs_flat_block_t>::const_iterator findFlatBlockDir(const vector<sce_ng_pfs_flat_block_t>& flatBlocks, uint32_t index)
+const std::vector<sce_ng_pfs_flat_block_t>::const_iterator findFlatBlockDir(const std::vector<sce_ng_pfs_flat_block_t>& flatBlocks, uint32_t index)
 {
    size_t i = 0;
 
-   for(vector<sce_ng_pfs_flat_block_t>::const_iterator it = flatBlocks.begin(); it != flatBlocks.end(); ++it, i++)
+   for(std::vector<sce_ng_pfs_flat_block_t>::const_iterator it = flatBlocks.begin(); it != flatBlocks.end(); ++it, i++)
    {
       if(it->info.idx == index && it->info.type == directory)
          return flatBlocks.begin() + i;
@@ -293,11 +291,11 @@ const vector<sce_ng_pfs_flat_block_t>::const_iterator findFlatBlockDir(const vec
    return flatBlocks.end();
 }
 
-const vector<sce_ng_pfs_flat_block_t>::const_iterator findFlatBlockFile(const vector<sce_ng_pfs_flat_block_t>& flatBlocks, uint32_t index)
+const std::vector<sce_ng_pfs_flat_block_t>::const_iterator findFlatBlockFile(const std::vector<sce_ng_pfs_flat_block_t>& flatBlocks, uint32_t index)
 {
    size_t i = 0;
 
-   for(vector<sce_ng_pfs_flat_block_t>::const_iterator it = flatBlocks.begin(); it != flatBlocks.end(); ++it, i++)
+   for(std::vector<sce_ng_pfs_flat_block_t>::const_iterator it = flatBlocks.begin(); it != flatBlocks.end(); ++it, i++)
    {
       if(it->info.idx == index && it->info.type != directory)
          return flatBlocks.begin() + i;
@@ -306,7 +304,7 @@ const vector<sce_ng_pfs_flat_block_t>::const_iterator findFlatBlockFile(const ve
    return flatBlocks.end();
 }
 
-bool constructFilePaths(std::string rootPath, std::map<uint32_t, uint32_t>& dirMatrix, const std::map<uint32_t, uint32_t>& fileMatrix, const vector<sce_ng_pfs_flat_block_t>& flatBlocks, std::vector<sce_ng_pfs_file_t>& filesResult)
+bool constructFilePaths(std::string rootPath, std::map<uint32_t, uint32_t>& dirMatrix, const std::map<uint32_t, uint32_t>& fileMatrix, const std::vector<sce_ng_pfs_flat_block_t>& flatBlocks, std::vector<sce_ng_pfs_file_t>& filesResult)
 {
    for(std::map<uint32_t, uint32_t>::const_iterator it = fileMatrix.begin(); it != fileMatrix.end(); ++it)
    {
@@ -320,7 +318,7 @@ bool constructFilePaths(std::string rootPath, std::map<uint32_t, uint32_t>& dirM
          std::map<uint32_t, uint32_t>::const_iterator dit =  dirMatrix.find(parent);
          if(dit == dirMatrix.end())
          {
-            cout << "Missing parent directory index " << parent  << endl;
+            std::cout << "Missing parent directory index " << parent  << std::endl;
             return false;
          }
          
@@ -328,10 +326,10 @@ bool constructFilePaths(std::string rootPath, std::map<uint32_t, uint32_t>& dirM
          parent = dit->second;
       }
 
-      vector<sce_ng_pfs_flat_block_t>::const_iterator fileBlockIt = findFlatBlockFile(flatBlocks, child);
+      std::vector<sce_ng_pfs_flat_block_t>::const_iterator fileBlockIt = findFlatBlockFile(flatBlocks, child);
       if(fileBlockIt == flatBlocks.end())
       {
-         cout << "Missing file with index" << child << endl;
+         std::cout << "Missing file with index" << child << std::endl;
          return false;
       }
 
@@ -343,10 +341,10 @@ bool constructFilePaths(std::string rootPath, std::map<uint32_t, uint32_t>& dirM
       {
          uint32_t idx = *indit;
 
-         vector<sce_ng_pfs_flat_block_t>::const_iterator blockIt = findFlatBlockDir(flatBlocks, idx);
+         std::vector<sce_ng_pfs_flat_block_t>::const_iterator blockIt = findFlatBlockDir(flatBlocks, idx);
          if(blockIt == flatBlocks.end())
          {
-            cout << "Missing parent directory index " << idx  << endl;
+            std::cout << "Missing parent directory index " << idx  << std::endl;
             return false;
          }
 
@@ -393,10 +391,10 @@ int parseAndFlattenFilesDb(std::string title_id_path)
 {
    boost::filesystem::path filepath = boost::filesystem::path(title_id_path) / "sce_pfs\\files.db";
 
-   ifstream inputStream(filepath.generic_string().c_str(), ios::in | ios::binary);
+   std::ifstream inputStream(filepath.generic_string().c_str(), std::ios::in | std::ios::binary);
 
    sce_ng_pfs_header_t header;
-   vector<sce_ng_pfs_block_t> blocks;
+   std::vector<sce_ng_pfs_block_t> blocks;
    if(!parseFilesDb(inputStream, header, blocks))
       return -1;
 
@@ -408,7 +406,7 @@ int parseAndFlattenFilesDb(std::string title_id_path)
    if(!constructFileMatrix(blocks, fileMatrix))
       return -1;
    
-   vector<sce_ng_pfs_flat_block_t> flatBlocks;
+   std::vector<sce_ng_pfs_flat_block_t> flatBlocks;
    flattenBlocks(blocks, flatBlocks);
 
    std::vector<sce_ng_pfs_file_t> filesResult;
@@ -417,22 +415,22 @@ int parseAndFlattenFilesDb(std::string title_id_path)
 
    for(std::vector<sce_ng_pfs_file_t>::const_iterator it = filesResult.begin(); it != filesResult.end(); ++it)
    {
-      std::cout << it->path << endl;
+      std::cout << it->path << std::endl;
       
       if(!boost::filesystem::exists(it->path))
       {
-         cout << "File " << it->path.generic_string() << " does not exist" << endl;
+         std::cout << "File " << it->path.generic_string() << " does not exist" << std::endl;
          continue;
       }
       
       uint64_t size = boost::filesystem::file_size(it->path);
       if(size != it->block.info.size)
       {
-         cout << "File " << it->path.generic_string() << " size incorrect" << endl;
+         std::cout << "File " << it->path.generic_string() << " size incorrect" << std::endl;
          continue;
       }
 
-      cout << fileTypeToString(it->block.info.type)<< endl;
+      std::cout << fileTypeToString(it->block.info.type)<< std::endl;
 
       std::cout << std::hex << std::setw(8) << std::setfill('0') << it->block.info.size << std::endl;
    }
