@@ -28,15 +28,19 @@ struct header_t
    uint32_t unk1;
    uint32_t unk2;
    uint32_t blockSize;
-   uint32_t unk3; // this is probably related to number of blocks
-   uint32_t unk4; // this is probably related to number of blocks
+   uint32_t unk3; // this is probably related to number of blocks ?
+   uint32_t unk4; // this is probably related to number of blocks ?
    uint32_t salt0; // first salt value used for key derrivation
    uint64_t unk6;
    uint32_t tailSize; // size of data after this header
    uint32_t unk7;
    uint32_t unk8;
    uint32_t unk9;
-   uint8_t data[0x3c8];
+   uint8_t data0[0x14];
+   uint8_t data1[0x14];
+   uint8_t rsa_sig0[0x100];
+   uint8_t rsa_sig1[0x100];
+   uint8_t padding[0x1A0];
 };
 
 //still have to figure out
@@ -72,9 +76,11 @@ enum file_types : uint16_t
    encrypted_system_file = 0x06
 };
 
+#define INVALID_FILE_INDEX 0xFFFFFFFF
+
 struct file_info_t
 {
-   uint32_t idx; // this file index. can be 0xFFFFFFFF
+   uint32_t idx; // this file index. can be INVALID_FILE_INDEX
    file_types type;
    uint16_t padding0; //probably padding ? always 0
    uint32_t size;

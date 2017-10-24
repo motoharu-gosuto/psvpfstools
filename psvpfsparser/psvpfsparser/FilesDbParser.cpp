@@ -45,6 +45,13 @@ bool parseFilesDb(ifstream& inputStream, header_t& header, vector<block_t>& bloc
       return false;
    }
 
+   //check padding
+   if(!isZeroVector(header.padding + 0, header.padding + sizeof(header.padding)))
+   {
+      std::cout << "Unexpected data instead of padding" << std::endl;
+      return false;
+   }
+
    //seek back to the beginning of tail
    inputStream.seekg(chunksBeginPos, ios_base::beg);
 
@@ -101,7 +108,7 @@ bool parseFilesDb(ifstream& inputStream, header_t& header, vector<block_t>& bloc
 
       //read file information records
       //looks like there are 9 + 1 records in total
-      //some of the records may contain 0xFFFFFFFF as idx
+      //some of the records may contain INVALID_FILE_INDEX as idx
       for(uint32_t i = 0; i < 10; i++)
       {
          block.infos.push_back(file_info_t());
