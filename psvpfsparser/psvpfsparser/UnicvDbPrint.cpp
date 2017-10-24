@@ -22,7 +22,7 @@ void printVector(const std::vector<uint8_t>& data)
    std::cout << std::endl;
 }
 
-void printUnicvDb(const files_db_t& fdb)
+void printUnicvDb(const scei_rodb_t& fdb)
 {
    /*
    std::cout << DB_MAGIC_WORD << std::endl;
@@ -36,7 +36,7 @@ void printUnicvDb(const files_db_t& fdb)
 
    std::vector<uint32_t> sizes;
 
-   for(std::vector<files_ft_t>::const_iterator fit = fdb.tables.begin(); fit != fdb.tables.end(); ++fit)
+   for(std::vector<scei_ftbl_t>::const_iterator fit = fdb.tables.begin(); fit != fdb.tables.end(); ++fit)
    {
       if(fit->ftHeader.nSectors == 0)
          isEmpty++;

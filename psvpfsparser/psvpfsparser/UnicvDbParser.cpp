@@ -10,11 +10,11 @@
 
 #include "Utils.h"
 
-bool readSignatureBlock(std::ifstream& inputStream, ft_header_t& ftHeader, uint32_t sizeCheck, signatures_dt_t& fdt)
+bool readSignatureBlock(std::ifstream& inputStream, scei_ftbl_header_t& ftHeader, uint32_t sizeCheck, sig_tbl_t& fdt)
 {
    uint64_t cpo = inputStream.tellg();
 
-   inputStream.read((char*)&fdt.dtHeader, sizeof(sig_header_t));
+   inputStream.read((char*)&fdt.dtHeader, sizeof(sig_tbl_header_t));
    
    if(fdt.dtHeader.tableSize != 0x3F8)
    {
@@ -72,9 +72,9 @@ bool readSignatureBlock(std::ifstream& inputStream, ft_header_t& ftHeader, uint3
    return true;
 }
 
-bool readDataBlock(std::ifstream& inputStream, uint64_t& i, files_ft_t& fft)
+bool readDataBlock(std::ifstream& inputStream, uint64_t& i, scei_ftbl_t& fft)
 {
-   inputStream.read((char*)&fft.ftHeader, sizeof(ft_header_t));
+   inputStream.read((char*)&fft.ftHeader, sizeof(scei_ftbl_header_t));
 
    //check that block size is expected
    //this will allow to fail if there are any other unexpected block sizes
@@ -121,7 +121,7 @@ bool readDataBlock(std::ifstream& inputStream, uint64_t& i, files_ft_t& fft)
 
    //calculate size of tail data - this data should be zero padding
    //instead of skipping it is validated here that it contains only zeroes
-   uint64_t tail = fft.ftHeader.blockSize - sizeof(ft_header_t);
+   uint64_t tail = fft.ftHeader.blockSize - sizeof(scei_ftbl_header_t);
    
    std::vector<uint8_t> tailData(tail);
    inputStream.read((char*)tailData.data(), tail);
@@ -143,8 +143,8 @@ bool readDataBlock(std::ifstream& inputStream, uint64_t& i, files_ft_t& fft)
    if(fft.ftHeader.nSectors < fft.ftHeader.maxNSectors)
    {
       //create new signature block
-      fft.blocks.push_back(signatures_dt_t());
-      signatures_dt_t& fdt = fft.blocks.back();
+      fft.blocks.push_back(sig_tbl_t());
+      sig_tbl_t& fdt = fft.blocks.back();
 
       //read and valiate signature block
       if(!readSignatureBlock(inputStream, fft.ftHeader, fft.ftHeader.nSectors, fdt))
@@ -161,8 +161,8 @@ bool readDataBlock(std::ifstream& inputStream, uint64_t& i, files_ft_t& fft)
       for(uint32_t dbi = 0; dbi < nDataBlocks; dbi++)
       {
          //create new signature block
-         fft.blocks.push_back(signatures_dt_t());
-         signatures_dt_t& fdt = fft.blocks.back();
+         fft.blocks.push_back(sig_tbl_t());
+         sig_tbl_t& fdt = fft.blocks.back();
 
          //read and valiate signature block
          if(!readSignatureBlock(inputStream, fft.ftHeader, fft.ftHeader.maxNSectors, fdt))
@@ -173,8 +173,8 @@ bool readDataBlock(std::ifstream& inputStream, uint64_t& i, files_ft_t& fft)
       if(nDataTail > 0)
       {
          //create new signature block
-         fft.blocks.push_back(signatures_dt_t());
-         signatures_dt_t& fdt = fft.blocks.back();
+         fft.blocks.push_back(sig_tbl_t());
+         sig_tbl_t& fdt = fft.blocks.back();
 
          //read and valiate signature block
          if(!readSignatureBlock(inputStream, fft.ftHeader, nDataTail, fdt))
@@ -186,7 +186,7 @@ bool readDataBlock(std::ifstream& inputStream, uint64_t& i, files_ft_t& fft)
    }
 }
 
-bool parseUnicvDb(std::ifstream& inputStream, files_db_t& fdb)
+bool parseUnicvDb(std::ifstream& inputStream, scei_rodb_t& fdb)
 {
    //get stream size
    inputStream.seekg(0, std::ios::end);
@@ -194,7 +194,7 @@ bool parseUnicvDb(std::ifstream& inputStream, files_db_t& fdb)
    inputStream.seekg(0, std::ios::beg);
    
    //read header
-   inputStream.read((char*)&fdb.dbHeader, sizeof(db_header_t));
+   inputStream.read((char*)&fdb.dbHeader, sizeof(scei_rodb_header_t));
 
    //check file size field
    if(fileSize != (fdb.dbHeader.dataSize + fdb.dbHeader.blockSize)) //do not forget to count header
@@ -260,8 +260,8 @@ bool parseUnicvDb(std::ifstream& inputStream, files_db_t& fdb)
    //read all blocks
    for(uint64_t i = 0; i < nBlocks; i++)
    {
-      fdb.tables.push_back(files_ft_t());
-      files_ft_t& fft = fdb.tables.back();
+      fdb.tables.push_back(scei_ftbl_t());
+      scei_ftbl_t& fft = fdb.tables.back();
 
       if(!readDataBlock(inputStream, i, fft))
          return false;
@@ -278,7 +278,7 @@ bool parseUnicvDb(std::ifstream& inputStream, files_db_t& fdb)
    return true;
 }
 
-int parseUnicvDb(std::string title_id_path, files_db_t& fdb)
+int parseUnicvDb(std::string title_id_path, scei_rodb_t& fdb)
 {
    boost::filesystem::path filepath = boost::filesystem::path(title_id_path) / "sce_pfs\\unicv.db";
    std::ifstream inputStream(filepath.generic_string().c_str(), std::ios::in | std::ios::binary);

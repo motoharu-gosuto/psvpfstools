@@ -19,7 +19,7 @@ int main(int argc, char* argv[])
 
    std::string titleId(argv[1]);
 
-   files_db_t unicv;
+   scei_rodb_t unicv;
    parseUnicvDb(titleId, unicv);
 
    std::vector<sce_ng_pfs_file_t> files;

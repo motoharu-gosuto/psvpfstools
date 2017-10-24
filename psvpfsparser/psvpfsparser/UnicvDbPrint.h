@@ -2,4 +2,4 @@
 
 #include "UnicvDbParser.h"
 
-void printUnicvDb(const files_db_t& fdb);
+void printUnicvDb(const scei_rodb_t& fdb);
