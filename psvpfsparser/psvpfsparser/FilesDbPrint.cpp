@@ -54,3 +54,57 @@ void printHashes(const std::vector<sce_ng_pfs_block_t>& blocks)
       }
    }
 }
+
+/*
+bool operator < (const sce_ng_pfs_file_info_t& fi1, const sce_ng_pfs_file_info_t& fi2)
+{
+   return fi1.idx < fi2.idx;
+}
+
+void constructIndexLists(const std::vector<sce_ng_pfs_block_t>& blocks)
+{
+   std::vector<std::pair<uint32_t, std::string> > files;
+
+   for(std::vector<sce_ng_pfs_block_t>::const_iterator it = blocks.begin(); it != blocks.end(); ++it)
+   {
+      for(std::vector<sce_ng_pfs_file_header_t>::const_iterator fit = it->files.begin(); fit != it->files.end(); ++fit)
+      {
+         files.push_back(std::make_pair(fit->index, std::string((const char*)fit->fileName)));
+      }
+   }
+
+   std::sort(files.begin(), files.end());
+
+   for(std::vector<std::pair<uint32_t, std::string> >::const_iterator it = files.begin(); it != files.end(); ++it)
+   {
+      std::cout << it->first << " " << it->second << std::endl;
+   }
+
+   std::vector<std::pair<uint32_t, sce_ng_pfs_file_info_t> > infos;
+
+   for(std::vector<sce_ng_pfs_block_t>::const_iterator it = blocks.begin(); it != blocks.end(); ++it)
+   {
+      for(std::vector<sce_ng_pfs_file_info_t>::const_iterator fit = it->infos.begin(); fit != it->infos.end(); ++ fit)
+      {
+         infos.push_back(std::make_pair(fit->idx, *fit));
+      }
+   }
+
+   std::sort(infos.begin(), infos.end());
+}
+*/
+
+void debug_stuff()
+{
+   /*
+   std::vector<uint32_t> sizes;
+   for(std::vector<file_t>::const_iterator it = filesResult.begin(); it != filesResult.end(); ++it)
+      sizes.push_back(it->block.info.size);
+   std::sort(sizes.begin(), sizes.end());
+
+   std::cout << "------------" << std::endl;
+
+   for(std::vector<uint32_t>::const_iterator it = sizes.begin(); it != sizes.end(); ++it)
+      std::cout << std::dec << (*it) << std::endl;
+   */
+}

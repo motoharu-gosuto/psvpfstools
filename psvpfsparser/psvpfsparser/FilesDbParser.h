@@ -122,4 +122,4 @@ struct sce_ng_pfs_file_t
 
 #pragma pack(pop)
 
-int parseAndFlattenFilesDb(std::string title_id_path);
+int parseFilesDb(std::string title_id_path, std::vector<sce_ng_pfs_file_t>& filesResult);

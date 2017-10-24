@@ -10,6 +10,7 @@
 
 #include <boost/filesystem.hpp>
 #include <boost/range/adaptor/reversed.hpp>
+#include <boost/algorithm/string/predicate.hpp>
 
 #include "FilesDbParser.h"
 
@@ -418,7 +419,7 @@ bool validateFilepaths(std::vector<sce_ng_pfs_file_t> files)
 }
 
 //get files recoursively
-void getFileList(boost::filesystem::path path, std::set<std::string>& files)
+void getFileList(boost::filesystem::path path, std::set<std::string>& files, std::set<std::string>& directories)
 {
    if (!path.empty())
    {
@@ -428,82 +429,51 @@ void getFileList(boost::filesystem::path path, std::set<std::string>& files)
       for (boost::filesystem::recursive_directory_iterator i(apk_path); i != end; ++i)
       {
          const boost::filesystem::path cp = (*i);
-         files.insert(cp.string());
+
+         //skip paths that are not included in files.db
+         if(boost::starts_with(cp, (path / boost::filesystem::path("sce_pfs"))))
+            continue;
+
+         if(boost::starts_with(cp, (path / boost::filesystem::path("sce_sys") / boost::filesystem::path("package"))))
+            continue;
+
+         //add file or directory
+         if(boost::filesystem::is_directory(cp))
+            directories.insert(cp.string());
+         else
+            files.insert(cp.string());
       }
    }
 }
-
-/*
-bool operator < (const sce_ng_pfs_file_info_t& fi1, const sce_ng_pfs_file_info_t& fi2)
-{
-   return fi1.idx < fi2.idx;
-}
-
-void constructIndexLists(const std::vector<sce_ng_pfs_block_t>& blocks)
-{
-   std::vector<std::pair<uint32_t, std::string> > files;
-
-   for(std::vector<sce_ng_pfs_block_t>::const_iterator it = blocks.begin(); it != blocks.end(); ++it)
-   {
-      for(std::vector<sce_ng_pfs_file_header_t>::const_iterator fit = it->files.begin(); fit != it->files.end(); ++fit)
-      {
-         files.push_back(std::make_pair(fit->index, std::string((const char*)fit->fileName)));
-      }
-   }
-
-   std::sort(files.begin(), files.end());
-
-   for(std::vector<std::pair<uint32_t, std::string> >::const_iterator it = files.begin(); it != files.end(); ++it)
-   {
-      std::cout << it->first << " " << it->second << std::endl;
-   }
-
-   std::vector<std::pair<uint32_t, sce_ng_pfs_file_info_t> > infos;
-
-   for(std::vector<sce_ng_pfs_block_t>::const_iterator it = blocks.begin(); it != blocks.end(); ++it)
-   {
-      for(std::vector<sce_ng_pfs_file_info_t>::const_iterator fit = it->infos.begin(); fit != it->infos.end(); ++ fit)
-      {
-         infos.push_back(std::make_pair(fit->idx, *fit));
-      }
-   }
-
-   std::sort(infos.begin(), infos.end());
-}
-*/
-
-//TODO: need to validate that each file exists
-//TODO: need to validate that all files are covered
 
 int match_file_lists(std::vector<sce_ng_pfs_file_t>& filesResult, std::set<std::string> files)
 {
    std::set<std::string> fileResultPaths;
 
    for(auto& f :  filesResult)
-   {
       fileResultPaths.insert(f.path.string());
-   }
+
+   std::cout << "Files not found in files.db :" << std::endl;
 
    for(auto& p : files)
    {
       if(fileResultPaths.find(p) == fileResultPaths.end())
-      {
          std::cout << p << std::endl;
-      }
    }
+
+   std::cout << "Files not found in filesystem :" << std::endl;
 
    for(auto& p : fileResultPaths)
    {
       if(files.find(p) == files.end())
-      {
          std::cout << p << std::endl;
-      }
    }
 
    return 0;
 }
 
-int parseAndFlattenFilesDb(std::string title_id_path)
+//parses files.db and flattens it into file list
+int parseFilesDb(std::string title_id_path, std::vector<sce_ng_pfs_file_t>& filesResult)
 {
    boost::filesystem::path root(title_id_path);
 
@@ -531,31 +501,27 @@ int parseAndFlattenFilesDb(std::string title_id_path)
    flattenBlocks(blocks, flatBlocks);
 
    //convert flat blocks to file paths
-   std::vector<sce_ng_pfs_file_t> filesResult;
    if(!constructFilePaths(root, dirMatrix, fileMatrix, flatBlocks, filesResult))
       return -1;
 
-   //validate results
+   //validate result files (path, size)
    if(!validateFilepaths(filesResult))
       return -1;
 
+   //match on existing files in filesystem
    std::set<std::string> files;
-   getFileList(root, files);
+   std::set<std::string> directories;
+   getFileList(root, files, directories);
 
    match_file_lists(filesResult, files);
 
-   //debug stuff
-   /*
-   std::vector<uint32_t> sizes;
-   for(std::vector<file_t>::const_iterator it = filesResult.begin(); it != filesResult.end(); ++it)
-      sizes.push_back(it->block.info.size);
-   std::sort(sizes.begin(), sizes.end());
-
-   std::cout << "------------" << std::endl;
-
-   for(std::vector<uint32_t>::const_iterator it = sizes.begin(); it != sizes.end(); ++it)
-      std::cout << std::dec << (*it) << std::endl;
-   */
+   //final check of sizes
+   size_t expectedSize = files.size() + directories.size();
+   if(expectedSize != flatBlocks.size())
+   {
+      std::cout << "Mismatch in number of files + directories agains number of flat blocks" << std::endl;
+      return -1;
+   }
 
 	return 0;
 }

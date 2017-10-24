@@ -21,7 +21,8 @@ int main(int argc, char* argv[])
 
    //parseUnicvDb(titleId);
 
-   parseAndFlattenFilesDb(titleId);
+   std::vector<sce_ng_pfs_file_t> filesResult;
+   parseFilesDb(titleId, filesResult);
 
 	return 0;
 }
