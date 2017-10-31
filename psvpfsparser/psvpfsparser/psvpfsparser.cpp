@@ -6,6 +6,8 @@
 
 #include <boost/filesystem.hpp>
 
+#include "Utils.h"
+
 #include "UnicvDbParser.h"
 #include "FilesDbParser.h"
 
@@ -60,10 +62,17 @@ int match_by_size(const scei_rodb_t& unicv_arg, const std::vector<sce_ng_pfs_fil
 
 int main(int argc, char* argv[])
 {
-	if(argc <2)
+	if(argc < 3)
    {
-      std::cout << "psvpfsparser <TitleID path>" << std::endl;
+      std::cout << "psvpfsparser <TitleID path> klicensee" << std::endl;
       return 0;
+   }
+
+   unsigned char klicensee[0x10] = {0};
+   if(string_to_byte_array(std::string(argv[2]), 0x10, klicensee) < 0)
+   {
+      std::cout << "Failed to parse klicensee" << std::endl;
+      return -1;
    }
 
    std::string titleId(argv[1]);
@@ -72,7 +81,7 @@ int main(int argc, char* argv[])
    parseUnicvDb(titleId, unicv);
 
    std::vector<sce_ng_pfs_file_t> files;
-   parseFilesDb(titleId, files);
+   parseFilesDb(klicensee, titleId, files);
 
    match_by_size(unicv, files);
 
