@@ -22,6 +22,8 @@
 
 #define EXPECTED_BLOCK_SIZE 0x400
 
+#define EXPECTED_VERSION 5
+
 struct sce_ng_pfs_header_t
 {
    uint8_t magic[8];

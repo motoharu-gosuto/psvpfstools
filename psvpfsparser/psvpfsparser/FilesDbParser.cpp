@@ -1,3 +1,8 @@
+#include <io.h>  
+#include <fcntl.h>  
+#include <stdlib.h>  
+#include <stdio.h>  
+
 #include <iostream>
 #include <fstream>
 #include <string>
@@ -16,7 +21,58 @@
 
 #include "Utils.h"
 
-bool parseFilesDb(std::ifstream& inputStream, sce_ng_pfs_header_t& header, std::vector<sce_ng_pfs_block_t>& blocks)
+#include "SecretGenerator.h"
+#include "NodeIcvCalculator.h"
+#include "MerkleTree.h"
+
+#include "sha1.h"
+
+bool verify_header(std::ifstream& inputStream, sce_ng_pfs_header_t& header, unsigned char* secret)
+{
+   //verify header signature
+   
+   char rsa_sig0_copy[0x100];
+   char icv_hmac_sig_copy[0x100];
+   
+   memcpy(rsa_sig0_copy, header.rsa_sig0, 0x100);
+   memcpy(icv_hmac_sig_copy, header.header_sig, 0x14);
+   memset(header.header_sig, 0, 0x14);
+   memset(header.rsa_sig0, 0, 0x100);
+
+   sha1_hmac(secret, 0x14, header.magic, 0x160, header.header_sig);
+
+   if(memcmp(header.header_sig, icv_hmac_sig_copy, 0x14) != 0)
+   {
+      std::cout << "header signature is invalid" << std::endl;
+      return false;
+   }
+
+   //verify root_icv
+
+   //save current position
+   int64_t chunksBeginPos = inputStream.tellg();
+
+   int64_t offset = page2off(header.root_icv_page_number, header.pageSize);
+   inputStream.seekg(offset, std::ios_base::beg);
+   unsigned char root_block_raw_data[0x400];
+   inputStream.read((char*)root_block_raw_data, 0x400);
+
+   unsigned char root_icv[0x14];
+   calculate_node_icv(secret, root_icv, header, 0, root_block_raw_data);
+
+   if(memcmp(root_icv, header.root_icv, 0x14) != 0)
+   {
+      std::cout << "root icv is invalid" << std::endl;
+      return false;
+   }
+   
+   //seek back to the beginning of tail
+   inputStream.seekg(chunksBeginPos, std::ios_base::beg);
+
+   return true;
+}
+
+bool parseFilesDb(unsigned char* klicensee, std::ifstream& inputStream, sce_ng_pfs_header_t& header, std::vector<sce_ng_pfs_block_t>& blocks)
 {
    inputStream.read((char*)&header, sizeof(sce_ng_pfs_header_t));
 
@@ -26,8 +82,18 @@ bool parseFilesDb(std::ifstream& inputStream, sce_ng_pfs_header_t& header, std::
       return false;
    }
 
-   //calculate tail size
+   //generate secret
+   unsigned char secret[0x14];
+   scePfsUtilGetSecret(secret, klicensee, header.salt0, header.flags, 0, 0);
+
+   //verify header
+   if(!verify_header(inputStream, header, secret))
+      return false;
+   
+   //save current position
    int64_t chunksBeginPos = inputStream.tellg();
+
+   //calculate tail size
    inputStream.seekg(0, std::ios_base::end);
    int64_t cunksEndPos = inputStream.tellg();
    int64_t dataSize = cunksEndPos - chunksBeginPos;
@@ -39,8 +105,15 @@ bool parseFilesDb(std::ifstream& inputStream, sce_ng_pfs_header_t& header, std::
       return false;
    }
 
+   //check version
+   if(header.version != EXPECTED_VERSION)
+   {
+      std::cout << "Invalid version" << std::endl;
+      return false;
+   }
+
    //check block size
-   if(header.blockSize != EXPECTED_BLOCK_SIZE)
+   if(header.pageSize != EXPECTED_BLOCK_SIZE)
    {
       std::cout << "Invalid block size" << std::endl;
       return false;
@@ -56,6 +129,9 @@ bool parseFilesDb(std::ifstream& inputStream, sce_ng_pfs_header_t& header, std::
    //seek back to the beginning of tail
    inputStream.seekg(chunksBeginPos, std::ios_base::beg);
 
+   std::multimap<uint32_t, page_icv_data> page_icvs;
+   unsigned char* raw_block_data = new unsigned char[header.pageSize];
+
    while(true)
    {
       int64_t currentBlockPos = inputStream.tellg();
@@ -66,15 +142,21 @@ bool parseFilesDb(std::ifstream& inputStream, sce_ng_pfs_header_t& header, std::
       blocks.push_back(sce_ng_pfs_block_t());
       sce_ng_pfs_block_t& block = blocks.back();
 
+      //assign page number
+      block.page = off2page(currentBlockPos, header.pageSize);
+
+      //read header
       inputStream.read((char*)&block.header, sizeof(sce_ng_pfs_block_header_t));
 
-      if(block.header.type != sce_ng_pfs_block_types::regular && 
-         block.header.type != sce_ng_pfs_block_types::unknown_block_type)
+      //verify header
+      if(block.header.type != sce_ng_pfs_block_types::child && 
+         block.header.type != sce_ng_pfs_block_types::root)
       {
          std::cout << "Unexpected type" << std::endl;
          return false;
       }
 
+      //verify header
       if(block.header.padding != 0)
       {
          std::cout << "Unexpected padding" << std::endl;
@@ -148,12 +230,30 @@ bool parseFilesDb(std::ifstream& inputStream, sce_ng_pfs_header_t& header, std::
       }
 
       //validate next position - check that read operations we not out of bounds of current block
-      int64_t nextBlockPos = currentBlockPos + header.blockSize;
+      int64_t nextBlockPos = currentBlockPos + header.pageSize;
       if((int64_t)inputStream.tellg() != nextBlockPos)
       {
          std::cout << "Block overlay" << std::endl;
          return false;
       }
+
+      //re read block
+      inputStream.seekg(-(int64_t)header.pageSize, std::ios::cur);
+      inputStream.read((char*)raw_block_data, header.pageSize);
+
+      page_icv_data icv;
+      icv.offset = currentBlockPos;
+      icv.page = off2page(currentBlockPos, header.pageSize);
+      calculate_node_icv(secret, icv.icv, header, &block, raw_block_data);
+      page_icvs.insert(std::make_pair(block.header.parent_page_number, icv));
+   }
+
+   delete[] raw_block_data;
+
+   if(!validate_merkle_tree(0, header.root_icv_page_number, blocks, page_icvs))
+   {
+      std::cout << "Failed to validate merkle tree" << std::endl;
+      return false;
    }
 
    return true;
@@ -251,8 +351,6 @@ bool constructFileMatrix(const std::vector<sce_ng_pfs_block_t>& blocks, std::map
 //assign global index to files
 void flattenBlocks(const std::vector<sce_ng_pfs_block_t>& blocks, std::vector<sce_ng_pfs_flat_block_t>& flatBlocks)
 {
-   int global_index = 0;
-
    for(auto& block : blocks)
    {
       for(uint32_t i = 0; i < block.header.nFiles; i++)
@@ -268,8 +366,6 @@ void flattenBlocks(const std::vector<sce_ng_pfs_block_t>& blocks, std::vector<sc
          fb.file = block.files[i];
          fb.info = block.infos[i];
          fb.hash = block.hashes[i];
-
-         fb.global_index = global_index++;
       }
    }
 }
@@ -473,7 +569,7 @@ int match_file_lists(std::vector<sce_ng_pfs_file_t>& filesResult, std::set<std::
 }
 
 //parses files.db and flattens it into file list
-int parseFilesDb(std::string title_id_path, std::vector<sce_ng_pfs_file_t>& filesResult)
+int parseFilesDb(unsigned char* klicensee, std::string title_id_path, std::vector<sce_ng_pfs_file_t>& filesResult)
 {
    boost::filesystem::path root(title_id_path);
 
@@ -483,7 +579,7 @@ int parseFilesDb(std::string title_id_path, std::vector<sce_ng_pfs_file_t>& file
    //parse data into raw structures
    sce_ng_pfs_header_t header;
    std::vector<sce_ng_pfs_block_t> blocks;
-   if(!parseFilesDb(inputStream, header, blocks))
+   if(!parseFilesDb(klicensee, inputStream, header, blocks))
       return -1;
 
    //build child index -> parent index relationship map
