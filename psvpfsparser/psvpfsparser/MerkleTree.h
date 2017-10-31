@@ -9,7 +9,7 @@ typedef struct page_icv_data
    int64_t offset;
    uint32_t page;
    uint8_t icv[0x14];
-};
+}page_icv_data;
 
 int64_t page2off(uint32_t page, uint32_t pageSize);
 

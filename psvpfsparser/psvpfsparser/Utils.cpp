@@ -10,6 +10,9 @@ bool isZeroVector(std::vector<uint8_t>& data)
 
 int string_to_byte_array(std::string str, int nBytes, unsigned char* dest)
 {
+   if(str.length() < nBytes * 2)
+      return -1;
+
    for(int i = 0, j = 0 ; j < nBytes; i = i + 2, j++)
    {
       std::string byteString = str.substr(i, 2);
