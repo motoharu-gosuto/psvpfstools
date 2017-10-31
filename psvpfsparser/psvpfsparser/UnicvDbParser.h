@@ -10,10 +10,9 @@
 
 #define FT_MAGIC_WORD "SCEIFTBL"
 
-#define EXPECTED_BLOCK_SIZE 0x400
+#define EXPECTED_PAGE_SIZE 0x400
 #define EXPECTED_SIGNATURE_SIZE 0x14
 #define EXPECTED_FILE_SECTOR_SIZE 0x8000
-#define EXPECTED_MAX_FILE_SECTORS 0x32
 
 #pragma pack(push, 1)
 
@@ -34,8 +33,8 @@ struct scei_ftbl_header_t
 {
    uint8_t magic[8]; //SCEIFTBL
    uint32_t version; // this is probably version? value is always 2
-   uint32_t blockSize; //expected 0x400
-   uint32_t maxNSectors; // this is probably max number of sectors in a single sig_tbl_t. expected value is 0x32
+   uint32_t pageSize; //expected 0x400
+   uint32_t binTreeNumMaxAvail; // this is probably max number of sectors in a single sig_tbl_t. expected value is 0x32
    uint32_t nSectors; //this shows how many sectors of data in total will follow this block. one sig_tbl_t can contain 0x32 sectors at max
                      //multiple sig_tbl_t group into single file
 
@@ -53,7 +52,7 @@ struct scei_ftbl_header_t
 //if it is greater then 0x32 that means that multiple signature blocks will follow
 struct sig_tbl_header_t
 {
-   uint32_t tableSize; // for blocksize 0x400 this would be 0x3f8 = sizeof(sig_tbl_header_t) + (0x32 * 0x14) : which are maxNSectors * sigSize
+   uint32_t binTreeSize; // for blocksize 0x400 this would be 0x3f8 = sizeof(sig_tbl_header_t) + (0x32 * 0x14) : which are maxNSectors * sigSize
                        // 8 bytes are unused
    uint32_t sigSize; //expected 0x14 - size of hmac-sha1 
    uint32_t nSignatures; //number of chunks in this block

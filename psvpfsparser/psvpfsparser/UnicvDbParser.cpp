@@ -10,13 +10,23 @@
 
 #include "Utils.h"
 
+uint32_t binTreeNumMaxAvail(uint32_t signatureSize, uint32_t pageSize)
+{
+  return (pageSize - sizeof(sig_tbl_header_t)) / signatureSize;
+}
+
+uint32_t binTreeSize(uint32_t signatureSize, uint32_t binTreeNumMaxAvail)
+{
+  return binTreeNumMaxAvail * signatureSize + sizeof(sig_tbl_header_t);
+}
+
 bool readSignatureBlock(std::ifstream& inputStream, scei_ftbl_header_t& ftHeader, uint32_t sizeCheck, sig_tbl_t& fdt)
 {
    uint64_t cpo = inputStream.tellg();
 
    inputStream.read((char*)&fdt.dtHeader, sizeof(sig_tbl_header_t));
    
-   if(fdt.dtHeader.tableSize != 0x3F8)
+   if(fdt.dtHeader.binTreeSize != binTreeSize(0x14, ftHeader.binTreeNumMaxAvail))
    {
       std::cout << "Unexpected tableSize" << std::endl;
       return false;
@@ -55,7 +65,7 @@ bool readSignatureBlock(std::ifstream& inputStream, scei_ftbl_header_t& ftHeader
    //calculate size of tail data - this data should be zero padding
    //instead of skipping it is validated here that it contains only zeroes
    uint64_t cp = inputStream.tellg();
-   int64_t tail = ftHeader.blockSize - (cp - cpo);
+   int64_t tail = ftHeader.pageSize - (cp - cpo);
 
    std::vector<uint8_t> data(tail);
    inputStream.read((char*)data.data(), tail);
@@ -78,7 +88,7 @@ bool readDataBlock(std::ifstream& inputStream, uint64_t& i, scei_ftbl_t& fft)
 
    //check that block size is expected
    //this will allow to fail if there are any other unexpected block sizes
-   if(fft.ftHeader.blockSize != EXPECTED_BLOCK_SIZE)
+   if(fft.ftHeader.pageSize != EXPECTED_PAGE_SIZE)
    {
       std::cout << "Unexpected block size" << std::endl;
       return false;
@@ -99,16 +109,16 @@ bool readDataBlock(std::ifstream& inputStream, uint64_t& i, scei_ftbl_t& fft)
    }
 
    //check maxNSectors
-   if(fft.ftHeader.maxNSectors != EXPECTED_MAX_FILE_SECTORS)
+   if(fft.ftHeader.binTreeNumMaxAvail != binTreeNumMaxAvail(0x14, fft.ftHeader.pageSize))
    {
-      std::cout << "Unexpected version" << std::endl;
+      std::cout << "Unexpected binTreeNumMaxAvail" << std::endl;
       return false;
    }
 
    //check file sector size
    if(fft.ftHeader.fileDbSectorSize != EXPECTED_FILE_SECTOR_SIZE)
    {
-      std::cout << "Unexpected version" << std::endl;
+      std::cout << "Unexpected fileDbSectorSize" << std::endl;
       return false;
    }
 
@@ -121,7 +131,7 @@ bool readDataBlock(std::ifstream& inputStream, uint64_t& i, scei_ftbl_t& fft)
 
    //calculate size of tail data - this data should be zero padding
    //instead of skipping it is validated here that it contains only zeroes
-   uint64_t tail = fft.ftHeader.blockSize - sizeof(scei_ftbl_header_t);
+   uint64_t tail = fft.ftHeader.pageSize - sizeof(scei_ftbl_header_t);
    
    std::vector<uint8_t> tailData(tail);
    inputStream.read((char*)tailData.data(), tail);
@@ -140,7 +150,7 @@ bool readDataBlock(std::ifstream& inputStream, uint64_t& i, scei_ftbl_t& fft)
       return true;
 
    //check if there is single block read required or multiple
-   if(fft.ftHeader.nSectors < fft.ftHeader.maxNSectors)
+   if(fft.ftHeader.nSectors < fft.ftHeader.binTreeNumMaxAvail)
    {
       //create new signature block
       fft.blocks.push_back(sig_tbl_t());
@@ -155,8 +165,8 @@ bool readDataBlock(std::ifstream& inputStream, uint64_t& i, scei_ftbl_t& fft)
    }
    else
    {
-      uint32_t nDataBlocks = fft.ftHeader.nSectors / fft.ftHeader.maxNSectors;
-      uint32_t nDataTail = fft.ftHeader.nSectors % fft.ftHeader.maxNSectors;
+      uint32_t nDataBlocks = fft.ftHeader.nSectors / fft.ftHeader.binTreeNumMaxAvail;
+      uint32_t nDataTail = fft.ftHeader.nSectors % fft.ftHeader.binTreeNumMaxAvail;
 
       for(uint32_t dbi = 0; dbi < nDataBlocks; dbi++)
       {
@@ -165,7 +175,7 @@ bool readDataBlock(std::ifstream& inputStream, uint64_t& i, scei_ftbl_t& fft)
          sig_tbl_t& fdt = fft.blocks.back();
 
          //read and valiate signature block
-         if(!readSignatureBlock(inputStream, fft.ftHeader, fft.ftHeader.maxNSectors, fdt))
+         if(!readSignatureBlock(inputStream, fft.ftHeader, fft.ftHeader.binTreeNumMaxAvail, fdt))
             return false;
          i++;
       }
@@ -230,7 +240,7 @@ bool parseUnicvDb(std::ifstream& inputStream, scei_rodb_t& fdb)
    }
 
    //debug check only for now to see if there are any other sizes
-   if(fdb.dbHeader.blockSize != EXPECTED_BLOCK_SIZE)
+   if(fdb.dbHeader.blockSize != EXPECTED_PAGE_SIZE)
    {
       std::cout << "Unexpected block size" << std::endl;
       return false;
