@@ -2,14 +2,14 @@
 
 #include "FilesDbParser.h"
 
-int64_t page2off(uint32_t page, uint32_t block_size)
+int64_t page2off(uint32_t page, uint32_t pageSize)
 {
-   return page * block_size + block_size;
+   return page * pageSize + pageSize;
 }
 
-uint32_t off2page(int64_t offset, uint32_t block_size)
+uint32_t off2page(int64_t offset, uint32_t pageSize)
 {
-   return (offset - block_size) / block_size;
+   return (offset - pageSize) / pageSize;
 }
 
 bool validate_merkle_tree(int level, uint32_t page, const std::vector<sce_ng_pfs_block_t>& blocks, const std::multimap<uint32_t, page_icv_data>& page_icvs)

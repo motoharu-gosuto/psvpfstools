@@ -11,9 +11,9 @@ typedef struct page_icv_data
    uint8_t icv[0x14];
 };
 
-int64_t page2off(uint32_t page, uint32_t block_size);
+int64_t page2off(uint32_t page, uint32_t pageSize);
 
-uint32_t off2page(int64_t offset, uint32_t block_size);
+uint32_t off2page(int64_t offset, uint32_t pageSize);
 
 struct sce_ng_pfs_block_t;
 

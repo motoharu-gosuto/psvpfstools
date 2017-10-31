@@ -63,7 +63,7 @@ int _order_max_avail(uint32_t pagesize)
 
 int calculate_node_icv(unsigned char *secret, unsigned char *digest, sce_ng_pfs_header_t& ngh, sce_ng_pfs_block_t* nh, unsigned char* raw_data)
 {
-   int order = _order_max_avail(ngh.blockSize);
+   int order = _order_max_avail(ngh.pageSize);
 
    if(ngh.version == 5)
    {
