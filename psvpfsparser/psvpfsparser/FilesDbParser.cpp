@@ -58,7 +58,11 @@ bool verify_header(std::ifstream& inputStream, sce_ng_pfs_header_t& header, unsi
    inputStream.read((char*)root_block_raw_data, 0x400);
 
    unsigned char root_icv[0x14];
-   calculate_node_icv(secret, root_icv, header, 0, root_block_raw_data);
+   if(calculate_node_icv(header, secret, 0, root_block_raw_data, root_icv) < 0)
+   {
+      std::cout << "failed to calculate icv" << std::endl;
+      return false;
+   }
 
    if(memcmp(root_icv, header.root_icv, 0x14) != 0)
    {
@@ -244,7 +248,13 @@ bool parseFilesDb(unsigned char* klicensee, std::ifstream& inputStream, sce_ng_p
       page_icv_data icv;
       icv.offset = currentBlockPos;
       icv.page = off2page(currentBlockPos, header.pageSize);
-      calculate_node_icv(secret, icv.icv, header, &block, raw_block_data);
+
+      if(calculate_node_icv( header, secret, &block, raw_block_data, icv.icv) < 0)
+      {
+         std::cout << "failed to calculate icv" << std::endl;
+         return false;
+      }
+
       page_icvs.insert(std::make_pair(block.header.parent_page_number, icv));
    }
 

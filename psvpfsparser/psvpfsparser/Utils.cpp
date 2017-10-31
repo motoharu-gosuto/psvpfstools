@@ -1,5 +1,9 @@
 #include <stdint.h>
+
+#include <iomanip>
 #include <vector>
+#include <string>
+#include <iostream>
 
 #include "Utils.h"
 
@@ -19,5 +23,15 @@ int string_to_byte_array(std::string str, int nBytes, unsigned char* dest)
       unsigned char byte = (unsigned char)strtol(byteString.c_str(), NULL, 16);
       dest[j] = byte;
    }
+   return 0;
+}
+
+int print_bytes(unsigned char* bytes, int length)
+{
+   for(int i = 0; i < length; i++)
+   {
+      std::cout << std::hex << std::setfill('0') << std::setw(2) << (0xFF & (int)bytes[i]);
+   }
+   std::cout << std::endl;
    return 0;
 }

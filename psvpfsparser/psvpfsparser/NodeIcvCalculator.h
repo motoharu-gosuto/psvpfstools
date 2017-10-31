@@ -3,4 +3,4 @@
 struct sce_ng_pfs_header_t;
 struct sce_ng_pfs_block_t;
 
-int calculate_node_icv(unsigned char *secret, unsigned char *digest, sce_ng_pfs_header_t& ngh, sce_ng_pfs_block_t* nh, unsigned char* raw_data);
+int calculate_node_icv(sce_ng_pfs_header_t& ngh, unsigned char *secret, sce_ng_pfs_block_t* node, unsigned char* raw_data, unsigned char *icv);

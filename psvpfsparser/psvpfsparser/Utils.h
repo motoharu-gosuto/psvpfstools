@@ -17,3 +17,5 @@ bool isZeroVector(T begin, T end)
 }
 
 int string_to_byte_array(std::string str, int nBytes, unsigned char* dest);
+
+int print_bytes(unsigned char* bytes, int length);
