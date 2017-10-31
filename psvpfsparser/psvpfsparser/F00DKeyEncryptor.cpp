@@ -8,6 +8,8 @@
 #include <boost/property_tree/json_parser.hpp>
 #include <boost/algorithm/string.hpp>
 
+#include "Utils.h"
+
 std::string F00DKeyEncryptor::create_url(unsigned const char* key, int key_size)
 {
    std::stringstream ss;
@@ -73,17 +75,6 @@ int F00DKeyEncryptor::execute_url(std::string url)
    }
 
    return -1;
-}
-
-int F00DKeyEncryptor::string_to_byte_array(std::string str, int nBytes, unsigned char* dest)
-{
-   for(int i = 0, j = 0 ; j < nBytes; i = i + 2, j++)
-   {
-      std::string byteString = str.substr(i, 2);
-      unsigned char byte = (unsigned char)strtol(byteString.c_str(), NULL, 16);
-      dest[j] = byte;
-   }
-   return 0;
 }
 
 int F00DKeyEncryptor::parse_key(unsigned const char* key, unsigned char* dest, int key_size)

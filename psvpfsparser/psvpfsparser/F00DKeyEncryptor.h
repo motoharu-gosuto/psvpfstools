@@ -16,8 +16,6 @@ private:
    int execute_url(std::string url);
 
 private:
-   int string_to_byte_array(std::string str, int nBytes, unsigned char* dest);
-
    int parse_key(unsigned const char* key, unsigned char* dest, int key_size);
 
 public:
