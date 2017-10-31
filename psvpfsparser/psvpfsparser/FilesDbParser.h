@@ -25,19 +25,20 @@
 struct sce_ng_pfs_header_t
 {
    uint8_t magic[8];
-   uint32_t unk1;
-   uint32_t unk2;
-   uint32_t blockSize;
-   uint32_t unk3; // this is probably related to number of blocks ?
-   uint32_t unk4; // this is probably related to number of blocks ?
+   uint32_t version;
+   uint16_t unk20;
+   uint16_t unk21;
+   uint32_t pageSize;
+   uint32_t flags; // not sure but probably matches order value of the tree in btree_init
+   uint32_t root_icv_page_number; // derived from off2pgn
    uint32_t salt0; // first salt value used for key derrivation
    uint64_t unk6;
    uint32_t tailSize; // size of data after this header
    uint32_t unk7;
    uint32_t unk8;
    uint32_t unk9;
-   uint8_t data0[0x14];
-   uint8_t data1[0x14];
+   uint8_t root_icv[0x14]; // 0x38 hmac-sha1 of (pageSize - 4) of page (pointed by root_icv_page_number) with secret derived from klicensee
+   uint8_t header_sig[0x14]; // 0x4C hmac-sha1 of 0x16 bytes of header with secret derived from klicensee
    uint8_t rsa_sig0[0x100];
    uint8_t rsa_sig1[0x100];
    uint8_t padding[0x1A0];
@@ -46,15 +47,13 @@ struct sce_ng_pfs_header_t
 //still have to figure out
 enum sce_ng_pfs_block_types : uint32_t
 {
-   regular = 0,
-   unknown_block_type = 1 //still have to figure out
+   child = 0,
+   root = 1 // if page number is -1 then root. otherwise - unknown
 };
 
 struct sce_ng_pfs_block_header_t
 {
-   uint32_t id; // this field is either flag or some number that can vary a lot 
-                // int simple example looks like it is 0x02 for block with general files, 0x0d for block with deleted files
-                // however in examples with many files - this can take lots of different values
+   uint32_t parent_page_number; 
    sce_ng_pfs_block_types type;
    uint32_t nFiles;
    uint32_t padding; // probably padding ? always 0
@@ -101,6 +100,8 @@ struct sce_ng_pfs_block_t
    //still dont know the purpose of this
    std::vector<sce_ng_pfs_file_info_t> infos; // size = 16 * 10 = 160
    std::vector<sce_ng_pfs_hash_t> hashes; // size = 20 * 10 = 200
+
+   uint32_t page;
 };
 
 struct sce_ng_pfs_flat_block_t
@@ -109,8 +110,6 @@ struct sce_ng_pfs_flat_block_t
    sce_ng_pfs_file_header_t file;
    sce_ng_pfs_file_info_t info;
    sce_ng_pfs_hash_t hash;
-
-   int global_index;
 };
 
 struct sce_ng_pfs_file_t
