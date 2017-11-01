@@ -26,7 +26,7 @@ int string_to_byte_array(std::string str, int nBytes, unsigned char* dest)
    return 0;
 }
 
-int print_bytes(unsigned char* bytes, int length)
+int print_bytes(const unsigned char* bytes, int length)
 {
    for(int i = 0; i < length; i++)
    {

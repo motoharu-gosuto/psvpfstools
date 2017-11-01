@@ -2,6 +2,8 @@
 
 #include "FilesDbParser.h"
 
+#include "Utils.h"
+
 int64_t page2off(uint32_t page, uint32_t pageSize)
 {
    return page * pageSize + pageSize;
@@ -32,7 +34,10 @@ bool validate_merkle_tree(int level, uint32_t page, const std::vector<sce_ng_pfs
       {
          if(memcmp(it->second.icv, hash.data, 0x14) == 0)
          {
-            std::cout << " - OK" << std::endl;
+            std::cout << " - OK : ";
+
+            print_bytes(it->second.icv, 0x14);
+
             validate_merkle_tree(level + 1, it->second.page, blocks, page_icvs);
             found = true;
             break;
