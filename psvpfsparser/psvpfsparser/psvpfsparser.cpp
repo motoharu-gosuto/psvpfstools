@@ -10,6 +10,7 @@
 
 #include "UnicvDbParser.h"
 #include "FilesDbParser.h"
+#include "PfsDecryptor.h"
 
 int match_by_size(const scei_rodb_t& unicv_arg, const std::vector<sce_ng_pfs_file_t>& files_arg)
 {
@@ -77,13 +78,17 @@ int main(int argc, char* argv[])
 
    std::string titleId(argv[1]);
 
+   sce_ng_pfs_header_t header;
+   std::vector<sce_ng_pfs_file_t> files;
+   parseFilesDb(klicensee, titleId, header, files);
+
    scei_rodb_t unicv;
    parseUnicvDb(titleId, unicv);
 
-   std::vector<sce_ng_pfs_file_t> files;
-   parseFilesDb(klicensee, titleId, files);
+   //match_by_size(unicv, files);
 
-   match_by_size(unicv, files);
+   std::map<uint32_t, std::string> pageMap;
+   bruteforce_map(titleId, klicensee, header, unicv, pageMap);
 
 	return 0;
 }
