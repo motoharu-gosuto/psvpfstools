@@ -524,34 +524,6 @@ bool validateFilepaths(std::vector<sce_ng_pfs_file_t> files)
    return true;
 }
 
-//get files recoursively
-void getFileList(boost::filesystem::path path, std::set<std::string>& files, std::set<std::string>& directories)
-{
-   if (!path.empty())
-   {
-      boost::filesystem::path apk_path(path);
-      boost::filesystem::recursive_directory_iterator end;
-
-      for (boost::filesystem::recursive_directory_iterator i(apk_path); i != end; ++i)
-      {
-         const boost::filesystem::path cp = (*i);
-
-         //skip paths that are not included in files.db
-         if(boost::starts_with(cp, (path / boost::filesystem::path("sce_pfs"))))
-            continue;
-
-         if(boost::starts_with(cp, (path / boost::filesystem::path("sce_sys") / boost::filesystem::path("package"))))
-            continue;
-
-         //add file or directory
-         if(boost::filesystem::is_directory(cp))
-            directories.insert(cp.string());
-         else
-            files.insert(cp.string());
-      }
-   }
-}
-
 int match_file_lists(std::vector<sce_ng_pfs_file_t>& filesResult, std::set<std::string> files)
 {
    std::set<std::string> fileResultPaths;
@@ -579,7 +551,7 @@ int match_file_lists(std::vector<sce_ng_pfs_file_t>& filesResult, std::set<std::
 }
 
 //parses files.db and flattens it into file list
-int parseFilesDb(unsigned char* klicensee, std::string title_id_path, std::vector<sce_ng_pfs_file_t>& filesResult)
+int parseFilesDb(unsigned char* klicensee, std::string title_id_path, sce_ng_pfs_header_t& header, std::vector<sce_ng_pfs_file_t>& filesResult)
 {
    boost::filesystem::path root(title_id_path);
 
@@ -587,7 +559,6 @@ int parseFilesDb(unsigned char* klicensee, std::string title_id_path, std::vecto
    std::ifstream inputStream(filepath.generic_string().c_str(), std::ios::in | std::ios::binary);
 
    //parse data into raw structures
-   sce_ng_pfs_header_t header;
    std::vector<sce_ng_pfs_block_t> blocks;
    if(!parseFilesDb(klicensee, inputStream, header, blocks))
       return -1;
@@ -617,7 +588,7 @@ int parseFilesDb(unsigned char* klicensee, std::string title_id_path, std::vecto
    //match on existing files in filesystem
    std::set<std::string> files;
    std::set<std::string> directories;
-   getFileList(root, files, directories);
+   getFileListNoPfs(root, files, directories);
 
    match_file_lists(filesResult, files);
 

@@ -123,4 +123,4 @@ struct sce_ng_pfs_file_t
 
 #pragma pack(pop)
 
-int parseFilesDb(unsigned char* klicensee, std::string title_id_path, std::vector<sce_ng_pfs_file_t>& filesResult);
+int parseFilesDb(unsigned char* klicensee, std::string title_id_path, sce_ng_pfs_header_t& header, std::vector<sce_ng_pfs_file_t>& filesResult);
