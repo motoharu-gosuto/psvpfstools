@@ -84,7 +84,11 @@ bool readSignatureBlock(std::ifstream& inputStream, scei_ftbl_header_t& ftHeader
 
 bool readDataBlock(std::ifstream& inputStream, uint64_t& i, scei_ftbl_t& fft)
 {
+   int64_t currentBlockPos = inputStream.tellg();
+
    inputStream.read((char*)&fft.ftHeader, sizeof(scei_ftbl_header_t));
+
+   fft.page = currentBlockPos / fft.ftHeader.pageSize;  //off2page(currentBlockPos, fft.ftHeader.pageSize);
 
    //check that block size is expected
    //this will allow to fail if there are any other unexpected block sizes
@@ -290,10 +294,10 @@ bool parseUnicvDb(std::ifstream& inputStream, scei_rodb_t& fdb)
 
 int parseUnicvDb(std::string title_id_path, scei_rodb_t& fdb)
 {
-   boost::filesystem::path filepath = boost::filesystem::path(title_id_path) / "sce_pfs\\unicv.db";
+   boost::filesystem::path root(title_id_path);
+
+   boost::filesystem::path filepath = root / "sce_pfs\\unicv.db";
    std::ifstream inputStream(filepath.generic_string().c_str(), std::ios::in | std::ios::binary);
-   
    parseUnicvDb(inputStream, fdb);
-   
    return 0;
 }

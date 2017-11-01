@@ -77,6 +77,8 @@ struct scei_ftbl_t
 {
    scei_ftbl_header_t ftHeader;
    std::vector<sig_tbl_t> blocks;
+
+   uint32_t page;
 };
 
 //this is a root structure - it contains SCEIRODB header and list of SCEIFTBL file table blocks
