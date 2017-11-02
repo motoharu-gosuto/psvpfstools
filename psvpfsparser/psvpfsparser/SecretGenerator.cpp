@@ -6,8 +6,8 @@
 #include "sha1.h"
 #include "aes.h"
 
-#include "F00DKeyEncryptor.h"
 #include "PfsKeys.h"
+#include "SceSblSsMgrForDriver.h"
 
 //TODO: this is only part of the reversed code
 //TODO: Crypto engine consists of multiple layers, where each layer should be placed into separate file
@@ -22,36 +22,6 @@ int SceKernelUtilsForDriver_ksceSha1Digest(const unsigned char *source, uint32_t
 int SceKernelUtilsForDriver_ksceHmacSha1Digest(const unsigned char* key, uint32_t key_len, const unsigned char* data, uint32_t data_len, unsigned char digest[0x14])
 {
    sha1_hmac(key, key_len, data, data_len, digest);
-
-   return 0;
-}
-
-int SceSblSsMgrForDriver_sceSblSsMgrAESCBCEncryptWithKeygenForDriver(const unsigned char* src, unsigned char* dst, int size, const unsigned char* key, int key_size, unsigned char* iv, uint16_t key_id, int mask_enable)
-{
-   F00DKeyEncryptor* ec = get_F00D_encryptor();
-   unsigned char drv_key[0x20] = {0}; //use max possible buffer
-   if(ec->encrypt_key(key, key_size, drv_key) < 0)
-      return -1;
-
-   aes_context aes_ctx;
-   memset(&aes_ctx, 0, sizeof(aes_ctx));
-   aes_setkey_enc(&aes_ctx, drv_key, key_size);
-   aes_crypt_cbc(&aes_ctx, AES_ENCRYPT, size, iv, src,dst);
-
-   return 0;
-}
-
-int SceSblSsMgrForDriver_sceSblSsMgrAESECBEncryptWithKeygenForDriver(const unsigned char* src, unsigned char* dst, int size, const unsigned char* key, int key_size, uint16_t key_id, int mask_enable)
-{
-   F00DKeyEncryptor* ec = get_F00D_encryptor();
-   unsigned char drv_key[0x20] = {0}; //use max possible buffer
-   if(ec->encrypt_key(key, key_size, drv_key) < 0)
-      return -1;
-
-   aes_context aes_ctx;
-   memset(&aes_ctx, 0, sizeof(aes_ctx));
-   aes_setkey_enc(&aes_ctx, drv_key, key_size);
-   aes_crypt_ecb(&aes_ctx, AES_ENCRYPT, src, dst);
 
    return 0;
 }
