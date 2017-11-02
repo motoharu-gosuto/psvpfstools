@@ -12,7 +12,7 @@
 
 //encrypt / decrypt
 
-int AESCBCEncrypt_base_219D8AC(const unsigned char* key, unsigned char* iv, uint32_t size, const unsigned char* src, unsigned char* dst)
+int AESCBCEncrypt_base(const unsigned char* key, unsigned char* iv, uint32_t size, const unsigned char* src, unsigned char* dst)
 {
    int size_tail = size & 0xF;
    int size_block = size & (~0xF);
@@ -48,7 +48,7 @@ int AESCBCEncrypt_base_219D8AC(const unsigned char* key, unsigned char* iv, uint
    return 0;
 }
 
-int AESCBCDecrypt_base_219D950(const unsigned char* key, unsigned char* iv, uint32_t size, const unsigned char* src, unsigned char* dst)
+int AESCBCDecrypt_base(const unsigned char* key, unsigned char* iv, uint32_t size, const unsigned char* src, unsigned char* dst)
 {
    int size_tail = size & 0xF; // get size of tail
    int size_block = size & (~0xF); // get block size aligned to 0x10 boundary
@@ -88,7 +88,7 @@ int AESCBCDecrypt_base_219D950(const unsigned char* key, unsigned char* iv, uint
 
 //encrypt / decrypt with key_id
 
-int AESCBCDecryptWithKeygen_base_219DAAC(const unsigned char* key, unsigned char* iv, uint32_t size, const unsigned char* src, unsigned char* dst, uint16_t key_id)
+int AESCBCDecryptWithKeygen_base(const unsigned char* key, unsigned char* iv, uint32_t size, const unsigned char* src, unsigned char* dst, uint16_t key_id)
 {
    uint16_t kid = 0 - (key_id - 1) + (key_id - 1);
 
@@ -129,7 +129,7 @@ int AESCBCDecryptWithKeygen_base_219DAAC(const unsigned char* key, unsigned char
    return 0;
 }
 
-int AESCBCEncryptWithKeygen_base_219D9F4(const unsigned char* klicensee, unsigned char* iv, uint32_t size, const unsigned char* src, unsigned char* dst, uint16_t key_id)
+int AESCBCEncryptWithKeygen_base(const unsigned char* klicensee, unsigned char* iv, uint32_t size, const unsigned char* src, unsigned char* dst, uint16_t key_id)
 {
    uint16_t kid = 0 - (key_id - 1) + (key_id - 1); // ???
 
@@ -174,7 +174,7 @@ int AESCBCEncryptWithKeygen_base_219D9F4(const unsigned char* klicensee, unsigne
 
 // FUNCTIONS ARE SIMILAR
 
-int AESCMAC_base_1_219DC08(const unsigned char* cmac_key, unsigned char* iv, uint32_t size, const unsigned char* cmac_src, unsigned char* cmac_dst)
+int AESCMAC_base_1(const unsigned char* cmac_key, unsigned char* iv, uint32_t size, const unsigned char* cmac_src, unsigned char* cmac_dst)
 {
    int size_tail = size & 0xF;
    int size_block = size & (~0xF);
@@ -214,7 +214,7 @@ int AESCMAC_base_1_219DC08(const unsigned char* cmac_key, unsigned char* iv, uin
    return 0;
 }
 
-int AESCMAC_base_2_219DB64(const unsigned char* cmac_key, unsigned char* iv, uint32_t size, const unsigned char* cmac_src, unsigned char* cmac_dst)
+int AESCMAC_base_2(const unsigned char* cmac_key, unsigned char* iv, uint32_t size, const unsigned char* cmac_src, unsigned char* cmac_dst)
 {
    int size_tail = size & 0xF;
    int size_block = size & (~0xF);
@@ -256,7 +256,7 @@ int AESCMAC_base_2_219DB64(const unsigned char* cmac_key, unsigned char* iv, uin
 
 // FUNCTIONS ARE SIMILAR
 
-int AESCMACWithKeygen_base_1_219DCAC(const unsigned char* cmac_key, unsigned char* iv, uint32_t size, const unsigned char* cmac_src, unsigned char* cmac_dst, uint16_t key_id)
+int AESCMACWithKeygen_base_1(const unsigned char* cmac_key, unsigned char* iv, uint32_t size, const unsigned char* cmac_src, unsigned char* cmac_dst, uint16_t key_id)
 {
    uint16_t kid = 0 - (key_id - 1) + (key_id - 1);
 
@@ -298,7 +298,7 @@ int AESCMACWithKeygen_base_1_219DCAC(const unsigned char* cmac_key, unsigned cha
    return 0;
 }
 
-int AESCMACWithKeygen_base_2_219DD64(const unsigned char* cmac_key, unsigned char* iv, uint32_t size, const unsigned char* cmac_src, unsigned char* cmac_dst, uint16_t key_id)
+int AESCMACWithKeygen_base_2(const unsigned char* cmac_key, unsigned char* iv, uint32_t size, const unsigned char* cmac_src, unsigned char* cmac_dst, uint16_t key_id)
 {
    uint16_t kid = 0 - (key_id - 1) + (key_id - 1);
 
@@ -352,7 +352,7 @@ int AESCMACWithKeygen_base_2_219DD64(const unsigned char* cmac_key, unsigned cha
 //XTS-AES
 //https://github.com/libtom/libtomcrypt/blob/c14bcf4d302f954979f0de43f7544cf30873f5a6/src/modes/xts/xts_mult_x.c#L31
 
-int xor_219D624(int* src, int* iv, int* dst, uint32_t size)
+int xor_1(int* src, int* iv, int* dst, uint32_t size)
 {
    int iv_cpy[4] = {0};
    memcpy(iv_cpy, iv, 0x10);
@@ -383,7 +383,7 @@ int xor_219D624(int* src, int* iv, int* dst, uint32_t size)
 
 //IV is a subkey base
 
-int AESCMACDecryptSw_base_219D714(const unsigned char* subkey, const unsigned char* dst_key, const unsigned char* subkey_key, uint32_t key_size, uint32_t size, const unsigned char* src, unsigned char* dst)
+int AESCMACDecryptSw_base(const unsigned char* subkey, const unsigned char* dst_key, const unsigned char* subkey_key, uint32_t key_size, uint32_t size, const unsigned char* src, unsigned char* dst)
 {
    char aes_ctx[0x1F0] = {0};
    unsigned char drv_subkey[0x10] = {0};
@@ -392,16 +392,16 @@ int AESCMACDecryptSw_base_219D714(const unsigned char* subkey, const unsigned ch
 
    SceKernelUtilsForDriver_aes_encrypt_2(aes_ctx, subkey, drv_subkey); //encrypt 0x10 bytes of subkey to derive drv_subkey
 
-   xor_219D624((int*)src, (int*)drv_subkey, (int*)dst, size); // xor src with drv_iv to get dst
+   xor_1((int*)src, (int*)drv_subkey, (int*)dst, size); // xor src with drv_iv to get dst
 
    int result0 = SceSblSsMgrForDriver_sceSblSsMgrAESECBDecryptForDriver(dst, dst, size, dst_key, key_size, 1); //decrypt dst data using dst_key key
    if(result0 == 0)
-      xor_219D624((int*)dst, (int*)drv_subkey, (int*)dst, size); //xor dst with drv_iv to get real dst
+      xor_1((int*)dst, (int*)drv_subkey, (int*)dst, size); //xor dst with drv_iv to get real dst
 
    return result0;
 }
 
-int AESCMACEncryptSw_base_219D694(const unsigned char* subkey, const unsigned char* dst_key, const unsigned char* subkey_key, uint32_t key_size, uint32_t size, const unsigned char* src, unsigned char* dst)
+int AESCMACEncryptSw_base(const unsigned char* subkey, const unsigned char* dst_key, const unsigned char* subkey_key, uint32_t key_size, uint32_t size, const unsigned char* src, unsigned char* dst)
 {
    char aes_ctx[0x1F0] = {0};
    unsigned char drv_subkey[0x10] = {0};
@@ -410,11 +410,11 @@ int AESCMACEncryptSw_base_219D694(const unsigned char* subkey, const unsigned ch
 
    SceKernelUtilsForDriver_aes_encrypt_2(aes_ctx, subkey, drv_subkey);
 
-   xor_219D624((int*)src, (int*)drv_subkey, (int*)dst, size);
+   xor_1((int*)src, (int*)drv_subkey, (int*)dst, size);
 
    int result0 = SceSblSsMgrForDriver_sceSblSsMgrAESECBEncryptForDriver(dst, dst, size, dst_key, key_size, 1);
    if(result0 == 0)
-      xor_219D624((int*)dst, (int*)drv_subkey, (int*)dst, size);
+      xor_1((int*)dst, (int*)drv_subkey, (int*)dst, size);
 
    return result0;
 }
@@ -423,7 +423,7 @@ int AESCMACEncryptSw_base_219D694(const unsigned char* subkey, const unsigned ch
 
 // this is some CMAC variation but I am not sure ? both functions are similar but most likely ment to be dec / enc
 
-int xor_219D65C(int* src, int* iv, int* dst, uint32_t size)
+int xor_2(int* src, int* iv, int* dst, uint32_t size)
 {
    int iv_cpy[4] = {0};
    memcpy(iv_cpy, iv, 0x10);
@@ -452,7 +452,7 @@ int xor_219D65C(int* src, int* iv, int* dst, uint32_t size)
    return 0;
 }
 
-int AESCMACSw_base_1_219D794(const unsigned char* subkey, const unsigned char* dst_key, const unsigned char* subkey_key, uint32_t keysize, uint32_t size, const unsigned char* src, unsigned char* dst)
+int AESCMACSw_base_1(const unsigned char* subkey, const unsigned char* dst_key, const unsigned char* subkey_key, uint32_t keysize, uint32_t size, const unsigned char* src, unsigned char* dst)
 {
    char aes_ctx[0x1F0] = {0};
    unsigned char drv_subkey[0x10] = {0};
@@ -462,16 +462,16 @@ int AESCMACSw_base_1_219D794(const unsigned char* subkey, const unsigned char* d
 
    SceKernelUtilsForDriver_aes_encrypt_2(aes_ctx, subkey, drv_subkey);
 
-   xor_219D65C((int*)src, (int*)drv_subkey, (int*)dst, size); // WHAT DOES THIS DO IF dst IS OVERWRITTEN BY NEXT CMAC CALL ANYWAY ?
+   xor_2((int*)src, (int*)drv_subkey, (int*)dst, size); // WHAT DOES THIS DO IF dst IS OVERWRITTEN BY NEXT CMAC CALL ANYWAY ?
 
    int result0 = SceSblSsMgrForDriver_sceSblSsMgrAESCMACForDriver(src, dst, size, dst_key, keysize, iv, 1, 0);
    if(result0 == 0)
-      xor_219D65C((int*)dst, (int*)drv_subkey, (int*)dst, size);
+      xor_2((int*)dst, (int*)drv_subkey, (int*)dst, size);
 
    return result0;
 }
 
-int AESCMACSw_base_2_219D820(const unsigned char* subkey, const unsigned char* dst_key, const unsigned char* subkey_key, uint32_t keysize, uint32_t size, const unsigned char* src, unsigned char* dst)
+int AESCMACSw_base_2(const unsigned char* subkey, const unsigned char* dst_key, const unsigned char* subkey_key, uint32_t keysize, uint32_t size, const unsigned char* src, unsigned char* dst)
 {
    char aes_ctx[0x1F0] = {0};
    unsigned char drv_subkey[0x10] = {0};
@@ -481,12 +481,12 @@ int AESCMACSw_base_2_219D820(const unsigned char* subkey, const unsigned char* d
 
    SceKernelUtilsForDriver_aes_encrypt_2(aes_ctx, subkey, drv_subkey);
 
-   xor_219D65C((int*)src, (int*)drv_subkey, (int*)dst, size); // WHAT DOES THIS DO IF dst IS OVERWRITTEN BY NEXT CMAC CALL ANYWAY ?
+   xor_2((int*)src, (int*)drv_subkey, (int*)dst, size); // WHAT DOES THIS DO IF dst IS OVERWRITTEN BY NEXT CMAC CALL ANYWAY ?
 
    int result0 = SceSblSsMgrForDriver_sceSblSsMgrAESCMACForDriver(src, dst, size, dst_key, keysize, iv, 1, 0);
    
    if(result0 == 0)
-      xor_219D65C((int*)dst, (int*)drv_subkey, (int*)dst, size);
+      xor_2((int*)dst, (int*)drv_subkey, (int*)dst, size);
 
    return result0;
 }

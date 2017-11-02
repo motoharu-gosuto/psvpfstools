@@ -4,52 +4,10 @@
 #include <string>
 
 #include "sha1.h"
-#include "aes.h"
 
 #include "PfsKeys.h"
-#include "SceSblSsMgrForDriver.h"
 #include "SceKernelUtilsForDriver.h"
-
-int AESCBCEncryptWithKeygen_base(const unsigned char* klicensee, unsigned char* iv, uint32_t size, const unsigned char* src, unsigned char* dst, uint16_t key_id)
-{
-   uint16_t kid = 0 - (key_id - 1) + (key_id - 1); // ???
-
-   int size_tail = size & 0xF; // get size of tail
-   int size_block = size & (~0xF); // get block size aligned to 0x10 boundary
-   
-   //encrypt N blocks of source data with klicensee and iv
-
-   if(size_block != 0)
-   {
-      int result0 = SceSblSsMgrForDriver_sceSblSsMgrAESCBCEncryptWithKeygenForDriver(src, dst, size_block, klicensee, 0x80, iv, kid, 1);
-      if(result0 != 0)
-         return result0;  
-   }
-
-   //handle tail section - do a Cipher Text Stealing
-
-   if(size_tail == 0)
-      return 0;
-
-   //align destination buffer
-
-   unsigned char iv_enc[0x10] = {0};
-   //unsigned char* iv_enc_aligned = iv_enc + ((0 - (int)iv_enc) & 0x3F);
-   unsigned char* iv_enc_aligned = iv_enc;
-
-   //encrypt iv using klicensee
-     
-   int result1 = SceSblSsMgrForDriver_sceSblSsMgrAESECBEncryptWithKeygenForDriver(iv, iv_enc_aligned, 0x10, klicensee, 0x80, kid, 1);
-   if(result1 != 0)
-      return result1;
-
-   //produce destination tail by xoring source tail with encrypted iv
-
-   for(int i = 0; i < size_tail; i++)
-      dst[size_block + i] = src[size_block + i] ^ iv_enc_aligned[i];
-
-   return 0;
-}
+#include "PfsCryptEngineBase.h"
 
 int gen_secret(unsigned char* combo_aligned, uint32_t salt0, uint32_t salt1)
 {
