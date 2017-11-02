@@ -80,25 +80,13 @@ int generate_secret_np(unsigned char* secret, const unsigned char* klicensee, ui
    unsigned char iv[0x10] = {0};
    unsigned char combo[0x14] = {0};
 
-   //align buffers
+   gen_secret(combo, salt0, salt1);
 
-   /*
-   unsigned char* drvkey_aligned = drvkey + ((0 - (int)drvkey) & 0x3F);
-   unsigned char* iv_aligned = iv + ((0 - (int)iv) & 0x3F);
-   unsigned char* combo_aligned = combo + ((0 - (int)combo) & 0x3F);
-   */
+   memcpy(iv, iv0, 0x10); //initialize iv
 
-   unsigned char* drvkey_aligned = drvkey;
-   unsigned char* iv_aligned = iv;
-   unsigned char* combo_aligned = combo;
+   AESCBCEncryptWithKeygen_base(klicensee, iv, 0x14, combo, drvkey, key_id);
 
-   gen_secret(combo_aligned, salt0, salt1);
-
-   memcpy(iv_aligned, iv0, 0x10); //initialize iv
-
-   AESCBCEncryptWithKeygen_base(klicensee, iv_aligned, 0x14, combo_aligned, drvkey_aligned, key_id);
-
-   memcpy(secret, drvkey_aligned, 0x14); // copy derived key
+   memcpy(secret, drvkey, 0x14); // copy derived key
    
    return 0;
 }
