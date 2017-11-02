@@ -31,6 +31,18 @@ int string_to_byte_array(std::string str, int nBytes, unsigned char* dest)
    return 0;
 }
 
+std::string byte_array_to_string(const unsigned char* source, int nBytes)
+{
+   std::vector<char> result(nBytes * 2 + 1);
+
+   for(int i = 0, j = 0 ; j < nBytes; i = i + 2, j++)
+   {
+      sprintf(result.data() + i, "%02x", source[j]);
+   }
+
+   return std::string(result.data(), nBytes * 2);
+}
+
 int print_bytes(const unsigned char* bytes, int length)
 {
    for(int i = 0; i < length; i++)

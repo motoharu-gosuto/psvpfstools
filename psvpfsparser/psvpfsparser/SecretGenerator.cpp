@@ -15,7 +15,7 @@ unsigned char hmac_key0[0x14] = {0xE4, 0x62, 0x25, 0x8B, 0x1F, 0x31, 0x21, 0x56,
 
 unsigned char hmac_key1[0x14] = {0xAF, 0xE6, 0x56, 0xBB, 0x3C, 0x17, 0x25, 0x6A, 0x3C, 0x80, 0x9F, 0x6E, 0x9B, 0xF1, 0x9F, 0xDD, 0x5A, 0x38, 0x85, 0x43};
 
-unsigned char iv_21A93F0[0x10] = {0x74, 0xD2, 0x0C, 0xC3, 0x98, 0x81, 0xC2, 0x13, 0xEE, 0x77, 0x0B, 0x10, 0x10, 0xE4, 0xBE, 0xA7};
+unsigned char iv0[0x10] = {0x74, 0xD2, 0x0C, 0xC3, 0x98, 0x81, 0xC2, 0x13, 0xEE, 0x77, 0x0B, 0x10, 0x10, 0xE4, 0xBE, 0xA7};
 
 int SceKernelUtilsForDriver_ksceSha1Digest(const unsigned char *source, uint32_t size, unsigned char result[0x14])
 {
@@ -34,9 +34,9 @@ int SceKernelUtilsForDriver_ksceHmacSha1Digest(const unsigned char* key, uint32_
 
 int SceSblSsMgrForDriver_sceSblSsMgrAESCBCEncryptWithKeygenForDriver(const unsigned char* src, unsigned char* dst, int size, const unsigned char* key, int key_size, unsigned char* iv, uint16_t key_id, int mask_enable)
 {
-   F00DKeyEncryptor ec;
+   F00DKeyEncryptor* ec = get_F00D_encryptor();
    unsigned char drv_key[0x20] = {0}; //use max possible buffer
-   if(ec.encrypt_key(key, key_size, drv_key) < 0)
+   if(ec->encrypt_key(key, key_size, drv_key) < 0)
       return -1;
 
    aes_context aes_ctx;
@@ -49,9 +49,9 @@ int SceSblSsMgrForDriver_sceSblSsMgrAESCBCEncryptWithKeygenForDriver(const unsig
 
 int SceSblSsMgrForDriver_sceSblSsMgrAESECBEncryptWithKeygenForDriver(const unsigned char* src, unsigned char* dst, int size, const unsigned char* key, int key_size, uint16_t key_id, int mask_enable)
 {
-   F00DKeyEncryptor ec;
+   F00DKeyEncryptor* ec = get_F00D_encryptor();
    unsigned char drv_key[0x20] = {0}; //use max possible buffer
-   if(ec.encrypt_key(key, key_size, drv_key) < 0)
+   if(ec->encrypt_key(key, key_size, drv_key) < 0)
       return -1;
 
    aes_context aes_ctx;
@@ -159,7 +159,7 @@ int generate_secret_np(unsigned char* secret, const unsigned char* klicensee, ui
 
    gen_secret(combo_aligned, salt0, salt1);
 
-   memcpy(iv_aligned, iv_21A93F0, 0x10); //initialize iv
+   memcpy(iv_aligned, iv0, 0x10); //initialize iv
 
    AESCBCEncryptWithKeygen_base(klicensee, iv_aligned, 0x14, combo_aligned, drvkey_aligned, key_id);
 
