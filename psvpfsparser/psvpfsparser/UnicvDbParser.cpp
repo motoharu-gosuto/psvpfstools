@@ -120,9 +120,9 @@ bool readDataBlock(std::ifstream& inputStream, uint64_t& i, scei_ftbl_t& fft)
    }
 
    //check file sector size
-   if(fft.ftHeader.fileDbSectorSize != EXPECTED_FILE_SECTOR_SIZE)
+   if(fft.ftHeader.fileSectorSize != EXPECTED_FILE_SECTOR_SIZE)
    {
-      std::cout << "Unexpected fileDbSectorSize" << std::endl;
+      std::cout << "Unexpected fileSectorSize" << std::endl;
       return false;
    }
 

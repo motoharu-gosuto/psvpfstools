@@ -39,7 +39,7 @@ struct scei_ftbl_header_t
                      //multiple sig_tbl_t group into single file
 
    //This is sector size for files.db
-   uint32_t fileDbSectorSize; // expected 0x8000
+   uint32_t fileSectorSize; // expected 0x8000
    
    uint32_t padding; //this is probably padding? always zero
 
@@ -63,7 +63,7 @@ struct sig_tbl_header_t
 //in more generic terms - this is also a data block of size 0x400
 //signature table that is used to verify file hashes
 //it can hold 0x32 signatures at max
-//each signature corresponds to block in a real file. block should have size fileDbSectorSize (0x8000)
+//each signature corresponds to block in a real file. block should have size fileSectorSize (0x8000)
 struct sig_tbl_t
 {
    sig_tbl_header_t dtHeader;
