@@ -8,32 +8,19 @@
 
 #include "PfsKeys.h"
 #include "SceSblSsMgrForDriver.h"
+#include "SceKernelUtilsForDriver.h"
 
 //TODO: this is only part of the reversed code
 //TODO: Crypto engine consists of multiple layers, where each layer should be placed into separate file
 
-int SceKernelUtilsForDriver_ksceSha1Digest(const unsigned char *source, uint32_t size, unsigned char result[0x14])
-{
-   sha1(source, size, result);
-
-   return 0;
-}
-
-int SceKernelUtilsForDriver_ksceHmacSha1Digest(const unsigned char* key, uint32_t key_len, const unsigned char* data, uint32_t data_len, unsigned char digest[0x14])
-{
-   sha1_hmac(key, key_len, data, data_len, digest);
-
-   return 0;
-}
-
 int sha1Digest(unsigned char *result, const unsigned char *source, int size)
 {
-   return SceKernelUtilsForDriver_ksceSha1Digest(source, size, result);
+   return SceKernelUtilsForDriver_sceSha1DigestForDriver(source, size, result);
 }
 
 int hmacSha1Digest(unsigned char* digest, const unsigned char* key, const unsigned char* data, int data_len)
 {
-   return SceKernelUtilsForDriver_ksceHmacSha1Digest(key, 0x14, data, data_len, digest);
+   return SceKernelUtilsForDriver_sceHmacSha1DigestForDriver(key, 0x14, data, data_len, digest);
 }
 
 int AESCBCEncryptWithKeygen_base(const unsigned char* klicensee, unsigned char* iv, uint32_t size, const unsigned char* src, unsigned char* dst, uint16_t key_id)
