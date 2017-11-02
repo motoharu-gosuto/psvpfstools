@@ -7,15 +7,10 @@
 #include "aes.h"
 
 #include "F00DKeyEncryptor.h"
+#include "PfsKeys.h"
 
 //TODO: this is only part of the reversed code
 //TODO: Crypto engine consists of multiple layers, where each layer should be placed into separate file
-
-unsigned char hmac_key0[0x14] = {0xE4, 0x62, 0x25, 0x8B, 0x1F, 0x31, 0x21, 0x56, 0x07, 0x45, 0xDB, 0x62, 0xB1, 0x43, 0x67, 0x23, 0xD2, 0xBF, 0x80, 0xFE}; 
-
-unsigned char hmac_key1[0x14] = {0xAF, 0xE6, 0x56, 0xBB, 0x3C, 0x17, 0x25, 0x6A, 0x3C, 0x80, 0x9F, 0x6E, 0x9B, 0xF1, 0x9F, 0xDD, 0x5A, 0x38, 0x85, 0x43};
-
-unsigned char iv0[0x10] = {0x74, 0xD2, 0x0C, 0xC3, 0x98, 0x81, 0xC2, 0x13, 0xEE, 0x77, 0x0B, 0x10, 0x10, 0xE4, 0xBE, 0xA7};
 
 int SceKernelUtilsForDriver_ksceSha1Digest(const unsigned char *source, uint32_t size, unsigned char result[0x14])
 {
@@ -30,7 +25,6 @@ int SceKernelUtilsForDriver_ksceHmacSha1Digest(const unsigned char* key, uint32_
 
    return 0;
 }
-
 
 int SceSblSsMgrForDriver_sceSblSsMgrAESCBCEncryptWithKeygenForDriver(const unsigned char* src, unsigned char* dst, int size, const unsigned char* key, int key_size, unsigned char* iv, uint16_t key_id, int mask_enable)
 {
@@ -62,7 +56,6 @@ int SceSblSsMgrForDriver_sceSblSsMgrAESECBEncryptWithKeygenForDriver(const unsig
    return 0;
 }
 
-
 int sha1Digest(unsigned char *result, const unsigned char *source, int size)
 {
    return SceKernelUtilsForDriver_ksceSha1Digest(source, size, result);
@@ -72,7 +65,6 @@ int hmacSha1Digest(unsigned char* digest, const unsigned char* key, const unsign
 {
    return SceKernelUtilsForDriver_ksceHmacSha1Digest(key, 0x14, data, data_len, digest);
 }
-
 
 int AESCBCEncryptWithKeygen_base(const unsigned char* klicensee, unsigned char* iv, uint32_t size, const unsigned char* src, unsigned char* dst, uint16_t key_id)
 {
@@ -114,7 +106,6 @@ int AESCBCEncryptWithKeygen_base(const unsigned char* klicensee, unsigned char* 
 
    return 0;
 }
-
 
 int gen_secret(unsigned char* combo_aligned, uint32_t salt0, uint32_t salt1)
 {
