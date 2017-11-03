@@ -184,7 +184,7 @@ int pfs_encrypt_hw(const unsigned char* key, const unsigned char* iv_xor_key, in
 
 //#### GROUP 3, GROUP 4 (sw dec/enc) ####
 
-int pfs_decrypt_sw(const unsigned char* key, const unsigned char* subkey_key, uint32_t keysize, int ignored, int tweak_key0, int tweak_key1, uint32_t size, uint32_t block_size, const unsigned char* src, unsigned char* dst, uint16_t flag)
+int pfs_decrypt_sw(const unsigned char* key, const unsigned char* subkey_key, uint32_t keysize, int tweak_key0, int tweak_key1, uint32_t size, uint32_t block_size, const unsigned char* src, unsigned char* dst, uint16_t flag)
 {
    unsigned char iv[0x10] = {0};
 
@@ -262,7 +262,7 @@ int pfs_decrypt_sw(const unsigned char* key, const unsigned char* subkey_key, ui
    return 0;
 }
 
-int pfs_encrypt_sw(const unsigned char* key, const unsigned char* subkey_key, uint32_t keysize, int ignored, int tweak_key0, int tweak_key1, uint32_t size, uint32_t block_size, const unsigned char* src, unsigned char* dst, uint16_t flag)
+int pfs_encrypt_sw(const unsigned char* key, const unsigned char* subkey_key, uint32_t keysize, int tweak_key0, int tweak_key1, uint32_t size, uint32_t block_size, const unsigned char* src, unsigned char* dst, uint16_t flag)
 {
    unsigned char iv[0x10] = {0};
 
