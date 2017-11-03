@@ -7,7 +7,7 @@
 #include "CryptoEngine.h"
 #include "SecretGenerator.h"
 
-int calculate_sha1_chain_219E008(unsigned char* key, unsigned char* iv_xor_key, const unsigned char* klicensee, uint32_t salt1)
+int calculate_sha1_chain(unsigned char* dec_key, unsigned char* iv_key, const unsigned char* klicensee, uint32_t unicv_page_salt)
 {
    int saltin[2] = {0};
    unsigned char base0[0x14] = {0};
@@ -15,7 +15,7 @@ int calculate_sha1_chain_219E008(unsigned char* key, unsigned char* iv_xor_key, 
    unsigned char combo[0x28] = {0};
    unsigned char drvkey[0x14] = {0};
 
-   saltin[0] = salt1;
+   saltin[0] = unicv_page_salt;
 
    SceKernelUtilsForDriver_sceSha1DigestForDriver(klicensee, 0x10, base0); //calculate hash of klicensee
 
@@ -30,7 +30,7 @@ int calculate_sha1_chain_219E008(unsigned char* key, unsigned char* iv_xor_key, 
    
    SceKernelUtilsForDriver_sceSha1DigestForDriver(combo, 0x28, drvkey); //calculate hash from combination of salt 0 hash and klicensee hash
 
-   memcpy(key, drvkey, 0x10);  //copy derived key
+   memcpy(dec_key, drvkey, 0x10);  //copy derived key
 
    // derive key 1
    
@@ -43,16 +43,16 @@ int calculate_sha1_chain_219E008(unsigned char* key, unsigned char* iv_xor_key, 
 
    SceKernelUtilsForDriver_sceSha1DigestForDriver(combo, 0x28, drvkey); //calculate hash from combination of salt 1 hash and klicensee hash
 
-   memcpy(iv_xor_key, drvkey, 0x10); //copy derived key
+   memcpy(iv_key, drvkey, 0x10); //copy derived key
 
    return 0;
 }
 
-int hmac1_sha1_or_sha1_chain_219E0DC(unsigned char* key, unsigned char* iv_xor_key, const unsigned char* klicensee, uint32_t salt0, uint16_t flag, uint32_t salt1)
+int hmac1_sha1_or_sha1_chain(unsigned char* dec_key, unsigned char* iv_key, const unsigned char* klicensee, uint32_t files_salt, uint16_t flag, uint32_t unicv_page_salt)
 {
    if((flag & 2) == 0)
    {
-      calculate_sha1_chain_219E008(key, iv_xor_key, klicensee, salt1);
+      calculate_sha1_chain(dec_key, iv_key, klicensee, unicv_page_salt);
       return 0;
    }
 
@@ -60,34 +60,34 @@ int hmac1_sha1_or_sha1_chain_219E0DC(unsigned char* key, unsigned char* iv_xor_k
    int saltin1[2] = {0};
    unsigned char drvkey[0x14] = {0};
 
-   memcpy(key, klicensee, 0x10);
+   memcpy(dec_key, klicensee, 0x10);
 
-   if(salt0 == 0)
+   if(files_salt == 0)
    {
-      saltin0[0x00] = salt1;
+      saltin0[0x00] = unicv_page_salt;
       SceKernelUtilsForDriver_sceHmacSha1DigestForDriver(hmac_key0, 0x14, (unsigned char*)saltin0, 4, drvkey); // derive key with one salt
    }
    else
    {
-      saltin1[0] = salt0;
-      saltin1[1] = salt1;
+      saltin1[0] = files_salt;
+      saltin1[1] = unicv_page_salt;
       SceKernelUtilsForDriver_sceHmacSha1DigestForDriver(hmac_key0, 0x14, (unsigned char*)saltin1, 8, drvkey); // derive key with two salts
    }
 
-   memcpy(iv_xor_key, drvkey, 0x10); //copy derived key
+   memcpy(iv_key, drvkey, 0x10); //copy derived key
 
    return 0;
 }
 
-int hmac_sha1_219E164(unsigned char* key, unsigned char* iv_xor_key, const unsigned char* klicensee, uint16_t ignored_flag, uint16_t ignored_key_id, const unsigned char* base_key, uint32_t base_key_len)
+int hmac_sha1(unsigned char* dec_key, unsigned char* iv_key, const unsigned char* klicensee, uint16_t ignored_flag, uint16_t ignored_key_id, const unsigned char* base_key, uint32_t base_key_len)
 {
    unsigned char drvkey[0x14] = {0};
 
    SceKernelUtilsForDriver_sceHmacSha1DigestForDriver(hmac_key0, 0x14, base_key, base_key_len, drvkey);
 
-   memcpy(key, klicensee, 0x10);
+   memcpy(dec_key, klicensee, 0x10);
 
-   memcpy(iv_xor_key, drvkey, 0x10);
+   memcpy(iv_key, drvkey, 0x10);
 
    return 0;
 }
@@ -99,26 +99,26 @@ int derive_data_ctx_keys(CryptEngineData* data, const derive_keys_ctx* drv_ctx)
 
    if((some_flag_base > 0x1F) || (some_flag == 0))
    {
-      calculate_sha1_chain_219E008(data->dec_key, data->iv_key, data->klicensee, data->unicv_page);
+      calculate_sha1_chain(data->dec_key, data->iv_key, data->klicensee, data->unicv_page);
       return scePfsUtilGetSecret(data->secret, data->klicensee, data->files_salt, data->pmi_bcl_flag, data->unicv_page, data->key_id);
    }
    else
    {
       if((drv_ctx->unk_40 != 0 && drv_ctx->unk_40 != 3) || (drv_ctx->sceiftbl_version <= 1))
       {    
-         hmac1_sha1_or_sha1_chain_219E0DC(data->dec_key, data->iv_key, data->klicensee, data->files_salt, data->pmi_bcl_flag, data->unicv_page);
+         hmac1_sha1_or_sha1_chain(data->dec_key, data->iv_key, data->klicensee, data->files_salt, data->pmi_bcl_flag, data->unicv_page);
          return scePfsUtilGetSecret(data->secret, data->klicensee, data->files_salt, data->pmi_bcl_flag, data->unicv_page, data->key_id);
       }
       else
       {
          if(drv_ctx->unk_40 == 0 || drv_ctx->unk_40 == 3)
          {
-            hmac_sha1_219E164(data->dec_key, data->iv_key, data->klicensee, data->pmi_bcl_flag, data->key_id, drv_ctx->base_key, 0x14);
+            hmac_sha1(data->dec_key, data->iv_key, data->klicensee, data->pmi_bcl_flag, data->key_id, drv_ctx->base_key, 0x14);
             return scePfsUtilGetSecret(data->secret, data->klicensee, data->files_salt, data->pmi_bcl_flag, data->unicv_page, data->key_id);
          }
          else
          {
-            hmac_sha1_219E164(data->dec_key, data->iv_key, data->klicensee, data->pmi_bcl_flag, data->key_id, 0, 0x14);
+            hmac_sha1(data->dec_key, data->iv_key, data->klicensee, data->pmi_bcl_flag, data->key_id, 0, 0x14);
             return scePfsUtilGetSecret(data->secret, data->klicensee, data->files_salt, data->pmi_bcl_flag, data->unicv_page, data->key_id);
          }
       }
