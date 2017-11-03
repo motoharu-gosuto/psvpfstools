@@ -29,3 +29,5 @@ public:
 };
 
 F00DKeyEncryptor* get_F00D_encryptor();
+
+void set_F00D_url(std::string url);

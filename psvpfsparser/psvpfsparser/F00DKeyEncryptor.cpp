@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <curl/curl.h>
 #include <iomanip>
+#include <string>
 
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/json_parser.hpp>
@@ -17,11 +18,18 @@ F00DKeyEncryptor* get_F00D_encryptor()
    return &g_F00D_encryptor;
 }
 
+std::string g_F00D_url;
+
+void set_F00D_url(std::string url)
+{
+   g_F00D_url = url;
+}
+
 std::string F00DKeyEncryptor::create_url(unsigned const char* key, int key_size)
 {
    std::stringstream ss;
 
-   ss << DMAC5_URL << "/?key=";
+   ss << g_F00D_url << "/?key=";
 
    int nbytes = key_size / 8;
    for(int i = 0; i < nbytes; i++)
