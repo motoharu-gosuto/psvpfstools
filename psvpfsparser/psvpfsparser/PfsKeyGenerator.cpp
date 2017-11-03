@@ -4,7 +4,7 @@
 
 #include "SceKernelUtilsForDriver.h"
 #include "PfsKeys.h"
-#include "CryptoEngine.h"
+#include "PfsCryptEngine.h"
 #include "SecretGenerator.h"
 
 //similar to gen_secret in SecretGenerator
