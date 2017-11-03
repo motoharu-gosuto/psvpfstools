@@ -7,20 +7,6 @@
 #include "CryptoEngine.h"
 #include "SecretGenerator.h"
 
-//----------------------
-
-int sha1Digest_219DE54(unsigned char *result, const unsigned char *source, int size)
-{
-   return SceKernelUtilsForDriver_sceSha1DigestForDriver(source, size, result);
-}
-
-static int hmacSha1Digest_219DE68(unsigned char* digest, const unsigned char* key, const unsigned char* data, int data_len)
-{
-   return SceKernelUtilsForDriver_sceHmacSha1DigestForDriver(key, 0x14, data, data_len, digest);
-}
-
-//----------------------
-
 int calculate_sha1_chain_219E008(unsigned char* key, unsigned char* iv_xor_key, const unsigned char* klicensee, uint32_t salt1)
 {
    int saltin[2] = {0};
@@ -31,18 +17,18 @@ int calculate_sha1_chain_219E008(unsigned char* key, unsigned char* iv_xor_key, 
 
    saltin[0] = salt1;
 
-   sha1Digest_219DE54(base0, klicensee, 0x10); //calculate hash of klicensee
+   SceKernelUtilsForDriver_sceSha1DigestForDriver(klicensee, 0x10, base0); //calculate hash of klicensee
 
    // derive key 0
 
    saltin[1] = 1;
    
-   sha1Digest_219DE54(base1, (unsigned char*)saltin, 8); //calculate hash of salt 0
+   SceKernelUtilsForDriver_sceSha1DigestForDriver((unsigned char*)saltin, 8, base1); //calculate hash of salt 0
 
    memcpy(combo, base0, 0x14);
    memcpy(combo + 0x14, base1, 0x14);
    
-   sha1Digest_219DE54(drvkey, combo, 0x28); //calculate hash from combination of salt 0 hash and klicensee hash
+   SceKernelUtilsForDriver_sceSha1DigestForDriver(combo, 0x28, drvkey); //calculate hash from combination of salt 0 hash and klicensee hash
 
    memcpy(key, drvkey, 0x10);  //copy derived key
 
@@ -50,12 +36,12 @@ int calculate_sha1_chain_219E008(unsigned char* key, unsigned char* iv_xor_key, 
    
    saltin[1] = 2;
 
-   sha1Digest_219DE54(base1, (unsigned char*)saltin, 8); //calculate hash of salt 1
+   SceKernelUtilsForDriver_sceSha1DigestForDriver((unsigned char*)saltin, 8, base1); //calculate hash of salt 1
 
    memcpy(combo, base0, 0x14);
    memcpy(combo + 0x14, base1, 0x14);
 
-   sha1Digest_219DE54(drvkey, combo, 0x28); //calculate hash from combination of salt 1 hash and klicensee hash
+   SceKernelUtilsForDriver_sceSha1DigestForDriver(combo, 0x28, drvkey); //calculate hash from combination of salt 1 hash and klicensee hash
 
    memcpy(iv_xor_key, drvkey, 0x10); //copy derived key
 
@@ -84,13 +70,13 @@ int hmac1_sha1_or_sha1_chain_219E0DC(unsigned char* key, unsigned char* iv_xor_k
    if(salt0 == 0)
    {
       saltin0[0x00] = salt1;
-      hmacSha1Digest_219DE68(drvkey, hmac_key0, (unsigned char*)saltin0, 4); // derive key with one salt
+      SceKernelUtilsForDriver_sceHmacSha1DigestForDriver(hmac_key0, 0x14, (unsigned char*)saltin0, 4, drvkey); // derive key with one salt
    }
    else
    {
       saltin1[0] = salt0;
       saltin1[1] = salt1;
-      hmacSha1Digest_219DE68(drvkey, hmac_key0, (unsigned char*)saltin1, 8); // derive key with two salts
+      SceKernelUtilsForDriver_sceHmacSha1DigestForDriver(hmac_key0, 0x14, (unsigned char*)saltin1, 8, drvkey); // derive key with two salts
    }
 
    memcpy(iv_xor_key, drvkey, 0x10); //copy derived key
@@ -102,7 +88,7 @@ int hmac_sha1_219E164(unsigned char* key, unsigned char* iv_xor_key, const unsig
 {
    unsigned char drvkey[0x14] = {0};
 
-   hmacSha1Digest_219DE68(drvkey, hmac_key0, base_key, base_key_len);
+   SceKernelUtilsForDriver_sceHmacSha1DigestForDriver(hmac_key0, 0x14, base_key, base_key_len, drvkey);
 
    memcpy(key, klicensee, 0x10);
 
