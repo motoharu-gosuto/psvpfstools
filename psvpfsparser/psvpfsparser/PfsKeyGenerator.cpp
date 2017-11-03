@@ -7,6 +7,20 @@
 #include "CryptoEngine.h"
 #include "SecretGenerator.h"
 
+//similar to gen_secret in SecretGenerator
+int gen_secrets_extern(unsigned char* dec_key, unsigned char* iv_key, const unsigned char* klicensee, uint16_t ignored_flag, uint16_t ignored_key_id, const unsigned char* base_key, uint32_t base_key_len)
+{
+   unsigned char drvkey[0x14] = {0};
+
+   SceKernelUtilsForDriver_sceHmacSha1DigestForDriver(hmac_key0, 0x14, base_key, base_key_len, drvkey);
+
+   memcpy(dec_key, klicensee, 0x10);
+
+   memcpy(iv_key, drvkey, 0x10);
+
+   return 0;
+}
+
 //similar to generate_secret in SecretGenerator
 int generate_secrets(unsigned char* dec_key, unsigned char* iv_key, const unsigned char* klicensee, uint32_t unicv_page_salt)
 {
@@ -71,20 +85,6 @@ int gen_secrets(unsigned char* dec_key, unsigned char* iv_key, const unsigned ch
    }
 
    memcpy(iv_key, drvkey, 0x10); //copy derived key
-
-   return 0;
-}
-
-//similar to gen_secret in SecretGenerator
-int gen_secrets_extern(unsigned char* dec_key, unsigned char* iv_key, const unsigned char* klicensee, uint16_t ignored_flag, uint16_t ignored_key_id, const unsigned char* base_key, uint32_t base_key_len)
-{
-   unsigned char drvkey[0x14] = {0};
-
-   SceKernelUtilsForDriver_sceHmacSha1DigestForDriver(hmac_key0, 0x14, base_key, base_key_len, drvkey);
-
-   memcpy(dec_key, klicensee, 0x10);
-
-   memcpy(iv_key, drvkey, 0x10);
 
    return 0;
 }
