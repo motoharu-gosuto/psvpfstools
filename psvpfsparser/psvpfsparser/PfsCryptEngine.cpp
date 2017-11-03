@@ -9,77 +9,7 @@
 
 //----------------------
 
-static int hmacSha1Digest_219DE68(unsigned char* digest, const unsigned char* key, const unsigned char* data, int data_len)
-{
-   return SceKernelUtilsForDriver_sceHmacSha1DigestForDriver(key, 0x14, data, data_len, digest);
-}
-
-//analog of memcmp or str cmp or strcoll, smth like that
-//returns -1, 0
-int SceSysclibForDriver_b5a4d745(unsigned char* char0, unsigned char* char1, int len)
-{
-   int res = memcmp(char0, char1, len);
-   return (res != 0) ? -1 : 0;
-}
-
-//return 0 - error
-//return 1 - success
-int proc_verify_14_bytes_219DE44(unsigned char unk0[0x14], unsigned char unk1[0x14])
-{
-   //from what I know - b5a4d745 returns only 0, -1 (not sure about 1) based on reversing and tests
-   //for  0 - CLZ is 32
-   //for  1 - CLZ is 31
-   //for -1 - CLZ is 0
-    
-   //for  0 - >> 5 is 1
-   //for  1 - >> 5 is 0
-   //for -1 - >> 5 is 0
-    
-   //LSRS changes flag to indicate if value is zero or not
-   //zero value is considered as error
-   //which means that original value 1 or -1 is an error and 0 is success
-   //meaning that unk0 and unk1 should be identical for this function to succeed
-   //this is some analog of strcmp or memcmp
-
-   int result = SceSysclibForDriver_b5a4d745(unk0, unk1, 0x14);
-   return (result == 0) ? 1 : 0;
-}
-
-//----------------------
-
 #define IGNORE_ARG 0
-
-int hmac_sha1_digest_219DE7C(unsigned char digest[0x14], unsigned char* key, const unsigned char* src, uint32_t size)
-{
-   if(size == 0)
-   {
-      //NOT SURE WHY DATA LEN CAN BE 0 ?
-      SceKernelUtilsForDriver_sceHmacSha1DigestForDriver(key, 0x14, src, 0, digest);
-      return 0;
-   }
-
-   unsigned char key_raw[0x14] = {0};
-   unsigned char dst_raw[0x14] = {0};
-
-   /*
-   unsigned char* key_aligned = key_raw + ((0 - (int)key_raw) & 0x3F);
-   unsigned char* dst_aligned = dst_raw + ((0 - (int)dst_raw) & 0x3F);
-   */
-   unsigned char* key_aligned = key_raw;
-   unsigned char* dst_aligned = dst_raw;
-
-   //memset(key_aligned + 8, 0, 0x18); //NOT SURE WHAT IS THE PURPOSE OF THIS LINE ?
-
-   memcpy(key_aligned, key, 0x14);
-   
-   int result = SceSblSsMgrForDriver_sceSblSsMgrHMACSHA1ForDriver(src, dst_aligned, size, key_aligned, 0, 1, 0); // IV is zero in this case - this is OK (tested)
-   if(result != 0)
-      return result;
-
-   memcpy(digest, dst_aligned, 0x14);
-
-   return 0;
-}
 
 void verify_step(CryptEngineWorkCtx* crypt_ctx, int64_t tweak_key, int bitSize, int size, unsigned char* source)
 {
@@ -109,12 +39,13 @@ void verify_step(CryptEngineWorkCtx* crypt_ctx, int64_t tweak_key, int bitSize, 
 
             do
             {
-               hmac_sha1_digest_219DE7C(bytes14, crypt_ctx->subctx->data->secret, source_base, crypt_ctx->subctx->data->block_size);
+               int size_arg = crypt_ctx->subctx->data->block_size;
+               SceSblSsMgrForDriver_sceSblSsMgrHMACSHA1ForDriver(source_base, bytes14, size_arg, crypt_ctx->subctx->data->secret, 0, 1, 0);
                         
-               int ver_res = proc_verify_14_bytes_219DE44(signatures_base, bytes14);
+               int ver_res = memcmp(signatures_base, bytes14, 0x14);
 
                //if verify is not successful and flag is not specified
-               if((ver_res == 0) && ((crypt_ctx->subctx->data->pmi_bcl_flag & 9) != 1))
+               if((ver_res != 0) && ((crypt_ctx->subctx->data->pmi_bcl_flag & 9) != 1))
                {
                   crypt_ctx->error = 0x80140F02;
                   return; // this should terminate crypto task (global exit)
@@ -148,15 +79,15 @@ void verify_step(CryptEngineWorkCtx* crypt_ctx, int64_t tweak_key, int bitSize, 
 
             do
             {
-               hmacSha1Digest_219DE68(digest, crypt_ctx->subctx->data->secret, (unsigned char*)&salt, 4);
+               SceKernelUtilsForDriver_sceHmacSha1DigestForDriver(crypt_ctx->subctx->data->secret, 0x14, (unsigned char*)&salt, 4, digest);
 
                int size_arg = (crypt_ctx->subctx->data->block_size < bytes_left) ? crypt_ctx->subctx->data->block_size : bytes_left;
-               hmac_sha1_digest_219DE7C(bytes14, digest, source_base, size_arg);
+               SceSblSsMgrForDriver_sceSblSsMgrHMACSHA1ForDriver(source_base, bytes14, size_arg, digest, 0, 1, 0);
                         
-               int ver_res = proc_verify_14_bytes_219DE44(signatures_base, bytes14);
+               int ver_res = memcmp(signatures_base, bytes14, 0x14);
                         
                //if verify is not successful and flag is not specified
-               if((ver_res == 0) && ((crypt_ctx->subctx->data->pmi_bcl_flag & 9) != 1))
+               if((ver_res != 0) && ((crypt_ctx->subctx->data->pmi_bcl_flag & 9) != 1))
                {
                   crypt_ctx->error = 0x80140F02;
                   return; // this should terminate crypto task (global exit)
