@@ -88,7 +88,7 @@ bool parseFilesDb(unsigned char* klicensee, std::ifstream& inputStream, sce_ng_p
 
    //generate secret
    unsigned char secret[0x14];
-   scePfsUtilGetSecret(secret, klicensee, header.salt0, header.flags, 0, 0);
+   scePfsUtilGetSecret(secret, klicensee, header.files_salt, header.flags, 0, 0);
 
    //verify header
    if(!verify_header(inputStream, header, secret))

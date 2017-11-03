@@ -103,7 +103,7 @@ void bruteforce_map(std::string title_id_path, unsigned char* klicensee, sce_ng_
       {
          //generate secret - one secret per unicv.db page is required
          unsigned char secret[0x14];
-         scePfsUtilGetSecret(secret, klicensee, ngpfs.salt0, ngpfs.flags, t.page, 0);
+         scePfsUtilGetSecret(secret, klicensee, ngpfs.files_salt, ngpfs.flags, t.page, 0);
 
          std::string found_path = brutforce_hashes(fileDatas, secret, t.blocks.front().signatures.front().data()); 
          if(found_path.length() > 0)
@@ -146,7 +146,7 @@ void init_crypt_ctx(CryptEngineWorkCtx* work_ctx, unsigned char* klicensee, sce_
 {     
    memset(&g_data, 0, sizeof(CryptEngineData));
    g_data.klicensee = klicensee;
-   g_data.files_salt = ngpfs.salt0;
+   g_data.files_salt = ngpfs.files_salt;
    g_data.unicv_page = table.page;
    g_data.type = 2; // unknown how to set
    g_data.pmi_bcl_flag = ngpfs.flags; //not sure

@@ -33,7 +33,7 @@ struct sce_ng_pfs_header_t
    uint32_t pageSize;
    uint32_t flags; // not sure but probably matches order value of the tree in btree_init
    uint32_t root_icv_page_number; // derived from off2pgn
-   uint32_t salt0; // first salt value used for key derrivation
+   uint32_t files_salt; // first salt value used for key derrivation
    uint64_t unk6;
    uint32_t tailSize; // size of data after this header
    uint32_t unk7;

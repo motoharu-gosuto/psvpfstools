@@ -48,12 +48,7 @@ int calculate_sha1_chain_219E008(unsigned char* key, unsigned char* iv_xor_key, 
    return 0;
 }
 
-int calculate_sha1_chain_219E1CC(unsigned char* key, unsigned char* iv_xor_key, const unsigned char* klicensee, uint32_t ignored_salt0, uint32_t salt1)
-{
-   return calculate_sha1_chain_219E008(key, iv_xor_key, klicensee, salt1);
-}
-
-int hmac1_sha1_or_sha1_chain_219E0DC(unsigned char* key, unsigned char* iv_xor_key, const unsigned char* klicensee, uint32_t salt0, uint16_t flag, uint32_t salt1, uint16_t ignored_key_id)
+int hmac1_sha1_or_sha1_chain_219E0DC(unsigned char* key, unsigned char* iv_xor_key, const unsigned char* klicensee, uint32_t salt0, uint16_t flag, uint32_t salt1)
 {
    if((flag & 2) == 0)
    {
@@ -104,14 +99,14 @@ int derive_data_ctx_keys(CryptEngineData* data, const derive_keys_ctx* drv_ctx)
 
    if((some_flag_base > 0x1F) || (some_flag == 0))
    {
-      calculate_sha1_chain_219E1CC(data->dec_key, data->iv_key, data->klicensee, data->files_salt, data->unicv_page);
+      calculate_sha1_chain_219E008(data->dec_key, data->iv_key, data->klicensee, data->unicv_page);
       return scePfsUtilGetSecret(data->secret, data->klicensee, data->files_salt, data->pmi_bcl_flag, data->unicv_page, data->key_id);
    }
    else
    {
       if((drv_ctx->unk_40 != 0 && drv_ctx->unk_40 != 3) || (drv_ctx->sceiftbl_version <= 1))
       {    
-         hmac1_sha1_or_sha1_chain_219E0DC(data->dec_key, data->iv_key, data->klicensee, data->files_salt, data->pmi_bcl_flag, data->unicv_page, data->key_id);
+         hmac1_sha1_or_sha1_chain_219E0DC(data->dec_key, data->iv_key, data->klicensee, data->files_salt, data->pmi_bcl_flag, data->unicv_page);
          return scePfsUtilGetSecret(data->secret, data->klicensee, data->files_salt, data->pmi_bcl_flag, data->unicv_page, data->key_id);
       }
       else
