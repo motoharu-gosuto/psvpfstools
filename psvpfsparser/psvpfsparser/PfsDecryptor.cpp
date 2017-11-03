@@ -17,6 +17,7 @@
 #include "UnicvDbParser.h"
 #include "FilesDbParser.h"
 #include "CryptoEngine.h"
+#include "PfsKeyGenerator.h"
 
 std::string brutforce_hashes(std::map<std::string, std::vector<uint8_t>>& fileDatas, unsigned char* secret, unsigned char* signature)
 {
@@ -164,7 +165,7 @@ void init_crypt_ctx(CryptEngineWorkCtx* work_ctx, unsigned char* klicensee, sce_
 
    memcpy(drv_ctx.base_key, table.ftHeader.base_key, 0x14);
 
-   derive_data_ctx_keys(&g_data, &drv_ctx); //derive dec_key, iv_key, secret
+   DerivePfsKeys(&g_data, &drv_ctx); //derive dec_key, iv_key, secret
 
    //--------------------------------
    

@@ -7,7 +7,8 @@
 #include "CryptoEngine.h"
 #include "SecretGenerator.h"
 
-int calculate_sha1_chain(unsigned char* dec_key, unsigned char* iv_key, const unsigned char* klicensee, uint32_t unicv_page_salt)
+//similar to generate_secret in SecretGenerator
+int generate_secrets(unsigned char* dec_key, unsigned char* iv_key, const unsigned char* klicensee, uint32_t unicv_page_salt)
 {
    int saltin[2] = {0};
    unsigned char base0[0x14] = {0};
@@ -48,14 +49,9 @@ int calculate_sha1_chain(unsigned char* dec_key, unsigned char* iv_key, const un
    return 0;
 }
 
-int hmac1_sha1_or_sha1_chain(unsigned char* dec_key, unsigned char* iv_key, const unsigned char* klicensee, uint32_t files_salt, uint16_t flag, uint32_t unicv_page_salt)
+//similar to gen_secret in SecretGenerator
+int gen_secrets(unsigned char* dec_key, unsigned char* iv_key, const unsigned char* klicensee, uint32_t files_salt, uint32_t unicv_page_salt)
 {
-   if((flag & 2) == 0)
-   {
-      calculate_sha1_chain(dec_key, iv_key, klicensee, unicv_page_salt);
-      return 0;
-   }
-
    int saltin0[1] = {0};
    int saltin1[2] = {0};
    unsigned char drvkey[0x14] = {0};
@@ -79,7 +75,8 @@ int hmac1_sha1_or_sha1_chain(unsigned char* dec_key, unsigned char* iv_key, cons
    return 0;
 }
 
-int hmac_sha1(unsigned char* dec_key, unsigned char* iv_key, const unsigned char* klicensee, uint16_t ignored_flag, uint16_t ignored_key_id, const unsigned char* base_key, uint32_t base_key_len)
+//similar to gen_secret in SecretGenerator
+int gen_secrets_extern(unsigned char* dec_key, unsigned char* iv_key, const unsigned char* klicensee, uint16_t ignored_flag, uint16_t ignored_key_id, const unsigned char* base_key, uint32_t base_key_len)
 {
    unsigned char drvkey[0x14] = {0};
 
@@ -92,33 +89,37 @@ int hmac_sha1(unsigned char* dec_key, unsigned char* iv_key, const unsigned char
    return 0;
 }
 
-int derive_data_ctx_keys(CryptEngineData* data, const derive_keys_ctx* drv_ctx)
+int DerivePfsKeys(CryptEngineData* data, const derive_keys_ctx* drv_ctx)
 {
    int some_flag_base = (uint32_t)(data->pmi_bcl_flag - 2);
    int some_flag = 0xC0000B03 & (1 << some_flag_base);
 
    if((some_flag_base > 0x1F) || (some_flag == 0))
    {
-      calculate_sha1_chain(data->dec_key, data->iv_key, data->klicensee, data->unicv_page);
+      generate_secrets(data->dec_key, data->iv_key, data->klicensee, data->unicv_page);
       return scePfsUtilGetSecret(data->secret, data->klicensee, data->files_salt, data->pmi_bcl_flag, data->unicv_page, data->key_id);
    }
    else
    {
       if((drv_ctx->unk_40 != 0 && drv_ctx->unk_40 != 3) || (drv_ctx->sceiftbl_version <= 1))
-      {    
-         hmac1_sha1_or_sha1_chain(data->dec_key, data->iv_key, data->klicensee, data->files_salt, data->pmi_bcl_flag, data->unicv_page);
+      {  
+         if((data->pmi_bcl_flag & 2) > 0)
+            gen_secrets(data->dec_key, data->iv_key, data->klicensee, data->files_salt, data->unicv_page);
+         else
+            generate_secrets(data->dec_key, data->iv_key, data->klicensee, data->unicv_page);
+
          return scePfsUtilGetSecret(data->secret, data->klicensee, data->files_salt, data->pmi_bcl_flag, data->unicv_page, data->key_id);
       }
       else
       {
          if(drv_ctx->unk_40 == 0 || drv_ctx->unk_40 == 3)
          {
-            hmac_sha1(data->dec_key, data->iv_key, data->klicensee, data->pmi_bcl_flag, data->key_id, drv_ctx->base_key, 0x14);
+            gen_secrets_extern(data->dec_key, data->iv_key, data->klicensee, data->pmi_bcl_flag, data->key_id, drv_ctx->base_key, 0x14);
             return scePfsUtilGetSecret(data->secret, data->klicensee, data->files_salt, data->pmi_bcl_flag, data->unicv_page, data->key_id);
          }
          else
          {
-            hmac_sha1(data->dec_key, data->iv_key, data->klicensee, data->pmi_bcl_flag, data->key_id, 0, 0x14);
+            gen_secrets_extern(data->dec_key, data->iv_key, data->klicensee, data->pmi_bcl_flag, data->key_id, 0, 0x14);
             return scePfsUtilGetSecret(data->secret, data->klicensee, data->files_salt, data->pmi_bcl_flag, data->unicv_page, data->key_id);
          }
       }
