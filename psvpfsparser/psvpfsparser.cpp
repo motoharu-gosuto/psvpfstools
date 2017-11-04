@@ -26,14 +26,14 @@ int main(int argc, char* argv[])
    std::string titleId(argv[1]);
    boost::filesystem::path titleIdPath(titleId);
    std::string titleIdGen = titleIdPath.generic_string();
-   boost::algorithm::trim_if(titleIdGen, [](char c){return c == '/';});
+   boost::algorithm::trim_right_if(titleIdGen, [](char c){return c == '/';});
    titleIdPath = boost::filesystem::path(titleIdGen);
 
    //trim slashes in dest path
    std::string destTitleId(argv[2]);
    boost::filesystem::path destTitleIdPath(destTitleId);
    std::string destTitleIdPathGen = destTitleIdPath.generic_string();
-   boost::algorithm::trim_if(destTitleIdPathGen, [](char c){return c == '/';});
+   boost::algorithm::trim_right_if(destTitleIdPathGen, [](char c){return c == '/';});
    destTitleIdPath = boost::filesystem::path(destTitleIdPathGen);
 
    unsigned char klicensee[0x10] = {0};
