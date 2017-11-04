@@ -18,11 +18,11 @@ You have to set these environment variables for cmake:
 - CURL_INCLUDE_DIR=C:\Program Files (x86)\CURL\include
 - CURL_LIBRARY=C:\Program Files (x86)\CURL\lib\libcurl_imp.lib
 #### Ubuntu (example)
-You can install curl library with apt-get: apt-get install libcurl4-gnutls-dev
+You can install curl library with apt-get: apt-get install libcurl4-gnutls-dev or libcurl4-openssl-dev
 
 You have to set these environment variables for cmake:
 - declare -x CURL_INCLUDE_DIR="/usr/include/"
-- declare -x CURL_LIBRARY="/usr/lib/x86_64-linux-gnu/libcurl.a"
+- declare -x CURL_LIBRARY="/usr/lib/x86_64-linux-gnu/libcurl.so"
 
 ### boost
 
