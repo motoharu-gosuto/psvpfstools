@@ -292,9 +292,9 @@ bool parseUnicvDb(std::ifstream& inputStream, scei_rodb_t& fdb)
    return true;
 }
 
-int parseUnicvDb(std::string title_id_path, scei_rodb_t& fdb)
+int parseUnicvDb(boost::filesystem::path titleIdPath, scei_rodb_t& fdb)
 {
-   boost::filesystem::path root(title_id_path);
+   boost::filesystem::path root(titleIdPath);
 
    boost::filesystem::path filepath = root / "sce_pfs" / "unicv.db";
    if(!boost::filesystem::exists(filepath))

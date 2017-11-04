@@ -56,9 +56,9 @@ std::string brutforce_hashes(std::map<std::string, std::vector<uint8_t>>& fileDa
    }
 }
 
-int bruteforce_map(std::string title_id_path, unsigned char* klicensee, sce_ng_pfs_header_t& ngpfs, scei_rodb_t& fdb, std::map<uint32_t, std::string>& pageMap)
+int bruteforce_map(boost::filesystem::path titleIdPath, unsigned char* klicensee, sce_ng_pfs_header_t& ngpfs, scei_rodb_t& fdb, std::map<uint32_t, std::string>& pageMap)
 {
-   boost::filesystem::path root(title_id_path);
+   boost::filesystem::path root(titleIdPath);
 
    //check file fileSectorSize
    std::set<uint32_t> fileSectorSizes;
@@ -135,7 +135,7 @@ int bruteforce_map(std::string title_id_path, unsigned char* klicensee, sce_ng_p
    return 0;
 }
 
-int load_page_map(std::string filepath, std::map<uint32_t, std::string>& pageMap)
+int load_page_map(boost::filesystem::path filepath, std::map<uint32_t, std::string>& pageMap)
 {
    boost::filesystem::path fp(filepath);
 
@@ -227,10 +227,10 @@ void init_crypt_ctx(CryptEngineWorkCtx* work_ctx, unsigned char* klicensee, sce_
    work_ctx->error = 0;
 }
 
-int decrypt_file(boost::filesystem::path title_id_path, boost::filesystem::path destination_root, const sce_ng_pfs_file_t& file, boost::filesystem::path filepath, unsigned char* klicensee, sce_ng_pfs_header_t& ngpfs, scei_rodb_t& fdb, scei_ftbl_t& table)
+int decrypt_file(boost::filesystem::path titleIdPath, boost::filesystem::path destination_root, const sce_ng_pfs_file_t& file, boost::filesystem::path filepath, unsigned char* klicensee, sce_ng_pfs_header_t& ngpfs, scei_rodb_t& fdb, scei_ftbl_t& table)
 {
    //construct new path
-   std::string old_root = title_id_path.generic_string();
+   std::string old_root = titleIdPath.generic_string();
    std::string new_root = destination_root.generic_string();
    std::string old_path = filepath.generic_string();
    boost::replace_all(old_path, old_root, new_root);
@@ -377,7 +377,7 @@ std::vector<sce_ng_pfs_file_t>::const_iterator find_file_by_path(std::vector<sce
    return files.end();
 }
 
-int decrypt_files(boost::filesystem::path title_id_path, boost::filesystem::path destination_root, unsigned char* klicensee, sce_ng_pfs_header_t& ngpfs, std::vector<sce_ng_pfs_file_t>& files, scei_rodb_t& fdb, std::map<uint32_t, std::string>& pageMap)
+int decrypt_files(boost::filesystem::path titleIdPath, boost::filesystem::path destTitleIdPath, unsigned char* klicensee, sce_ng_pfs_header_t& ngpfs, std::vector<sce_ng_pfs_file_t>& files, scei_rodb_t& fdb, std::map<uint32_t, std::string>& pageMap)
 {
    for(auto& t : fdb.tables)
    {
@@ -405,7 +405,7 @@ int decrypt_files(boost::filesystem::path title_id_path, boost::filesystem::path
          file->file.info.type == sce_ng_pfs_file_types::unexisting)
          continue;
 
-      if(decrypt_file(title_id_path, destination_root, *file, filepath, klicensee, ngpfs, fdb, t) < 0)
+      if(decrypt_file(titleIdPath, destTitleIdPath, *file, filepath, klicensee, ngpfs, fdb, t) < 0)
       {
          std::cout << "Failed to decrypt: " << filepath.generic_string() << std::endl;
          return -1;

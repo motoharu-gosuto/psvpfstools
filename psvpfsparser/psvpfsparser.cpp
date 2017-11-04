@@ -5,6 +5,7 @@
 #include <iomanip>
 
 #include <boost/filesystem.hpp>
+#include <boost/algorithm/string.hpp>
 
 #include "Utils.h"
 
@@ -21,9 +22,19 @@ int main(int argc, char* argv[])
       return 0;
    }
 
+   //trim slashes in source path
    std::string titleId(argv[1]);
+   boost::filesystem::path titleIdPath(titleId);
+   std::string titleIdGen = titleIdPath.generic_string();
+   boost::algorithm::trim_if(titleIdGen, [](char c){return c == '/';});
+   titleIdPath = boost::filesystem::path(titleIdGen);
 
+   //trim slashes in dest path
    std::string destTitleId(argv[2]);
+   boost::filesystem::path destTitleIdPath(destTitleId);
+   std::string destTitleIdPathGen = destTitleIdPath.generic_string();
+   boost::algorithm::trim_if(destTitleIdPathGen, [](char c){return c == '/';});
+   destTitleIdPath = boost::filesystem::path(destTitleIdPathGen);
 
    unsigned char klicensee[0x10] = {0};
    if(string_to_byte_array(std::string(argv[3]), 0x10, klicensee) < 0)
@@ -34,7 +45,7 @@ int main(int argc, char* argv[])
 
    set_F00D_url(std::string(argv[4]));
 
-   if(!boost::filesystem::exists(titleId))
+   if(!boost::filesystem::exists(titleIdPath))
    {
       std::cout << "Root directory does not exist" << std::endl;
       return -1;
@@ -42,18 +53,18 @@ int main(int argc, char* argv[])
 
    sce_ng_pfs_header_t header;
    std::vector<sce_ng_pfs_file_t> files;
-   if(parseFilesDb(klicensee, titleId, header, files) < 0)
+   if(parseFilesDb(klicensee, titleIdPath, header, files) < 0)
       return -1;
 
    scei_rodb_t unicv;
-   if(parseUnicvDb(titleId, unicv) < 0)
+   if(parseUnicvDb(titleIdPath, unicv) < 0)
       return -1;
 
    std::map<uint32_t, std::string> pageMap;
-   if(bruteforce_map(titleId, klicensee, header, unicv, pageMap) < 0)
+   if(bruteforce_map(titleIdPath, klicensee, header, unicv, pageMap) < 0)
       return -1;
 
-   if(decrypt_files(titleId, destTitleId, klicensee, header, files, unicv, pageMap) < 0)
+   if(decrypt_files(titleIdPath, destTitleIdPath, klicensee, header, files, unicv, pageMap) < 0)
       return -1;
 
 	return 0;

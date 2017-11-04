@@ -548,9 +548,9 @@ int match_file_lists(std::vector<sce_ng_pfs_file_t>& filesResult, std::set<std::
 }
 
 //parses files.db and flattens it into file list
-int parseFilesDb(unsigned char* klicensee, std::string title_id_path, sce_ng_pfs_header_t& header, std::vector<sce_ng_pfs_file_t>& filesResult)
+int parseFilesDb(unsigned char* klicensee, boost::filesystem::path titleIdPath, sce_ng_pfs_header_t& header, std::vector<sce_ng_pfs_file_t>& filesResult)
 {
-   boost::filesystem::path root(title_id_path);
+   boost::filesystem::path root(titleIdPath);
 
    boost::filesystem::path filepath = root / "sce_pfs" / "files.db";
    if(!boost::filesystem::exists(filepath))
