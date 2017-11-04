@@ -23,14 +23,12 @@ FILE (GLOB HEADER_FILES "${SOURCE_PATH}/aes.h"
                         "${SOURCE_PATH}/SecretGenerator.h"
                         "${SOURCE_PATH}/sha1.h"
                         "${SOURCE_PATH}/UnicvDbParser.h"
-                        "${SOURCE_PATH}/UnicvDbPrint.h"
                         "${SOURCE_PATH}/Utils.h")
 source_group ("Header Files" FILES ${HEADER_FILES})
 
 FILE (GLOB SOURCE_FILES "${SOURCE_PATH}/aes.cpp"
                         "${SOURCE_PATH}/F00DKeyEncryptor.cpp"
                         "${SOURCE_PATH}/FilesDbParser.cpp"
-                        "${SOURCE_PATH}/FilesDbPrint.cpp"
                         "${SOURCE_PATH}/MerkleTree.cpp"
                         "${SOURCE_PATH}/NodeIcvCalculator.cpp"
                         "${SOURCE_PATH}/PfsCryptEngine.cpp"
@@ -45,7 +43,6 @@ FILE (GLOB SOURCE_FILES "${SOURCE_PATH}/aes.cpp"
                         "${SOURCE_PATH}/SecretGenerator.cpp"
                         "${SOURCE_PATH}/sha1.cpp"
                         "${SOURCE_PATH}/UnicvDbParser.cpp"
-                        "${SOURCE_PATH}/UnicvDbPrint.cpp"
                         "${SOURCE_PATH}/Utils.cpp")
 source_group ("Source Files" FILES ${SOURCE_FILES})
 
