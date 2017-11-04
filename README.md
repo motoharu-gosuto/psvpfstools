@@ -17,3 +17,6 @@ Any boost version should work out in theory. Build was tested with 1.55 and 1.65
 
 ## build
 On windows you can go to cmake folder and execute build.bat. It will create build folder and configure cmake to build with Visual Studio 2012. Code uses some c++ 11 features so lower Visual Studio is not recommended.
+
+## run
+psvpfsparser <TitleID path> <TitleID path dest> <klicensee> <F00D url>
