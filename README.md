@@ -26,7 +26,7 @@ You have to set these environment variables for cmake:
 
 ### boost
 
-#### Windows
+#### Windows (example)
 Any boost version should work out in theory. Build was tested with 1.55 and 1.65.1
 Consult with this page for build:
 http://www.boost.org/doc/libs/1_65_1/more/getting_started/windows.html
@@ -34,7 +34,7 @@ http://www.boost.org/doc/libs/1_65_1/more/getting_started/windows.html
 You have to set these environment variables for cmake:
 - BOOST_INCLUDEDIR=C:\boost_1_55_0
 - BOOST_LIBRARYDIR=C:\boost_1_55_0\vc110\lib
-#### Ubuntu
+#### Ubuntu (example)
 You can install boost with apt-get: libboost-all-dev
 
 You have to set these environment variables for cmake:
@@ -50,4 +50,4 @@ Go to cmake folder and execute build.bat. It will create build folder and config
 Go to cmake folder and execute build.sh. It will create build folder and configure cmake to build with standard make.
 
 ## run
-psvpfsparser <TitleID path> <TitleID path dest> <klicensee> <F00D url>
+psvpfsparser "TitleID path" "TitleID path dest" "klicensee" "F00D url"
