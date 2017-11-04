@@ -34,17 +34,27 @@ int main(int argc, char* argv[])
 
    set_F00D_url(std::string(argv[4]));
 
+   if(!boost::filesystem::exists(titleId))
+   {
+      std::cout << "Root directory does not exist" << std::endl;
+      return -1;
+   }
+
    sce_ng_pfs_header_t header;
    std::vector<sce_ng_pfs_file_t> files;
-   parseFilesDb(klicensee, titleId, header, files);
+   if(parseFilesDb(klicensee, titleId, header, files) < 0)
+      return -1;
 
    scei_rodb_t unicv;
-   parseUnicvDb(titleId, unicv);
+   if(parseUnicvDb(titleId, unicv) < 0)
+      return -1;
 
    std::map<uint32_t, std::string> pageMap;
-   bruteforce_map(titleId, klicensee, header, unicv, pageMap);
+   if(bruteforce_map(titleId, klicensee, header, unicv, pageMap) < 0)
+      return -1;
 
-   decrypt_files(titleId, destTitleId, klicensee, header, files, unicv, pageMap);
+   if(decrypt_files(titleId, destTitleId, klicensee, header, files, unicv, pageMap) < 0)
+      return -1;
 
 	return 0;
 }

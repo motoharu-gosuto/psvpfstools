@@ -552,8 +552,20 @@ int parseFilesDb(unsigned char* klicensee, std::string title_id_path, sce_ng_pfs
 {
    boost::filesystem::path root(title_id_path);
 
-   boost::filesystem::path filepath = root / "sce_pfs\\files.db";
+   boost::filesystem::path filepath = root / "sce_pfs" / "files.db";
+   if(!boost::filesystem::exists(filepath))
+   {
+      std::cout << "failed to find files.db file" << std::endl;
+      return -1;
+   }
+
    std::ifstream inputStream(filepath.generic_string().c_str(), std::ios::in | std::ios::binary);
+
+   if(!inputStream.is_open())
+   {
+      std::cout << "failed to open files.db file" << std::endl;
+      return -1;
+   }
 
    //parse data into raw structures
    std::vector<sce_ng_pfs_block_t> blocks;

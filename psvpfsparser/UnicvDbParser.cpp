@@ -296,8 +296,21 @@ int parseUnicvDb(std::string title_id_path, scei_rodb_t& fdb)
 {
    boost::filesystem::path root(title_id_path);
 
-   boost::filesystem::path filepath = root / "sce_pfs\\unicv.db";
+   boost::filesystem::path filepath = root / "sce_pfs" / "unicv.db";
+   if(!boost::filesystem::exists(filepath))
+   {
+      std::cout << "failed to find unicv.db file" << std::endl;
+      return -1;
+   }
+
    std::ifstream inputStream(filepath.generic_string().c_str(), std::ios::in | std::ios::binary);
+
+   if(!inputStream.is_open())
+   {
+      std::cout << "failed to open unicv.db file" << std::endl;
+      return -1;
+   }
+
    parseUnicvDb(inputStream, fdb);
    return 0;
 }
