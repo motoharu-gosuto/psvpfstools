@@ -90,7 +90,7 @@ void bruteforce_map(std::string title_id_path, unsigned char* klicensee, sce_ng_
       // in practice though it does not change.
       uintmax_t fsz_limited = (fsz < uniqueSectorSize) ? fsz : uniqueSectorSize;
       
-      auto& fdt = fileDatas.insert(std::make_pair(f, std::vector<uint8_t>(fsz_limited)));
+      const auto& fdt = fileDatas.insert(std::make_pair(f, std::vector<uint8_t>(fsz_limited)));
 
       std::ifstream in(boost::filesystem::path(f).generic_string().c_str(), std::ios::in | std::ios::binary);
       in.read((char*)fdt.first->second.data(), fsz_limited);

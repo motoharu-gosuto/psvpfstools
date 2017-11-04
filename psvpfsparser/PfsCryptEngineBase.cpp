@@ -2,6 +2,7 @@
 
 #include <stdint.h>
 #include <string>
+#include <cstring>
 
 #include "SceSblSsMgrForDriver.h"
 #include "SceKernelUtilsForDriver.h"
@@ -34,16 +35,15 @@ int AESCBCEncrypt_base(const unsigned char* key, unsigned char* iv, uint32_t siz
    //align destination buffer
 
    unsigned char iv_enc[0x10] = {0};
-   unsigned char* iv_enc_aligned = iv_enc + ((0 - (int)iv_enc) & 0x3F);
 
    //encrypt iv using key
 
-   int result1 = SceSblSsMgrForDriver_sceSblSsMgrAESECBEncryptForDriver(iv, iv_enc_aligned, 0x10, key, 0x80, 1);
+   int result1 = SceSblSsMgrForDriver_sceSblSsMgrAESECBEncryptForDriver(iv, iv_enc, 0x10, key, 0x80, 1);
    if(result1 != 0)
       return result1;
 
    for(int i = 0; i < size_tail; i++)
-      dst[size_block + i] = src[size_block + i] ^ iv_enc_aligned[i]; 
+      dst[size_block + i] = src[size_block + i] ^ iv_enc[i]; 
 
    return 0;
 }
@@ -70,18 +70,17 @@ int AESCBCDecrypt_base(const unsigned char* key, unsigned char* iv, uint32_t siz
    //align destination buffer
 
    unsigned char iv_enc[0x10] = {0};
-   unsigned char* iv_enc_aligned = iv_enc + ((0 - (int)iv_enc) & 0x3F);
    
    //encrypt iv using key
 
-   int result1 = SceSblSsMgrForDriver_sceSblSsMgrAESECBEncryptForDriver(iv, iv_enc_aligned, 0x10, key, 0x80, 1);
+   int result1 = SceSblSsMgrForDriver_sceSblSsMgrAESECBEncryptForDriver(iv, iv_enc, 0x10, key, 0x80, 1);
    if(result1 != 0)
       return result1;
 
    //produce destination tail by xoring source tail with encrypted iv
 
    for(int i = 0; i < size_tail; i++)
-      dst[size_block + i] = src[size_block + i] ^ iv_enc_aligned[i];
+      dst[size_block + i] = src[size_block + i] ^ iv_enc[i];
 
    return 0;
 }
@@ -112,19 +111,17 @@ int AESCBCDecryptWithKeygen_base(const unsigned char* key, unsigned char* iv, ui
    //align destination buffer
 
    unsigned char iv_enc[0x10] = {0};
-   //unsigned char* iv_enc_aligned = iv_enc + ((0 - (int)iv_enc) & 0x3F);
-   unsigned char* iv_enc_aligned = iv_enc;
 
    //encrypt iv using key
 
-   int result1 = SceSblSsMgrForDriver_sceSblSsMgrAESECBEncryptWithKeygenForDriver(iv, iv_enc_aligned, 0x10, key, 0x80, kid, 1);
+   int result1 = SceSblSsMgrForDriver_sceSblSsMgrAESECBEncryptWithKeygenForDriver(iv, iv_enc, 0x10, key, 0x80, kid, 1);
    if(result1 != 0)
       return result1;
 
    //produce destination tail by xoring source tail with encrypted iv
 
    for(int i = 0; i < size_tail; i++)
-      dst[size_block + i] = src[size_block + i] ^ iv_enc_aligned[i];
+      dst[size_block + i] = src[size_block + i] ^ iv_enc[i];
 
    return 0;
 }
@@ -153,19 +150,17 @@ int AESCBCEncryptWithKeygen_base(const unsigned char* klicensee, unsigned char* 
    //align destination buffer
 
    unsigned char iv_enc[0x10] = {0};
-   //unsigned char* iv_enc_aligned = iv_enc + ((0 - (int)iv_enc) & 0x3F);
-   unsigned char* iv_enc_aligned = iv_enc;
 
    //encrypt iv using klicensee
      
-   int result1 = SceSblSsMgrForDriver_sceSblSsMgrAESECBEncryptWithKeygenForDriver(iv, iv_enc_aligned, 0x10, klicensee, 0x80, kid, 1);
+   int result1 = SceSblSsMgrForDriver_sceSblSsMgrAESECBEncryptWithKeygenForDriver(iv, iv_enc, 0x10, klicensee, 0x80, kid, 1);
    if(result1 != 0)
       return result1;
 
    //produce destination tail by xoring source tail with encrypted iv
 
    for(int i = 0; i < size_tail; i++)
-      dst[size_block + i] = src[size_block + i] ^ iv_enc_aligned[i];
+      dst[size_block + i] = src[size_block + i] ^ iv_enc[i];
 
    return 0;
 }
@@ -196,11 +191,10 @@ int AESCMAC_base_1(const unsigned char* cmac_key, unsigned char* iv, uint32_t si
    //align destination buffer
 
    unsigned char iv_enc[0x10] = {0};
-   unsigned char* iv_enc_aligned = iv_enc + ((0 - (int)iv_enc) & 0x3F);
 
    //encrypt iv using key
 
-   int result1 = SceSblSsMgrForDriver_sceSblSsMgrAESECBEncryptForDriver(iv, iv_enc_aligned, 0x10, cmac_key, 0x80, 1);
+   int result1 = SceSblSsMgrForDriver_sceSblSsMgrAESECBEncryptForDriver(iv, iv_enc, 0x10, cmac_key, 0x80, 1);
    if(result1 != 0)
       return result1;
 
@@ -209,7 +203,7 @@ int AESCMAC_base_1(const unsigned char* cmac_key, unsigned char* iv, uint32_t si
    //CMAC result has constant size - that is why iv is xored with the beginning of dest buffer
 
    for(int i = 0; i < size_tail; i++)
-      cmac_dst[i] = cmac_src[size_block + i] ^ iv_enc_aligned[i];
+      cmac_dst[i] = cmac_src[size_block + i] ^ iv_enc[i];
 
    return 0;
 }
@@ -236,11 +230,10 @@ int AESCMAC_base_2(const unsigned char* cmac_key, unsigned char* iv, uint32_t si
    //align destination buffer
 
    unsigned char iv_enc[0x10] = {0};
-   unsigned char* iv_enc_aligned = iv_enc + ((0 - (int)iv_enc) & 0x3F);
 
    //encrypt iv using key
 
-   int result1 = SceSblSsMgrForDriver_sceSblSsMgrAESECBEncryptForDriver(iv, iv_enc_aligned, 0x10, cmac_key, 0x80, 1);
+   int result1 = SceSblSsMgrForDriver_sceSblSsMgrAESECBEncryptForDriver(iv, iv_enc, 0x10, cmac_key, 0x80, 1);
    if(result1 != 0)
       return result1;
 
@@ -249,7 +242,7 @@ int AESCMAC_base_2(const unsigned char* cmac_key, unsigned char* iv, uint32_t si
    //CMAC result has constant size - that is why iv is xored with the beginning of dest buffer
 
    for(int i = 0; i < size_tail; i++)
-      cmac_dst[i] = cmac_src[size_block + i] ^ iv_enc_aligned[i];
+      cmac_dst[i] = cmac_src[size_block + i] ^ iv_enc[i];
 
    return 0;
 }
@@ -280,11 +273,10 @@ int AESCMACWithKeygen_base_1(const unsigned char* cmac_key, unsigned char* iv, u
    //align destination buffer
 
    unsigned char iv_enc[0x10] = {0};
-   unsigned char* iv_enc_aligned = iv_enc + ((0 - (int)iv_enc) & 0x3F);
 
    //encrypt iv using key
 
-   int result1 = SceSblSsMgrForDriver_sceSblSsMgrAESECBEncryptWithKeygenForDriver(iv, iv_enc_aligned, 0x10, cmac_key, 0x80, kid, 1);
+   int result1 = SceSblSsMgrForDriver_sceSblSsMgrAESECBEncryptWithKeygenForDriver(iv, iv_enc, 0x10, cmac_key, 0x80, kid, 1);
    if(result1 != 0)
       return result1;
 
@@ -293,7 +285,7 @@ int AESCMACWithKeygen_base_1(const unsigned char* cmac_key, unsigned char* iv, u
    //CMAC result has constant size - that is why iv is xored with the beginning of dest buffer
 
    for(int i = 0; i < size_tail; i++)
-      cmac_dst[i] = cmac_src[size_block + i] ^ iv_enc_aligned[i];
+      cmac_dst[i] = cmac_src[size_block + i] ^ iv_enc[i];
 
    return 0;
 }
@@ -322,11 +314,10 @@ int AESCMACWithKeygen_base_2(const unsigned char* cmac_key, unsigned char* iv, u
    //align destination buffer
 
    unsigned char iv_enc[0x10] = {0};
-   unsigned char* iv_enc_aligned = iv_enc + ((0 - (int)iv_enc) & 0x3F);
 
    //encrypt iv using key
    
-   int result1 = SceSblSsMgrForDriver_sceSblSsMgrAESECBEncryptWithKeygenForDriver(iv, iv_enc_aligned, 0x10, cmac_key, 0x80, kid, 1);
+   int result1 = SceSblSsMgrForDriver_sceSblSsMgrAESECBEncryptWithKeygenForDriver(iv, iv_enc, 0x10, cmac_key, 0x80, kid, 1);
    if(result1 != 0)
       return result1;
 
@@ -335,7 +326,7 @@ int AESCMACWithKeygen_base_2(const unsigned char* cmac_key, unsigned char* iv, u
    //CMAC result has constant size - that is why iv is xored with the beginning of dest buffer
 
    for(int i = 0; i < size_tail; i++)
-      cmac_dst[i] = cmac_src[size_block + i] ^ iv_enc_aligned[i];
+      cmac_dst[i] = cmac_src[size_block + i] ^ iv_enc[i];
 
    return 0;
 }

@@ -2,6 +2,7 @@
 
 #include <stdint.h>
 #include <string>
+#include <cstring>
 
 #include "PfsCryptEngineBase.h"
 
@@ -193,9 +194,11 @@ int pfs_decrypt_sw(const unsigned char* key, const unsigned char* subkey_key, ui
 
    if(size <= 0xF)
       return 0x80140609;
-   
+ 
+   /*
    if((((int)src | (int)dst) << 0x1E) != 0)
       return 0x8014060E;
+   */
 
    int tk_tmp00 = tweak_key0;
    int tk_tmp10 = tweak_key1;
@@ -272,8 +275,10 @@ int pfs_encrypt_sw(const unsigned char* key, const unsigned char* subkey_key, ui
    if(size <= 0xF)
       return 0x80140609;
 
+   /*
    if((((int)src | (int)dst) << 0x1E) != 0)
       return 0x8014060E;
+   */
 
    int tk_tmp00 = tweak_key0;
    int tk_tmp10 = tweak_key1;

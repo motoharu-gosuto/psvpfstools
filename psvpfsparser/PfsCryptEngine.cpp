@@ -1,6 +1,7 @@
 #include "PfsCryptEngine.h"
 
 #include <string>
+#include <cstring>
 
 #include "SceSblSsMgrForDriver.h"
 #include "SceKernelUtilsForDriver.h"

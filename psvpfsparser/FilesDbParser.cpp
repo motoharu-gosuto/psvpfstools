@@ -1,4 +1,3 @@
-#include <io.h>  
 #include <fcntl.h>  
 #include <stdlib.h>  
 #include <stdio.h>  
@@ -222,9 +221,7 @@ bool parseFilesDb(unsigned char* klicensee, std::ifstream& inputStream, sce_ng_p
          }
       }
 
-      //read hash table ?
-      int64_t currentBlockPos2 = inputStream.tellg();
-
+      //read hash table
       for(int32_t i = 0; i < 10; i++)
       {
          block.hashes.push_back(sce_ng_pfs_hash_t());

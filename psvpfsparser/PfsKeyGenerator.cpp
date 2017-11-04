@@ -1,6 +1,7 @@
 #include "PfsKeyGenerator.h"
 
 #include <string>
+#include <cstring>
 
 #include "SceKernelUtilsForDriver.h"
 #include "PfsKeys.h"
