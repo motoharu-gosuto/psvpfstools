@@ -49,7 +49,7 @@ source_group ("Source Files" FILES ${SOURCE_FILES})
 add_executable(${PROJECT} ${HEADER_FILES} ${SOURCE_FILES})
 SET(EXECUTABLE_OUTPUT_PATH "${CMAKE_SOURCE_DIR}/output")
 
-target_link_libraries (${PROJECT} ${Boost_LIBRARIES})
+target_link_libraries (${PROJECT} ${Boost_LIBRARIES} ${CURL_LIBRARIES})
 
 include_directories(..)
-include_directories(${Boost_INCLUDE_DIRS})
+include_directories(${Boost_INCLUDE_DIRS} ${CURL_INCLUDE_DIRS})

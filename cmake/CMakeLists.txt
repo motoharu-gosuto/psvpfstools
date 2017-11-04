@@ -8,6 +8,7 @@ SET(LIBRARIES )
 include(${CMAKE_SOURCE_DIR}/scripts/ConfigureDependencies.cmake)
 
 configure_boost()
+configure_curl()
 
 foreach(library ${LIBRARIES})
    include(${CMAKE_SOURCE_DIR}/../${library}/cmake/CMakeLists.txt)
