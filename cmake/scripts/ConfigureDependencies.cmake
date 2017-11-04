@@ -3,7 +3,7 @@
 #BOOST_LIBRARYDIR
 #BOOST_ROOT
 
-function(configure_boost)
+macro(configure_boost)
 
 message("configuring boost")
 
@@ -23,13 +23,13 @@ else()
 message("Boost library is not found")
 endif()
 
-endfunction(configure_boost)
+endmacro(configure_boost)
 
 #environment variables for configure_curl have to be set
 #CURL_INCLUDE_DIR
 #CURL_LIBRARY
 
-function(configure_curl)
+macro(configure_curl)
 
 message("configuring curl")
 
@@ -46,4 +46,4 @@ else()
 message("Curl library is not found")
 endif()
 
-endfunction(configure_curl)
+endmacro(configure_curl)
