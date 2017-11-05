@@ -1,5 +1,8 @@
 #include "PsvPfsParserConfig.h"
 
+#include <string>
+#include <iostream>
+
 #include <boost/program_options.hpp>
 
 #define HELP_NAME "help"
