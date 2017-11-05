@@ -11,7 +11,8 @@ set (Boost_USE_STATIC_LIBS ON)
 set (Boost_USE_MULTITHREADED ON)
 
 set (BOOST_COMPONENTS system 
-                      filesystem)
+                      filesystem
+                      program_options)
 
 FIND_PACKAGE(Boost COMPONENTS ${BOOST_COMPONENTS} REQUIRED)
 

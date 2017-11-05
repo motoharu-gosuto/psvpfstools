@@ -13,37 +13,36 @@
 #include "FilesDbParser.h"
 #include "PfsDecryptor.h"
 #include "F00DKeyEncryptor.h"
+#include "PsvPfsParserConfig.h"
 
 int main(int argc, char* argv[])
 {
-	if(argc < 5)
-   {
-      std::cout << "psvpfsparser <TitleID path> <TitleID path dest> <klicensee> <F00D url>" << std::endl;
-      return 0;
-   }
+   PsvPfsParserConfig cfg;
+
+   if(parse_options(argc, argv, cfg) < 0)
+      return -1;
 
    //trim slashes in source path
-   std::string titleId(argv[1]);
-   boost::filesystem::path titleIdPath(titleId);
+   
+   boost::filesystem::path titleIdPath(cfg.title_id_src);
    std::string titleIdGen = titleIdPath.generic_string();
    boost::algorithm::trim_right_if(titleIdGen, [](char c){return c == '/';});
    titleIdPath = boost::filesystem::path(titleIdGen);
 
    //trim slashes in dest path
-   std::string destTitleId(argv[2]);
-   boost::filesystem::path destTitleIdPath(destTitleId);
+   boost::filesystem::path destTitleIdPath(cfg.title_id_dst);
    std::string destTitleIdPathGen = destTitleIdPath.generic_string();
    boost::algorithm::trim_right_if(destTitleIdPathGen, [](char c){return c == '/';});
    destTitleIdPath = boost::filesystem::path(destTitleIdPathGen);
 
    unsigned char klicensee[0x10] = {0};
-   if(string_to_byte_array(std::string(argv[3]), 0x10, klicensee) < 0)
+   if(string_to_byte_array(cfg.klicensee, 0x10, klicensee) < 0)
    {
       std::cout << "Failed to parse klicensee" << std::endl;
       return -1;
    }
 
-   set_F00D_url(std::string(argv[4]));
+   set_F00D_url(cfg.f00d_url);
 
    if(!boost::filesystem::exists(titleIdPath))
    {

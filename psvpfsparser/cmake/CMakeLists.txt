@@ -19,7 +19,8 @@ FILE (GLOB HEADER_FILES "../aes.h"
                         "../SecretGenerator.h"
                         "../sha1.h"
                         "../UnicvDbParser.h"
-                        "../Utils.h")
+                        "../Utils.h"
+                        "../PsvPfsParserConfig.h")
 source_group ("Header Files" FILES ${HEADER_FILES})
 
 FILE (GLOB SOURCE_FILES "../aes.cpp"
@@ -39,7 +40,8 @@ FILE (GLOB SOURCE_FILES "../aes.cpp"
                         "../SecretGenerator.cpp"
                         "../sha1.cpp"
                         "../UnicvDbParser.cpp"
-                        "../Utils.cpp")
+                        "../Utils.cpp"
+                        "../PsvPfsParserConfig.cpp")
 source_group ("Source Files" FILES ${SOURCE_FILES})
 
 add_executable (${PROJECT} ${HEADER_FILES} ${SOURCE_FILES})
