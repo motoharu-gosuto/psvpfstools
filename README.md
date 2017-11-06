@@ -1,5 +1,6 @@
 # psvpfstools
-PFS R&amp;D
+
+Tools for decrypting PS Vita PFS filesystem.
 
 ## dependencies
 
@@ -50,4 +51,25 @@ Go to cmake folder and execute build.bat. It will create build folder and config
 Go to cmake folder and execute build.sh. It will create build folder and configure cmake to build with standard make.
 
 ## run
-psvpfsparser "TitleID path" "TitleID path dest" "klicensee" "F00D url"
+Options:
+
+  -h [ --help ]             Show help
+  
+  -i [ --title_id_src ] arg Source directory that contains the application.
+                            Like PCSC00000.
+                            
+  -o [ --title_id_dst ] arg Destination directory where everything will be
+                            unpacked. Like PCSC00000_dec.
+                            
+  -k [ --klicensee ] arg    klicensee hex coded string. Like
+                            00112233445566778899AABBCCDDEEFF.
+                            
+  -z [ --zRIF ] arg         zRIF string.
+  
+  -f [ --f00d_url ] arg     Url of F00D service.
+  
+## Special thanks  
+- Proxima. For initial docs on DMAC5, providing F00D service and help with crypto theory. 
+- St4rk, weaknespase and everyone involved in PkgDecrypt. For zRIF string decode/inflate code.
+- Chris Venter. For libb64.
+- PolarSSL. For cryptographic primitives.
