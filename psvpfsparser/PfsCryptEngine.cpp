@@ -2,6 +2,7 @@
 
 #include <string>
 #include <cstring>
+#include <stdexcept>
 
 #include "SceSblSsMgrForDriver.h"
 #include "SceKernelUtilsForDriver.h"

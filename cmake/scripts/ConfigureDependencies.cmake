@@ -34,8 +34,10 @@ macro(configure_curl)
 
 message("configuring curl")
 
+if (MSVC)
 set(CURL_INCLUDE_DIR "$ENV{CURL_INCLUDE_DIR}")
 set(CURL_LIBRARY "$ENV{CURL_LIBRARY}")
+endif()
 
 FIND_PACKAGE(CURL REQUIRED)
 
@@ -57,8 +59,10 @@ if (MSVC)
  set (CMAKE_EXE_LINKER_FLAGS "/SAFESEH:NO")
 endif()
 
+if (MSVC)
 set(ZLIB_INCLUDE_DIR "$ENV{ZLIB_INCLUDE_DIR}")
 set(ZLIB_LIBRARY "$ENV{ZLIB_LIBRARY}")
+endif()
 
 find_package(ZLIB REQUIRED)
 
