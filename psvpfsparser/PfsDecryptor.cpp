@@ -56,8 +56,10 @@ std::string brutforce_hashes(std::map<std::string, std::vector<uint8_t>>& fileDa
    }
 }
 
-int bruteforce_map(boost::filesystem::path titleIdPath, unsigned char* klicensee, sce_ng_pfs_header_t& ngpfs, scei_rodb_t& fdb, std::map<uint32_t, std::string>& pageMap)
+int bruteforce_map(boost::filesystem::path titleIdPath, unsigned char* klicensee, sce_ng_pfs_header_t& ngpfs, scei_rodb_t& fdb, std::map<uint32_t, std::string>& pageMap, std::set<std::string>& emptyFiles)
 {
+   std::cout << "Building unicv.db -> files.db relation..." << std::endl;
+
    boost::filesystem::path root(titleIdPath);
 
    //check file fileSectorSize
@@ -89,25 +91,35 @@ int bruteforce_map(boost::filesystem::path titleIdPath, unsigned char* klicensee
       // files can not be pre read in this case
       // in practice though it does not change.
       uintmax_t fsz_limited = (fsz < uniqueSectorSize) ? fsz : uniqueSectorSize;
-      
-      const auto& fdt = fileDatas.insert(std::make_pair(f, std::vector<uint8_t>(fsz_limited)));
 
       boost::filesystem::path filePath(f);
-      if(!boost::filesystem::exists(filePath))
-      {
-         std::cout << "File " << filePath.generic_string() << " does not exist" << std::endl;
-         return -1;
-      }
 
-      std::ifstream in(filePath.generic_string().c_str(), std::ios::in | std::ios::binary);
-      if(!in.is_open())
+      //empty files should be allowed!
+      if(fsz_limited == 0)
       {
-         std::cout << "Failed to open " << filePath.generic_string() << std::endl;
-         return -1;
+         std::cout << "File " << filePath.generic_string() << " is empty" << std::endl;
+         emptyFiles.insert(f);
       }
+      else
+      {
+         const auto& fdt = fileDatas.insert(std::make_pair(f, std::vector<uint8_t>(fsz_limited)));
 
-      in.read((char*)fdt.first->second.data(), fsz_limited);
-      in.close();
+         if(!boost::filesystem::exists(filePath))
+         {
+            std::cout << "File " << filePath.generic_string() << " does not exist" << std::endl;
+            return -1;
+         }
+
+         std::ifstream in(filePath.generic_string().c_str(), std::ios::in | std::ios::binary);
+         if(!in.is_open())
+         {
+            std::cout << "Failed to open " << filePath.generic_string() << std::endl;
+            return -1;
+         }
+
+         in.read((char*)fdt.first->second.data(), fsz_limited);
+         in.close();
+      }
    }
 
    //brutforce each scei_ftbl_t record
@@ -128,8 +140,21 @@ int bruteforce_map(boost::filesystem::path titleIdPath, unsigned char* klicensee
          else
          {
             std::cout << "Match not found: " << t.page << std::endl;
+            return -1;
          }
       }
+   }
+
+   if(fileDatas.size() != 0)
+   {
+      std::cout << "Unexpected error in fileDatas map" << std::endl;
+      return -1;
+   }
+
+   if(files.size() != (pageMap.size() + emptyFiles.size()))
+   {
+      std::cout << "Unexpected error in files set" << std::endl;
+      return -1;
    }
 
    return 0;
@@ -367,6 +392,29 @@ int decrypt_file(boost::filesystem::path titleIdPath, boost::filesystem::path de
    return 0;
 }
 
+int create_empty_file(boost::filesystem::path titleIdPath, boost::filesystem::path destination_root, boost::filesystem::path filepath)
+{
+   //construct new path
+   std::string old_root = titleIdPath.generic_string();
+   std::string new_root = destination_root.generic_string();
+   std::string old_path = filepath.generic_string();
+   boost::replace_all(old_path, old_root, new_root);
+   boost::filesystem::path new_path(old_path);
+   boost::filesystem::path new_directory = new_path;
+   new_directory.remove_filename();
+
+   //create all directories on the way
+   boost::filesystem::create_directories(new_directory);
+
+   //create new file
+
+   std::ofstream outputStream(new_path.generic_string().c_str(), std::ios::out | std::ios::trunc | std::ios::binary);
+
+   outputStream.close();
+
+   return 0;
+}
+
 std::vector<sce_ng_pfs_file_t>::const_iterator find_file_by_path(std::vector<sce_ng_pfs_file_t>& files, boost::filesystem::path p)
 {
    for(std::vector<sce_ng_pfs_file_t>::const_iterator it = files.begin(); it != files.end(); ++it)
@@ -377,8 +425,18 @@ std::vector<sce_ng_pfs_file_t>::const_iterator find_file_by_path(std::vector<sce
    return files.end();
 }
 
-int decrypt_files(boost::filesystem::path titleIdPath, boost::filesystem::path destTitleIdPath, unsigned char* klicensee, sce_ng_pfs_header_t& ngpfs, std::vector<sce_ng_pfs_file_t>& files, scei_rodb_t& fdb, std::map<uint32_t, std::string>& pageMap)
+int decrypt_files(boost::filesystem::path titleIdPath, boost::filesystem::path destTitleIdPath, unsigned char* klicensee, sce_ng_pfs_header_t& ngpfs, std::vector<sce_ng_pfs_file_t>& files, scei_rodb_t& fdb, std::map<uint32_t, std::string>& pageMap, std::set<std::string>& emptyFiles)
 {
+   std::cout << "Creating empty files..." << std::endl;
+
+   for(auto& f : emptyFiles)
+   {
+      boost::filesystem::path filepath(f);
+      create_empty_file(titleIdPath, destTitleIdPath, filepath);
+   }
+
+   std::cout << "Decrypting files..." << std::endl;
+
    for(auto& t : fdb.tables)
    {
       if(t.ftHeader.nSectors == 0)
@@ -414,7 +472,7 @@ int decrypt_files(boost::filesystem::path titleIdPath, boost::filesystem::path d
       {
          std::cout << "Decrypted: " << filepath.generic_string() << std::endl;
       }
-   }
+   }   
 
    return 0;
 }

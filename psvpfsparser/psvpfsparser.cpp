@@ -81,10 +81,11 @@ int main(int argc, char* argv[])
       return -1;
 
    std::map<uint32_t, std::string> pageMap;
-   if(bruteforce_map(titleIdPath, klicensee, header, unicv, pageMap) < 0)
+   std::set<std::string> emptyFiles;
+   if(bruteforce_map(titleIdPath, klicensee, header, unicv, pageMap, emptyFiles) < 0)
       return -1;
 
-   if(decrypt_files(titleIdPath, destTitleIdPath, klicensee, header, files, unicv, pageMap) < 0)
+   if(decrypt_files(titleIdPath, destTitleIdPath, klicensee, header, files, unicv, pageMap, emptyFiles) < 0)
       return -1;
 
 	return 0;

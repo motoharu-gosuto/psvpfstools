@@ -272,11 +272,15 @@ bool parseFilesDb(unsigned char* klicensee, std::ifstream& inputStream, sce_ng_p
 
    delete[] raw_block_data;
 
+   std::cout << "Validating hash tree..." << std::endl;
+
    if(!validate_merkle_tree(0, header.root_icv_page_number, blocks, page_icvs))
    {
       std::cout << "Failed to validate merkle tree" << std::endl;
       return false;
    }
+
+   std::cout << "Hash tree is ok" << std::endl;
 
    return true;
 }
@@ -284,6 +288,8 @@ bool parseFilesDb(unsigned char* klicensee, std::ifstream& inputStream, sce_ng_p
 //build child index -> parent index relationship map
 bool constructDirmatrix(const std::vector<sce_ng_pfs_block_t>& blocks, std::map<uint32_t, uint32_t>& dirMatrix)
 {   
+   std::cout << "Building directory matrix..." << std::endl;
+
    for(auto& block : blocks)
    {
       for(uint32_t i = 0; i < block.header.nFiles; i++)
@@ -324,6 +330,8 @@ bool constructDirmatrix(const std::vector<sce_ng_pfs_block_t>& blocks, std::map<
 //build child index -> parent index relationship map
 bool constructFileMatrix(const std::vector<sce_ng_pfs_block_t>& blocks, std::map<uint32_t, uint32_t>& fileMatrix)
 {
+   std::cout << "Building file matrix..." << std::endl;
+
    for(auto& block : blocks)
    {
       for(uint32_t i = 0; i < block.header.nFiles; i++)
@@ -340,13 +348,13 @@ bool constructFileMatrix(const std::vector<sce_ng_pfs_block_t>& blocks, std::map
          {   
             if(block.infos[i].type == unexisting)
             {
-               std::cout << "[EMPTY] File " << fileName << " index " << child << std::endl;
+               //std::cout << "[EMPTY] File " << fileName << " index " << child << std::endl;
                continue; // can not add unexisting files - they will conflict by index in the fileMatrix!
             }
             else
             {
-               std::cout << "[EMPTY] File " << fileName << " index " << child << " has invalid type" << std::endl;
-               return false;
+               //empty files should be allowed!
+               std::cout << "[EMPTY] File " << fileName << " index " << child << " of type " << std::hex << block.infos[i].type << std::endl;
             }
          }
 
@@ -373,6 +381,8 @@ bool constructFileMatrix(const std::vector<sce_ng_pfs_block_t>& blocks, std::map
 //assign global index to files
 void flattenBlocks(const std::vector<sce_ng_pfs_block_t>& blocks, std::vector<sce_ng_pfs_flat_block_t>& flatBlocks)
 {
+   std::cout << "Flattening file pages..." << std::endl;
+
    for(auto& block : blocks)
    {
       for(uint32_t i = 0; i < block.header.nFiles; i++)
@@ -421,6 +431,8 @@ const std::vector<sce_ng_pfs_flat_block_t>::const_iterator findFlatBlockFile(con
 //convert list of flat blocks to list of file paths
 bool constructFilePaths(boost::filesystem::path rootPath, std::map<uint32_t, uint32_t>& dirMatrix, const std::map<uint32_t, uint32_t>& fileMatrix, const std::vector<sce_ng_pfs_flat_block_t>& flatBlocks, std::vector<sce_ng_pfs_file_t>& filesResult)
 {
+   std::cout << "Building file paths..." << std::endl;
+
    for(auto& file_entry : fileMatrix)
    {
       //start searching from file up to root
@@ -512,6 +524,8 @@ std::string fileTypeToString(sce_ng_pfs_file_types ft)
 //checks that file size is correct
 bool validateFilepaths(std::vector<sce_ng_pfs_file_t> files)
 {
+   std::cout << "Validating file paths..." << std::endl;
+
    for(auto& file : files)
    {
       //std::cout << file.path << " : ";
@@ -538,25 +552,41 @@ bool validateFilepaths(std::vector<sce_ng_pfs_file_t> files)
 
 int match_file_lists(std::vector<sce_ng_pfs_file_t>& filesResult, std::set<std::string> files)
 {
+   std::cout << "Matching file paths..." << std::endl;
+
    std::set<std::string> fileResultPaths;
 
    for(auto& f :  filesResult)
       fileResultPaths.insert(f.path.string());
 
-   std::cout << "Files not found in files.db :" << std::endl;
-
+   bool print = false;
    for(auto& p : files)
    {
       if(fileResultPaths.find(p) == fileResultPaths.end())
+      {
+         if(!print)
+         {
+            std::cout << "Files not found in files.db :" << std::endl;
+            print = true;
+         }
+
          std::cout << p << std::endl;
+      }
    }
 
-   std::cout << "Files not found in filesystem :" << std::endl;
-
+   print = false;
    for(auto& p : fileResultPaths)
    {
       if(files.find(p) == files.end())
+      {
+         if(!print)
+         {
+            std::cout << "Files not found in filesystem :" << std::endl;
+            print = true;
+         }
+
          std::cout << p << std::endl;
+      }
    }
 
    return 0;
@@ -565,6 +595,8 @@ int match_file_lists(std::vector<sce_ng_pfs_file_t>& filesResult, std::set<std::
 //parses files.db and flattens it into file list
 int parseFilesDb(unsigned char* klicensee, boost::filesystem::path titleIdPath, sce_ng_pfs_header_t& header, std::vector<sce_ng_pfs_file_t>& filesResult)
 {
+   std::cout << "Parsing  files.db" << std::endl;
+
    boost::filesystem::path root(titleIdPath);
 
    boost::filesystem::path filepath = root / "sce_pfs" / "files.db";
