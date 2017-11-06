@@ -3,8 +3,7 @@ project (${PROJECT})
 
 message(${PROJECT})
 
-FILE (GLOB HEADER_FILES "../aes.h"
-                        "../F00DKeyEncryptor.h"
+FILE (GLOB HEADER_FILES "../F00DKeyEncryptor.h"
                         "../FilesDbParser.h"
                         "../MerkleTree.h"
                         "../NodeIcvCalculator.h"
@@ -17,14 +16,12 @@ FILE (GLOB HEADER_FILES "../aes.h"
                         "../SceKernelUtilsForDriver.h"
                         "../SceSblSsMgrForDriver.h"
                         "../SecretGenerator.h"
-                        "../sha1.h"
                         "../UnicvDbParser.h"
                         "../Utils.h"
                         "../PsvPfsParserConfig.h")
 source_group ("Header Files" FILES ${HEADER_FILES})
 
-FILE (GLOB SOURCE_FILES "../aes.cpp"
-                        "../F00DKeyEncryptor.cpp"
+FILE (GLOB SOURCE_FILES "../F00DKeyEncryptor.cpp"
                         "../FilesDbParser.cpp"
                         "../MerkleTree.cpp"
                         "../NodeIcvCalculator.cpp"
@@ -38,7 +35,6 @@ FILE (GLOB SOURCE_FILES "../aes.cpp"
                         "../SceKernelUtilsForDriver.cpp"
                         "../SceSblSsMgrForDriver.cpp"
                         "../SecretGenerator.cpp"
-                        "../sha1.cpp"
                         "../UnicvDbParser.cpp"
                         "../Utils.cpp"
                         "../PsvPfsParserConfig.cpp")
@@ -49,8 +45,11 @@ set_property(TARGET ${PROJECT} PROPERTY FOLDER "executables")
 set(EXECUTABLE_OUTPUT_PATH "${CMAKE_SOURCE_DIR}/output/${CMAKE_BUILD_TYPE}")
 install(TARGETS ${PROJECT} RUNTIME DESTINATION bin)
 
-target_link_libraries (${PROJECT} ${Boost_LIBRARIES} ${CURL_LIBRARIES})
+target_link_libraries (${PROJECT} ${Boost_LIBRARIES} ${CURL_LIBRARIES} ${ZLIB_LIBRARIES} libb64 libzRIF libcrypto)
 
 include_directories(..)
+include_directories(../..)
 include_directories(${Boost_INCLUDE_DIRS})
 include_directories(${CURL_INCLUDE_DIRS})
+include_directories(${ZLIB_INCLUDE_DIRS})
+

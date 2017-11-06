@@ -25,9 +25,12 @@ include(scripts/ConfigureDependencies.cmake)
 
 configure_boost()
 configure_curl()
+configure_zlib()
 
 SET(EXECUTABLES psvpfsparser)
-SET(LIBRARIES )
+SET(LIBRARIES libb64
+              libzRIF
+              libcrypto)
 
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
