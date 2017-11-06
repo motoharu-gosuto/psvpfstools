@@ -294,6 +294,8 @@ int decrypt_file(boost::filesystem::path titleIdPath, boost::filesystem::path de
       inputStream.read((char*)buffer.data(), fileSize);
          
       uint32_t tail_size = fileSize % table.ftHeader.fileSectorSize;
+      if(tail_size == 0)
+         tail_size = table.ftHeader.fileSectorSize;
          
       CryptEngineWorkCtx work_ctx;
       init_crypt_ctx(&work_ctx, klicensee, ngpfs, fdb, table, table.blocks.front(), 0, tail_size, buffer.data());
@@ -335,6 +337,8 @@ int decrypt_file(boost::filesystem::path titleIdPath, boost::filesystem::path de
             inputStream.read((char*)buffer.data(), bytes_left);
 
             uint32_t tail_size = bytes_left % table.ftHeader.fileSectorSize;
+            if(tail_size == 0)
+               tail_size = table.ftHeader.fileSectorSize;
          
             CryptEngineWorkCtx work_ctx;
             init_crypt_ctx(&work_ctx, klicensee, ngpfs, fdb, table, b, sector_base, tail_size, buffer.data());
@@ -362,6 +366,8 @@ int decrypt_file(boost::filesystem::path titleIdPath, boost::filesystem::path de
                inputStream.read((char*)buffer.data(), bytes_left);
 
                uint32_t tail_size = bytes_left % table.ftHeader.fileSectorSize;
+               if(tail_size == 0)
+                  tail_size = table.ftHeader.fileSectorSize;
 
                CryptEngineWorkCtx work_ctx;
                init_crypt_ctx(&work_ctx, klicensee, ngpfs, fdb, table, b, sector_base, tail_size, buffer.data());
