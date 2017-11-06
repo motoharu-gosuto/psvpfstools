@@ -18,12 +18,12 @@ int parse_options(int argc, char* argv[], PsvPfsParserConfig& cfg)
   {
     boost::program_options::options_description desc("Options");
     desc.add_options()
-      (HELP_NAME, "Show help")
-      (TITLE_ID_SRC_NAME, boost::program_options::value<std::string>(), "Source directory that contains the application. Like PCSC00000.")
-      (TITLE_ID_DST_NAME, boost::program_options::value<std::string>(), "Destination directory where everything will be unpacked. Like PCSC00000_dec.")
-      (KLICENSEE_NAME, boost::program_options::value<std::string>(), "klicensee hex coded string. Like 00112233445566778899AABBCCDDEEFF.")
-      (ZRIF_NAME, boost::program_options::value<std::string>(), "zRIF string.")
-      (F00D_URL_NAME, boost::program_options::value<std::string>(), "Url of F00D service.");
+      ((std::string(HELP_NAME) + ",h").c_str(), "Show help")
+      ((std::string(TITLE_ID_SRC_NAME) + ",i").c_str(), boost::program_options::value<std::string>(), "Source directory that contains the application. Like PCSC00000.")
+      ((std::string(TITLE_ID_DST_NAME) + ",o").c_str(), boost::program_options::value<std::string>(), "Destination directory where everything will be unpacked. Like PCSC00000_dec.")
+      ((std::string(KLICENSEE_NAME) + ",k").c_str(), boost::program_options::value<std::string>(), "klicensee hex coded string. Like 00112233445566778899AABBCCDDEEFF.")
+      ((std::string(ZRIF_NAME) + ",z").c_str(), boost::program_options::value<std::string>(), "zRIF string.")
+      ((std::string(F00D_URL_NAME) + ",f").c_str(), boost::program_options::value<std::string>(), "Url of F00D service.");
 
     boost::program_options::variables_map vm;
     store(parse_command_line(argc, argv, desc), vm);
