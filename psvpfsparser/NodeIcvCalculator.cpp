@@ -6,7 +6,7 @@
 #include "FilesDbParser.h"
 #include "Utils.h"
 
-#include "sha1.h"
+#include <libcrypto/sha1.h>
 
 unsigned char* c_node_icvs(unsigned char* raw_data, int order)
 {

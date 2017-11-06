@@ -9,7 +9,7 @@
     Include dictionary with set of strings for more efficient packing
 */
 
-#include "keyflate.h"
+#include <zRIF/keyflate.h>
 #include <zlib.h>
 
 unsigned int g_dict_size = 1024;

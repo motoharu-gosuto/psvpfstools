@@ -2,8 +2,8 @@
 
 #include "F00DKeyEncryptor.h"
 
-#include "aes.h"
-#include "sha1.h"
+#include <libcrypto/aes.h>
+#include <libcrypto/sha1.h>
 
 //##### WITH KEYGEN CRYPTO FUNCTIONS #####
 

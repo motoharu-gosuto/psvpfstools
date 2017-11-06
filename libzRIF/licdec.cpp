@@ -4,7 +4,7 @@
 //weaknespase
 //St4rk
 
-#include "LicenseDecoder.h"
+#include <zRIF/licdec.h>
 
 #include <stdint.h>
 
@@ -14,8 +14,8 @@
 #include <vector>
 #include <iostream>
 
-#include "keyflate.h"
-#include "rif.h"
+#include <zRIF/keyflate.h>
+#include <zRIF/rif.h>
 
 #include <libb64/b64/cdecode.h>
 

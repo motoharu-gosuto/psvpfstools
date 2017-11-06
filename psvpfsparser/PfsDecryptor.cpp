@@ -10,7 +10,7 @@
 #include <boost/lexical_cast.hpp>
 #include <boost/algorithm/string.hpp>
 
-#include "sha1.h"
+#include <libcrypto/sha1.h>
 
 #include "Utils.h"
 #include "SecretGenerator.h"

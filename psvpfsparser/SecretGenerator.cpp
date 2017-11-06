@@ -3,7 +3,7 @@
 #include <stdint.h>
 #include <string>
 
-#include "sha1.h"
+#include <libcrypto/sha1.h>
 
 #include "PfsKeys.h"
 #include "SceKernelUtilsForDriver.h"

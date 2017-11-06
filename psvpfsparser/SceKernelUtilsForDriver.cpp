@@ -1,6 +1,6 @@
 #include "SceKernelUtilsForDriver.h"
 
-#include "sha1.h"
+#include <libcrypto/sha1.h>
 
 //##### SW CRYPTO FUNCTIONS #####
 

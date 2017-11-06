@@ -24,7 +24,7 @@
 #include "NodeIcvCalculator.h"
 #include "MerkleTree.h"
 
-#include "sha1.h"
+#include <libcrypto/sha1.h>
 
 bool verify_header(std::ifstream& inputStream, sce_ng_pfs_header_t& header, unsigned char* secret)
 {
