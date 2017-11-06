@@ -56,8 +56,14 @@ bool verify_header(std::ifstream& inputStream, sce_ng_pfs_header_t& header, unsi
    unsigned char root_block_raw_data[0x400];
    inputStream.read((char*)root_block_raw_data, 0x400);
 
+   //seek back to the beginning of tail
+   inputStream.seekg(chunksBeginPos, std::ios_base::beg);
+
+   sce_ng_pfs_block_t root_node;
+   inputStream.read((char*)&root_node.header, sizeof(sce_ng_pfs_block_t));
+
    unsigned char root_icv[0x14];
-   if(calculate_node_icv(header, secret, 0, root_block_raw_data, root_icv) < 0)
+   if(calculate_node_icv(header, secret, &root_node, root_block_raw_data, root_icv) < 0)
    {
       std::cout << "failed to calculate icv" << std::endl;
       return false;
@@ -109,9 +115,16 @@ bool parseFilesDb(unsigned char* klicensee, std::ifstream& inputStream, sce_ng_p
    }
 
    //check version
-   if(header.version != EXPECTED_VERSION)
+   if(header.version != FILES_EXPECTED_VERSION_3 && header.version != FILES_EXPECTED_VERSION_5)
    {
       std::cout << "Invalid version" << std::endl;
+      return false;
+   }
+
+   //flags are important for key derrivation (most likely this is flag field) - better check to know if there are any unexpected values
+   if(header.flags != 0xA)
+   {
+      std::cout << "Unexpected flags value" << std::endl;
       return false;
    }
 
