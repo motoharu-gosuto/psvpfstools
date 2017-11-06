@@ -353,34 +353,55 @@ int decrypt_file(boost::filesystem::path titleIdPath, boost::filesystem::path de
          }
          else
          {
-            uint32_t data_size = table.ftHeader.binTreeNumMaxAvail * table.ftHeader.fileSectorSize;
+            uint32_t full_block_size = table.ftHeader.binTreeNumMaxAvail * table.ftHeader.fileSectorSize;
 
-            if(bytes_left < data_size)
+            //if this is a last block and last sector is not fully filled
+            if(bytes_left < full_block_size)
             {
-               std::cout << "Invalid data size" << std::endl;
-               return -1;
+               std::vector<uint8_t> buffer(bytes_left);
+               inputStream.read((char*)buffer.data(), bytes_left);
+
+               uint32_t tail_size = bytes_left % table.ftHeader.fileSectorSize;
+
+               CryptEngineWorkCtx work_ctx;
+               init_crypt_ctx(&work_ctx, klicensee, ngpfs, fdb, table, b, sector_base, tail_size, buffer.data());
+
+               pfs_decrypt(&work_ctx);
+
+               if(work_ctx.error < 0)
+               {
+                  std::cout << "Crypto Engine failed" << std::endl;
+                  return -1;
+               }
+               else
+               {
+                  outputStream.write((char*)buffer.data(), bytes_left);
+               }
             }
-
-            std::vector<uint8_t> buffer(data_size);
-            inputStream.read((char*)buffer.data(), data_size);
-
-            CryptEngineWorkCtx work_ctx;
-            init_crypt_ctx(&work_ctx, klicensee, ngpfs, fdb, table, b, sector_base, table.ftHeader.fileSectorSize, buffer.data());
-
-            pfs_decrypt(&work_ctx);
-
-            if(work_ctx.error < 0)
-            {
-               std::cout << "Crypto Engine failed" << std::endl;
-               return -1;
-            }
+            //if this is a last block and last sector is fully filled
             else
             {
-               outputStream.write((char*)buffer.data(), data_size);
-            }
+               std::vector<uint8_t> buffer(full_block_size);
+               inputStream.read((char*)buffer.data(), full_block_size);
 
-            bytes_left = bytes_left - data_size;
-            sector_base = sector_base + table.ftHeader.binTreeNumMaxAvail;
+               CryptEngineWorkCtx work_ctx;
+               init_crypt_ctx(&work_ctx, klicensee, ngpfs, fdb, table, b, sector_base, table.ftHeader.fileSectorSize, buffer.data());
+
+               pfs_decrypt(&work_ctx);
+
+               if(work_ctx.error < 0)
+               {
+                  std::cout << "Crypto Engine failed" << std::endl;
+                  return -1;
+               }
+               else
+               {
+                  outputStream.write((char*)buffer.data(), full_block_size);
+               }
+
+               bytes_left = bytes_left - full_block_size;
+               sector_base = sector_base + table.ftHeader.binTreeNumMaxAvail;
+            }
          }
       }
    }
