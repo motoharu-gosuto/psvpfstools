@@ -59,11 +59,13 @@ bool verify_header(std::ifstream& inputStream, sce_ng_pfs_header_t& header, unsi
    //seek back to the beginning of tail
    inputStream.seekg(chunksBeginPos, std::ios_base::beg);
 
+   /*
    sce_ng_pfs_block_t root_node;
    inputStream.read((char*)&root_node.header, sizeof(sce_ng_pfs_block_t));
+   */
 
    unsigned char root_icv[0x14];
-   if(calculate_node_icv(header, secret, &root_node, root_block_raw_data, root_icv) < 0)
+   if(calculate_node_icv(header, secret, 0, root_block_raw_data, root_icv) < 0)
    {
       std::cout << "failed to calculate icv" << std::endl;
       return false;
