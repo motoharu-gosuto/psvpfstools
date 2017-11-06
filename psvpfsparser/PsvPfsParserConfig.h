@@ -7,6 +7,7 @@ struct PsvPfsParserConfig
    std::string title_id_src;
    std::string title_id_dst;
    std::string klicensee;
+   std::string zRIF;
    std::string f00d_url;
 };
 

@@ -7,6 +7,9 @@
 #include <boost/filesystem.hpp>
 #include <boost/algorithm/string.hpp>
 
+#include <libzRIF/zRIF/rif.h>
+#include <libzRIF/zRIF/licdec.h>
+
 #include "Utils.h"
 
 #include "UnicvDbParser.h"
@@ -36,9 +39,27 @@ int main(int argc, char* argv[])
    destTitleIdPath = boost::filesystem::path(destTitleIdPathGen);
 
    unsigned char klicensee[0x10] = {0};
-   if(string_to_byte_array(cfg.klicensee, 0x10, klicensee) < 0)
+   if(cfg.klicensee.length() > 0)
    {
-      std::cout << "Failed to parse klicensee" << std::endl;
+      if(string_to_byte_array(cfg.klicensee, 0x10, klicensee) < 0)
+      {
+         std::cout << "Failed to parse klicensee" << std::endl;
+         return -1;
+      }
+   }
+   else if(cfg.zRIF.length() > 0)
+   {
+      std::shared_ptr<SceNpDrmLicense> lic = decode_license_np(cfg.zRIF);
+      if(!lic)
+      {
+         std::cout << "Failed to decode zRIF string" << std::endl;
+         return -1;
+      }
+      memcpy(klicensee, lic->key, 0x10);
+   }
+   else
+   {
+      std::cout << "Need klicensee or zRIF string to proceed" << std::endl;
       return -1;
    }
 

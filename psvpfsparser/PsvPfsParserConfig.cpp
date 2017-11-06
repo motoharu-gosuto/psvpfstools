@@ -9,6 +9,7 @@
 #define TITLE_ID_SRC_NAME "title_id_src"
 #define TITLE_ID_DST_NAME "title_id_dst"
 #define KLICENSEE_NAME "klicensee"
+#define ZRIF_NAME "zRIF"
 #define F00D_URL_NAME "f00d_url"
 
 int parse_options(int argc, char* argv[], PsvPfsParserConfig& cfg)
@@ -18,10 +19,11 @@ int parse_options(int argc, char* argv[], PsvPfsParserConfig& cfg)
     boost::program_options::options_description desc("Options");
     desc.add_options()
       (HELP_NAME, "Show help")
-      (TITLE_ID_SRC_NAME, boost::program_options::value<std::string>(), "Source directory that contains the application. Like PCSC00000")
-      (TITLE_ID_DST_NAME, boost::program_options::value<std::string>(), "Destination directory where everything will be unpacked. Like PCSC00000_dec")
-      (KLICENSEE_NAME, boost::program_options::value<std::string>(), "klicensee hex coded string. Like 00112233445566778899AABBCCDDEEFF")
-      (F00D_URL_NAME, boost::program_options::value<std::string>(), "Url of F00D service");
+      (TITLE_ID_SRC_NAME, boost::program_options::value<std::string>(), "Source directory that contains the application. Like PCSC00000.")
+      (TITLE_ID_DST_NAME, boost::program_options::value<std::string>(), "Destination directory where everything will be unpacked. Like PCSC00000_dec.")
+      (KLICENSEE_NAME, boost::program_options::value<std::string>(), "klicensee hex coded string. Like 00112233445566778899AABBCCDDEEFF.")
+      (ZRIF_NAME, boost::program_options::value<std::string>(), "zRIF string.")
+      (F00D_URL_NAME, boost::program_options::value<std::string>(), "Url of F00D service.");
 
     boost::program_options::variables_map vm;
     store(parse_command_line(argc, argv, desc), vm);
@@ -59,8 +61,15 @@ int parse_options(int argc, char* argv[], PsvPfsParserConfig& cfg)
     }
     else
     {
-       std::cout << "Missing option --" << KLICENSEE_NAME << std::endl;
-       return -1;
+       if (vm.count(ZRIF_NAME))
+       {
+          cfg.zRIF = vm[ZRIF_NAME].as<std::string>();
+       }
+       else
+       {
+          std::cout << "Missing option --" << KLICENSEE_NAME << " or --"  ZRIF_NAME << std::endl;
+          return -1;
+       }
     }
 
     if (vm.count(F00D_URL_NAME))
