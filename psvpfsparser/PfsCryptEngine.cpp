@@ -339,8 +339,6 @@ void work_3_step1(CryptEngineWorkCtx* crypt_ctx, int bitSize, unsigned char* buf
 
 void crypt_engine_work_3(CryptEngineWorkCtx* crypt_ctx)
 {
-   int64_t tweak_key= crypt_ctx->subctx->sector_base;
-
    int bitSize = (int)crypt_ctx->subctx->data->type - 2; // this does not correlate with derive_keys_from_klicensee_219B4A0
    int total_size = (crypt_ctx->subctx->data->block_size) * ((crypt_ctx->subctx->nBlocks) - 1) + (crypt_ctx->subctx->tail_size);
 
@@ -351,7 +349,7 @@ void crypt_engine_work_3(CryptEngineWorkCtx* crypt_ctx)
       work_buffer = crypt_ctx->subctx->work_buffer1;
 
    //verifies table of hashes ?
-   verify_step(crypt_ctx, tweak_key, bitSize, total_size, work_buffer);
+   verify_step(crypt_ctx, crypt_ctx->subctx->sector_base, bitSize, total_size, work_buffer);
 
    //need to add this check since dec functionality is now split into several functions
    if(crypt_ctx->error < 0)
@@ -360,10 +358,12 @@ void crypt_engine_work_3(CryptEngineWorkCtx* crypt_ctx)
    if(crypt_ctx->subctx->nBlocksTail == 0)
    {
       //immediately decrypts everything in while loop
-      work_3_step0(crypt_ctx, tweak_key, bitSize, total_size, work_buffer);
+      work_3_step0(crypt_ctx, crypt_ctx->subctx->sector_base * crypt_ctx->subctx->data->block_size, bitSize, total_size, work_buffer);
    }
    else
    {
+      throw std::runtime_error("Untested decryption branch");
+
       //first - decrypts block part with single call
       //second - decrypts tail part with single call
       //third - decrypts everything in while loop
