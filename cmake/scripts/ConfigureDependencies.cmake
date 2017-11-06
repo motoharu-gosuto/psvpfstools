@@ -48,3 +48,26 @@ message("Curl library is not found")
 endif()
 
 endmacro(configure_curl)
+
+macro(configure_zlib)
+
+message("configuring zlib")
+
+if (MSVC)
+ set (CMAKE_EXE_LINKER_FLAGS "/SAFESEH:NO")
+endif()
+
+set(ZLIB_INCLUDE_DIR "$ENV{ZLIB_INCLUDE_DIR}")
+set(ZLIB_LIBRARY "$ENV{ZLIB_LIBRARY}")
+
+find_package(ZLIB REQUIRED)
+
+if(ZLIB_FOUND)
+message("Using ZLIB_VERSION_STRING: ${ZLIB_VERSION_STRING}")
+message("Using ZLIB_INCLUDE_DIRS: ${ZLIB_INCLUDE_DIRS}")
+message("Using ZLIB_LIBRARIES: ${ZLIB_LIBRARIES}")
+else()
+message("Zlib library is not found")
+endif()
+
+endmacro(configure_zlib)
