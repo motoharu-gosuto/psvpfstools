@@ -106,7 +106,7 @@ bool readDataBlock(std::ifstream& inputStream, uint64_t& i, scei_ftbl_t& fft)
    }
 
    //check version
-   if(fft.ftHeader.version != 2)
+   if(fft.ftHeader.version != UNICV_EXPECTED_VERSION_1 && fft.ftHeader.version != UNICV_EXPECTED_VERSION_2)
    {
       std::cout << "Unexpected version" << std::endl;
       return false;
@@ -225,7 +225,7 @@ bool parseUnicvDb(std::ifstream& inputStream, scei_rodb_t& fdb)
    }
 
    //check version
-   if(fdb.dbHeader.version != 2)
+   if(fdb.dbHeader.version != UNICV_EXPECTED_VERSION_1 && fdb.dbHeader.version != UNICV_EXPECTED_VERSION_2)
    {
       std::cout << "Unexpected version" << std::endl;
       return false;
@@ -311,6 +311,8 @@ int parseUnicvDb(boost::filesystem::path titleIdPath, scei_rodb_t& fdb)
       return -1;
    }
 
-   parseUnicvDb(inputStream, fdb);
+   if(parseUnicvDb(inputStream, fdb) < 0)
+      return -1;
+
    return 0;
 }

@@ -14,6 +14,9 @@
 #define EXPECTED_SIGNATURE_SIZE 0x14
 #define EXPECTED_FILE_SECTOR_SIZE 0x8000
 
+#define UNICV_EXPECTED_VERSION_1 1
+#define UNICV_EXPECTED_VERSION_2 2
+
 #pragma pack(push, 1)
 
 struct scei_rodb_header_t
