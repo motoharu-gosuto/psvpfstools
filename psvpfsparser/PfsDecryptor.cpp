@@ -125,6 +125,7 @@ int bruteforce_map(boost::filesystem::path titleIdPath, unsigned char* klicensee
    //brutforce each scei_ftbl_t record
    for(auto& t : fdb.tables)
    {
+      //process only files that are not empty
       if(t.ftHeader.nSectors > 0)
       {
          //generate secret - one secret per unicv.db page is required
@@ -264,11 +265,17 @@ int decrypt_file(boost::filesystem::path titleIdPath, boost::filesystem::path de
    new_directory.remove_filename();
 
    //create all directories on the way
+
    boost::filesystem::create_directories(new_directory);
 
    //create new file
 
    std::ofstream outputStream(new_path.generic_string().c_str(), std::ios::out | std::ios::trunc | std::ios::binary);
+   if(!outputStream.is_open())
+   {
+      std::cout << "Failed to open " << new_path.generic_string() << std::endl;
+      return -1;
+   }
 
    //do decryption
 
@@ -419,6 +426,34 @@ int decrypt_file(boost::filesystem::path titleIdPath, boost::filesystem::path de
    return 0;
 }
 
+int copy_existing_file(boost::filesystem::path titleIdPath, boost::filesystem::path destination_root, boost::filesystem::path filepath)
+{
+   //construct new path
+   std::string old_root = titleIdPath.generic_string();
+   std::string new_root = destination_root.generic_string();
+   std::string old_path = filepath.generic_string();
+   boost::replace_all(old_path, old_root, new_root);
+   boost::filesystem::path new_path(old_path);
+   boost::filesystem::path new_directory = new_path;
+   new_directory.remove_filename();
+
+   //create all directories on the way
+   
+   boost::filesystem::create_directories(new_directory);
+
+   //copy the file
+
+   boost::filesystem::copy(filepath, new_path);
+
+   if(!boost::filesystem::exists(new_path))
+   {
+      std::cout << "Failed to copy: " << filepath.generic_string() << " to " << new_path.generic_string() << std::endl;
+      return -1;
+   }
+
+   return 0;
+}
+
 int create_empty_file(boost::filesystem::path titleIdPath, boost::filesystem::path destination_root, boost::filesystem::path filepath)
 {
    //construct new path
@@ -431,11 +466,17 @@ int create_empty_file(boost::filesystem::path titleIdPath, boost::filesystem::pa
    new_directory.remove_filename();
 
    //create all directories on the way
+   
    boost::filesystem::create_directories(new_directory);
 
    //create new file
 
    std::ofstream outputStream(new_path.generic_string().c_str(), std::ios::out | std::ios::trunc | std::ios::binary);
+   if(!outputStream.is_open())
+   {
+      std::cout << "Failed to open " << filepath.generic_string() << std::endl;
+      return -1;
+   }
 
    outputStream.close();
 
@@ -459,45 +500,74 @@ int decrypt_files(boost::filesystem::path titleIdPath, boost::filesystem::path d
    for(auto& f : emptyFiles)
    {
       boost::filesystem::path filepath(f);
-      create_empty_file(titleIdPath, destTitleIdPath, filepath);
+      if(create_empty_file(titleIdPath, destTitleIdPath, filepath) < 0)
+      {
+         std::cout << "Failed to create: " << filepath.generic_string() << std::endl;
+         return -1;
+      }
+      else
+      {
+         std::cout << "Created: " << filepath.generic_string() << std::endl;
+      }
    }
 
    std::cout << "Decrypting files..." << std::endl;
 
    for(auto& t : fdb.tables)
    {
+      //skip empty files and directories
       if(t.ftHeader.nSectors == 0)
          continue;
 
+      //find filepath by unicv.db page
       auto map_entry = pageMap.find(t.page);
       if(map_entry == pageMap.end())
       {
          std::cout << "failed to find page " << t.page << " in map" << std::endl;
-         continue;
+         return -1;
       }
 
+      //find file in files.db by filepath
       boost::filesystem::path filepath(map_entry->second);
-
       auto file = find_file_by_path(files, filepath);
       if(file == files.end())
       {
          std::cout << "failed to find file " << filepath << " in flat file list" << std::endl;
-         continue;
-      }
-
-      if(file->file.info.type == sce_ng_pfs_file_types::unencrypted_system_file || 
-         file->file.info.type == sce_ng_pfs_file_types::directory ||
-         file->file.info.type == sce_ng_pfs_file_types::unexisting)
-         continue;
-
-      if(decrypt_file(titleIdPath, destTitleIdPath, *file, filepath, klicensee, ngpfs, fdb, t) < 0)
-      {
-         std::cout << "Failed to decrypt: " << filepath.generic_string() << std::endl;
          return -1;
       }
+
+      //directory and unexisting file are unexpected
+      if(file->file.info.type == sce_ng_pfs_file_types::directory ||
+         file->file.info.type == sce_ng_pfs_file_types::unexisting)
+      {
+         std::cout << "Unexpected file type" << std::endl;
+         return -1;
+      }
+      //copy unencrypted files
+      else if(file->file.info.type == sce_ng_pfs_file_types::unencrypted_system_file)
+      {
+         if(copy_existing_file(titleIdPath, destTitleIdPath, filepath) < 0)
+         {
+            std::cout << "Failed to copy: " << filepath.generic_string() << std::endl;
+            return -1;
+         }
+         else
+         {
+            std::cout << "Copied: " << filepath.generic_string() << std::endl;
+         }
+      }
+      //decrypt unencrypted files
       else
       {
-         std::cout << "Decrypted: " << filepath.generic_string() << std::endl;
+         if(decrypt_file(titleIdPath, destTitleIdPath, *file, filepath, klicensee, ngpfs, fdb, t) < 0)
+         {
+            std::cout << "Failed to decrypt: " << filepath.generic_string() << std::endl;
+            return -1;
+         }
+         else
+         {
+            std::cout << "Decrypted: " << filepath.generic_string() << std::endl;
+         }
       }
    }   
 
