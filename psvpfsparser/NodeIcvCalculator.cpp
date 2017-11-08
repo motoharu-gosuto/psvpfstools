@@ -46,7 +46,7 @@ int order_max_avail(uint32_t pagesize)
   return index;
 }
 
-int calculate_node_icv(sce_ng_pfs_header_t& ngh, unsigned char* secret, sce_ng_pfs_block_t* node, unsigned char* raw_data, unsigned char* icv)
+int calculate_node_icv(sce_ng_pfs_header_t& ngh, unsigned char* secret, sce_ng_pfs_block_header_t* node_header, unsigned char* raw_data, unsigned char* icv)
 {
    int order = order_max_avail(ngh.pageSize); //get order of the page (max number of hashes per page)
 
@@ -57,11 +57,11 @@ int calculate_node_icv(sce_ng_pfs_header_t& ngh, unsigned char* secret, sce_ng_p
       return 0;
    }
    
-   if(node == 0)
+   if(node_header == 0)
       return -1;
 
-   uint32_t nEntries = node->header.nFiles;
-   if (node->header.type > 0)
+   uint32_t nEntries = node_header->nFiles;
+   if (node_header->type > 0)
       nEntries++;
 
    memset(icv, 0, 0x14);

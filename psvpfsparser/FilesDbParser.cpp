@@ -28,6 +28,8 @@
 
 bool verify_header(std::ifstream& inputStream, sce_ng_pfs_header_t& header, unsigned char* secret)
 {
+   std::cout << "verifying header..." << std::endl;
+
    //verify header signature
    
    char rsa_sig0_copy[0x100];
@@ -46,28 +48,32 @@ bool verify_header(std::ifstream& inputStream, sce_ng_pfs_header_t& header, unsi
       return false;
    }
 
+   std::cout << "header signature is valid" << std::endl;
+
    //verify root_icv
 
    //save current position
    int64_t chunksBeginPos = inputStream.tellg();
 
+   //map page to offset
    int64_t offset = page2off(header.root_icv_page_number, header.pageSize);
+
+   //read raw data at offset
    inputStream.seekg(offset, std::ios_base::beg);
    unsigned char root_block_raw_data[0x400];
    inputStream.read((char*)root_block_raw_data, 0x400);
 
-   //seek back to the beginning of tail
-   inputStream.seekg(chunksBeginPos, std::ios_base::beg);
+   //seek back to the beginning of the page
+   inputStream.seekg(offset, std::ios_base::beg);
 
-   /*
-   sce_ng_pfs_block_t root_node;
-   inputStream.read((char*)&root_node.header, sizeof(sce_ng_pfs_block_t));
-   */
+   //re read only header
+   sce_ng_pfs_block_header_t root_node_header;
+   inputStream.read((char*)&root_node_header, sizeof(sce_ng_pfs_block_header_t));
 
    unsigned char root_icv[0x14];
-   if(calculate_node_icv(header, secret, 0, root_block_raw_data, root_icv) < 0)
+   if(calculate_node_icv(header, secret, &root_node_header, root_block_raw_data, root_icv) < 0)
    {
-      std::cout << "failed to calculate icv" << std::endl;
+      std::cout << "failed to calculate root icv" << std::endl;
       return false;
    }
 
@@ -76,6 +82,8 @@ bool verify_header(std::ifstream& inputStream, sce_ng_pfs_header_t& header, unsi
       std::cout << "root icv is invalid" << std::endl;
       return false;
    }
+
+   std::cout << "root icv is valid" << std::endl;
    
    //seek back to the beginning of tail
    inputStream.seekg(chunksBeginPos, std::ios_base::beg);
@@ -134,6 +142,12 @@ bool parseFilesDb(unsigned char* klicensee, std::ifstream& inputStream, sce_ng_p
    if(header.pageSize != EXPECTED_BLOCK_SIZE)
    {
       std::cout << "Invalid block size" << std::endl;
+      return false;
+   }
+
+   if(header.unk6 != 0xFFFFFFFFFFFFFFFF)
+   {
+      std::cout << "Unexpected unk6" << std::endl;
       return false;
    }
 
@@ -261,7 +275,7 @@ bool parseFilesDb(unsigned char* klicensee, std::ifstream& inputStream, sce_ng_p
       icv.offset = currentBlockPos;
       icv.page = off2page(currentBlockPos, header.pageSize);
 
-      if(calculate_node_icv( header, secret, &block, raw_block_data, icv.icv) < 0)
+      if(calculate_node_icv( header, secret, &block.header, raw_block_data, icv.icv) < 0)
       {
          std::cout << "failed to calculate icv" << std::endl;
          return false;

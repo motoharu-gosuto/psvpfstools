@@ -246,7 +246,7 @@ bool parseUnicvDb(std::ifstream& inputStream, scei_rodb_t& fdb)
    //debug check only for now to see if there are any other sizes
    if(fdb.dbHeader.blockSize != EXPECTED_PAGE_SIZE)
    {
-      std::cout << "Unexpected block size" << std::endl;
+      std::cout << "Unexpected page size" << std::endl;
       return false;
    }
 
