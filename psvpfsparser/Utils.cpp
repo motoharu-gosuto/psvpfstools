@@ -74,9 +74,9 @@ void getFileListNoPfs(boost::filesystem::path path, std::set<std::string>& files
 
          //add file or directory
          if(boost::filesystem::is_directory(cp))
-            directories.insert(cp.string());
+            directories.insert(cp.generic_string());
          else
-            files.insert(cp.string());
+            files.insert(cp.generic_string());
       }
    }
 }

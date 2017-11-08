@@ -506,7 +506,7 @@ bool constructDirPaths(boost::filesystem::path rootPath, std::map<uint32_t, uint
 
       dirsResult.push_back(sce_ng_pfs_dir_t());
       sce_ng_pfs_dir_t& ft = dirsResult.back();
-      ft.path = path;
+      ft.path = boost::filesystem::path(path.generic_string()); //reconstruct generic path
       ft.dir = *dirFlatBlock;
       ft.dirs = dirFlatBlocks;
    }
@@ -579,7 +579,7 @@ bool constructFilePaths(boost::filesystem::path rootPath, std::map<uint32_t, uin
 
       filesResult.push_back(sce_ng_pfs_file_t());
       sce_ng_pfs_file_t& ft = filesResult.back();
-      ft.path = path;
+      ft.path = boost::filesystem::path(path.generic_string()); //reconstruct generic path
       ft.file = *fileFlatBlock;
       ft.dirs = dirFlatBlocks;
    }

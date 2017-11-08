@@ -486,6 +486,22 @@ int create_empty_file(boost::filesystem::path titleIdPath, boost::filesystem::pa
    return 0;
 }
 
+int create_empty_directory(boost::filesystem::path titleIdPath, boost::filesystem::path destination_root, boost::filesystem::path dirpath)
+{
+   //construct new path
+   std::string old_root = titleIdPath.generic_string();
+   std::string new_root = destination_root.generic_string();
+   std::string old_path = dirpath.generic_string();
+   boost::replace_all(old_path, old_root, new_root);
+   boost::filesystem::path new_path(old_path);
+
+   //create all directories on the way
+   
+   boost::filesystem::create_directories(new_path);
+
+   return 0;
+}
+
 std::vector<sce_ng_pfs_file_t>::const_iterator find_file_by_path(std::vector<sce_ng_pfs_file_t>& files, boost::filesystem::path p)
 {
    for(std::vector<sce_ng_pfs_file_t>::const_iterator it = files.begin(); it != files.end(); ++it)
@@ -502,8 +518,16 @@ int decrypt_files(boost::filesystem::path titleIdPath, boost::filesystem::path d
 
    for(auto& d : dirs)
    {
-      boost::filesystem::create_directories(d.path);
-      std::cout << "Created: " << d.path.generic_string() << std::endl;
+      boost::filesystem::path filepath(d.path);
+      if(create_empty_directory(titleIdPath, destTitleIdPath, filepath) < 0)
+      {
+         std::cout << "Failed to create: " << filepath.generic_string() << std::endl;
+         return -1;
+      }
+      else
+      {
+         std::cout << "Created: " << d.path.generic_string() << std::endl;
+      }
    }
 
    std::cout << "Creating empty files..." << std::endl;
