@@ -443,6 +443,9 @@ int copy_existing_file(boost::filesystem::path titleIdPath, boost::filesystem::p
 
    //copy the file
 
+   if(boost::filesystem::exists(new_path))
+      boost::filesystem::remove(new_path);
+   
    boost::filesystem::copy(filepath, new_path);
 
    if(!boost::filesystem::exists(new_path))
