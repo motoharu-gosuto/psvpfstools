@@ -146,16 +146,16 @@ int bruteforce_map(boost::filesystem::path titleIdPath, unsigned char* klicensee
       }
    }
 
-   if(fileDatas.size() != 0)
-   {
-      std::cout << "Unexpected error in fileDatas map" << std::endl;
-      return -1;
-   }
-
    if(files.size() != (pageMap.size() + emptyFiles.size()))
    {
-      std::cout << "Unexpected error in files set" << std::endl;
-      return -1;
+      std::cout << "Extra files are left after mapping (warning): " << (files.size() - (pageMap.size() + emptyFiles.size())) << std::endl;
+   }
+
+   if(fileDatas.size() != 0)
+   {
+      std::cout << "Extra files are left after mapping (warning):" << std::endl;
+      for(auto& f : fileDatas)
+         std::cout << f.first << std::endl;
    }
 
    return 0;

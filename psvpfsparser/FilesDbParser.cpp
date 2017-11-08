@@ -654,6 +654,7 @@ bool validateFilepaths(std::vector<sce_ng_pfs_file_t>& files)
    return true;
 }
 
+//returns number of extra files in real file system which are not present in files.db
 int match_file_lists(std::vector<sce_ng_pfs_file_t>& filesResult, std::set<std::string> files)
 {
    std::cout << "Matching file paths..." << std::endl;
@@ -663,6 +664,8 @@ int match_file_lists(std::vector<sce_ng_pfs_file_t>& filesResult, std::set<std::
    for(auto& f :  filesResult)
       fileResultPaths.insert(f.path.string());
 
+   int real_extra = 0;
+
    bool print = false;
    for(auto& p : files)
    {
@@ -670,11 +673,12 @@ int match_file_lists(std::vector<sce_ng_pfs_file_t>& filesResult, std::set<std::
       {
          if(!print)
          {
-            std::cout << "Files not found in files.db :" << std::endl;
+            std::cout << "Files not found in files.db (warning):" << std::endl;
             print = true;
          }
 
          std::cout << p << std::endl;
+         real_extra++;
       }
    }
 
@@ -693,7 +697,7 @@ int match_file_lists(std::vector<sce_ng_pfs_file_t>& filesResult, std::set<std::
       }
    }
 
-   return 0;
+   return real_extra;
 }
 
 //parses files.db and flattens it into file list
@@ -759,10 +763,11 @@ int parseFilesDb(unsigned char* klicensee, boost::filesystem::path titleIdPath, 
    std::set<std::string> directories;
    getFileListNoPfs(root, files, directories);
 
-   match_file_lists(filesResult, files);
+   //match files and get number of extra files that do not exist in files.db
+   int numExtra = match_file_lists(filesResult, files);
 
    //final check of sizes
-   size_t expectedSize = files.size() + directories.size();
+   size_t expectedSize = files.size() + directories.size() - numExtra; // allow extra files to exist
    if(expectedSize != flatBlocks.size())
    {
       std::cout << "Mismatch in number of files + directories agains number of flat blocks" << std::endl;
