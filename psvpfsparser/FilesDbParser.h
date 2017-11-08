@@ -122,6 +122,13 @@ struct sce_ng_pfs_file_t
    std::vector<sce_ng_pfs_flat_block_t> dirs;
 };
 
+struct sce_ng_pfs_dir_t
+{
+   boost::filesystem::path path;
+   sce_ng_pfs_flat_block_t dir;
+   std::vector<sce_ng_pfs_flat_block_t> dirs;
+};
+
 #pragma pack(pop)
 
-int parseFilesDb(unsigned char* klicensee, boost::filesystem::path titleIdPath, sce_ng_pfs_header_t& header, std::vector<sce_ng_pfs_file_t>& filesResult);
+int parseFilesDb(unsigned char* klicensee, boost::filesystem::path titleIdPath, sce_ng_pfs_header_t& header, std::vector<sce_ng_pfs_file_t>& filesResult, std::vector<sce_ng_pfs_dir_t>& dirsResult);

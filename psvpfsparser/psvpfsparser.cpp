@@ -68,7 +68,8 @@ int execute(PsvPfsParserConfig& cfg)
 
    sce_ng_pfs_header_t header;
    std::vector<sce_ng_pfs_file_t> files;
-   if(parseFilesDb(klicensee, titleIdPath, header, files) < 0)
+   std::vector<sce_ng_pfs_dir_t> dirs;
+   if(parseFilesDb(klicensee, titleIdPath, header, files, dirs) < 0)
       return -1;
 
    scei_rodb_t unicv;
@@ -80,7 +81,7 @@ int execute(PsvPfsParserConfig& cfg)
    if(bruteforce_map(titleIdPath, klicensee, header, unicv, pageMap, emptyFiles) < 0)
       return -1;
 
-   if(decrypt_files(titleIdPath, destTitleIdPath, klicensee, header, files, unicv, pageMap, emptyFiles) < 0)
+   if(decrypt_files(titleIdPath, destTitleIdPath, klicensee, header, files, dirs, unicv, pageMap, emptyFiles) < 0)
       return -1;
 
 	return 0;

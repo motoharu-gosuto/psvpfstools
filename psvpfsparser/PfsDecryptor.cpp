@@ -496,8 +496,16 @@ std::vector<sce_ng_pfs_file_t>::const_iterator find_file_by_path(std::vector<sce
    return files.end();
 }
 
-int decrypt_files(boost::filesystem::path titleIdPath, boost::filesystem::path destTitleIdPath, unsigned char* klicensee, sce_ng_pfs_header_t& ngpfs, std::vector<sce_ng_pfs_file_t>& files, scei_rodb_t& fdb, std::map<uint32_t, std::string>& pageMap, std::set<std::string>& emptyFiles)
+int decrypt_files(boost::filesystem::path titleIdPath, boost::filesystem::path destTitleIdPath, unsigned char* klicensee, sce_ng_pfs_header_t& ngpfs, std::vector<sce_ng_pfs_file_t>& files, std::vector<sce_ng_pfs_dir_t>& dirs, scei_rodb_t& fdb, std::map<uint32_t, std::string>& pageMap, std::set<std::string>& emptyFiles)
 {
+   std::cout << "Creating directories..." << std::endl;
+
+   for(auto& d : dirs)
+   {
+      boost::filesystem::create_directories(d.path);
+      std::cout << "Created: " << d.path.generic_string() << std::endl;
+   }
+
    std::cout << "Creating empty files..." << std::endl;
 
    for(auto& f : emptyFiles)

@@ -442,6 +442,78 @@ const std::vector<sce_ng_pfs_flat_block_t>::const_iterator findFlatBlockFile(con
    return flatBlocks.end();
 }
 
+bool constructDirPaths(boost::filesystem::path rootPath, std::map<uint32_t, uint32_t>& dirMatrix, const std::vector<sce_ng_pfs_flat_block_t>& flatBlocks, std::vector<sce_ng_pfs_dir_t>& dirsResult)
+{
+   std::cout << "Building dir paths..." << std::endl;
+
+   for(auto& dir_entry : dirMatrix)
+   {
+      //start searching from dir up to root
+      uint32_t childIndex = dir_entry.first;
+      uint32_t parentIndex = dir_entry.second;
+
+      std::vector<uint32_t> indexes;
+
+      //search till the root - get all indexes for the path
+      while(parentIndex != 0)
+      {
+         auto directory = dirMatrix.find(parentIndex);
+         if(directory == dirMatrix.end())
+         {
+            std::cout << "Missing parent directory index " << parentIndex  << std::endl;
+            return false;
+         }
+         
+         indexes.push_back(directory->first); //child - directory that was found
+         parentIndex = directory->second; //parent - specify next directory to search
+      }
+
+      //find dir flat block
+      auto dirFlatBlock = findFlatBlockDir(flatBlocks, childIndex);
+      if(dirFlatBlock == flatBlocks.end())
+      {
+         std::cout << "Missing dir with index" << childIndex << std::endl;
+         return false;
+      }
+
+      //find directory flat blocks and get directory names
+      std::vector<std::string> dirNames;
+      std::vector<sce_ng_pfs_flat_block_t> dirFlatBlocks;
+
+      for(auto& dirIndex : indexes)
+      {
+         auto dirFlatBlock = findFlatBlockDir(flatBlocks, dirIndex);
+         if(dirFlatBlock == flatBlocks.end())
+         {
+            std::cout << "Missing parent directory index " << dirIndex  << std::endl;
+            return false;
+         }
+
+         dirFlatBlocks.push_back(*dirFlatBlock);
+         dirNames.push_back(std::string((const char*)dirFlatBlock->file.fileName));
+      }
+
+      //get dir name
+      std::string dirName((const char*)dirFlatBlock->file.fileName);
+
+      //construct full path
+      boost::filesystem::path path = rootPath;
+      for(auto& dname : boost::adaptors::reverse(dirNames))
+      {
+         path /= dname;
+      }
+      path /= dirName;
+
+      dirsResult.push_back(sce_ng_pfs_dir_t());
+      sce_ng_pfs_dir_t& ft = dirsResult.back();
+      ft.path = path;
+      ft.dir = *dirFlatBlock;
+      ft.dirs = dirFlatBlocks;
+   }
+
+   return true;
+}
+
 //convert list of flat blocks to list of file paths
 bool constructFilePaths(boost::filesystem::path rootPath, std::map<uint32_t, uint32_t>& dirMatrix, const std::map<uint32_t, uint32_t>& fileMatrix, const std::vector<sce_ng_pfs_flat_block_t>& flatBlocks, std::vector<sce_ng_pfs_file_t>& filesResult)
 {
@@ -458,7 +530,7 @@ bool constructFilePaths(boost::filesystem::path rootPath, std::map<uint32_t, uin
       //search till the root - get all indexes for the path
       while(parentIndex != 0)
       {
-         auto directory =  dirMatrix.find(parentIndex);
+         auto directory = dirMatrix.find(parentIndex);
          if(directory == dirMatrix.end())
          {
             std::cout << "Missing parent directory index " << parentIndex  << std::endl;
@@ -534,9 +606,26 @@ std::string fileTypeToString(sce_ng_pfs_file_types ft)
    }
 }
 
+//checks that directory exists
+bool validateDirpaths(std::vector<sce_ng_pfs_dir_t>& dirs)
+{
+   std::cout << "Validating dir paths..." << std::endl;
+
+   for(auto& dir : dirs)
+   {
+      if(!boost::filesystem::exists(dir.path))
+      {
+         std::cout << "Directory " << dir.path.generic_string() << " does not exist" << std::endl;
+         return false;
+      }
+   }
+
+   return true;
+}
+
 //checks that files exist
 //checks that file size is correct
-bool validateFilepaths(std::vector<sce_ng_pfs_file_t> files)
+bool validateFilepaths(std::vector<sce_ng_pfs_file_t>& files)
 {
    std::cout << "Validating file paths..." << std::endl;
 
@@ -561,6 +650,7 @@ bool validateFilepaths(std::vector<sce_ng_pfs_file_t> files)
 
       //std::cout << std::hex << std::setw(8) << std::setfill('0') << file.file.info.size << std::endl;
    }
+
    return true;
 }
 
@@ -607,9 +697,9 @@ int match_file_lists(std::vector<sce_ng_pfs_file_t>& filesResult, std::set<std::
 }
 
 //parses files.db and flattens it into file list
-int parseFilesDb(unsigned char* klicensee, boost::filesystem::path titleIdPath, sce_ng_pfs_header_t& header, std::vector<sce_ng_pfs_file_t>& filesResult)
+int parseFilesDb(unsigned char* klicensee, boost::filesystem::path titleIdPath, sce_ng_pfs_header_t& header, std::vector<sce_ng_pfs_file_t>& filesResult, std::vector<sce_ng_pfs_dir_t>& dirsResult)
 {
-   std::cout << "Parsing  files.db" << std::endl;
+   std::cout << "Parsing  files.db..." << std::endl;
 
    boost::filesystem::path root(titleIdPath);
 
@@ -647,8 +737,17 @@ int parseFilesDb(unsigned char* klicensee, boost::filesystem::path titleIdPath, 
    std::vector<sce_ng_pfs_flat_block_t> flatBlocks;
    flattenBlocks(blocks, flatBlocks);
 
+   //convert flat blocks to file paths (sometimes there are empty directories that have to be created)
+   //in normal scenario without this call - they will be ignored
+   if(!constructDirPaths(root, dirMatrix, flatBlocks, dirsResult))
+      return -1;
+
    //convert flat blocks to file paths
    if(!constructFilePaths(root, dirMatrix, fileMatrix, flatBlocks, filesResult))
+      return -1;
+
+   //validate result dirs (path)
+   if(!validateDirpaths(dirsResult))
       return -1;
 
    //validate result files (path, size)
@@ -670,5 +769,5 @@ int parseFilesDb(unsigned char* klicensee, boost::filesystem::path titleIdPath, 
       return -1;
    }
 
-	return 0;
+   return 0;
 }
