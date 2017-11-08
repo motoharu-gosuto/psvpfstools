@@ -535,14 +535,23 @@ int decrypt_files(boost::filesystem::path titleIdPath, boost::filesystem::path d
    for(auto& f : emptyFiles)
    {
       boost::filesystem::path filepath(f);
-      if(create_empty_file(titleIdPath, destTitleIdPath, filepath) < 0)
+
+      auto file = find_file_by_path(files, filepath);
+      if(file == files.end())
       {
-         std::cout << "Failed to create: " << filepath.generic_string() << std::endl;
-         return -1;
+         std::cout << "Ignored: " << filepath.generic_string() << std::endl;
       }
       else
       {
-         std::cout << "Created: " << filepath.generic_string() << std::endl;
+         if(create_empty_file(titleIdPath, destTitleIdPath, filepath) < 0)
+         {
+            std::cout << "Failed to create: " << filepath.generic_string() << std::endl;
+            return -1;
+         }
+         else
+         {
+            std::cout << "Created: " << filepath.generic_string() << std::endl;
+         }
       }
    }
 
