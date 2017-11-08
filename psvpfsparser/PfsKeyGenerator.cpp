@@ -9,6 +9,7 @@
 #include "SecretGenerator.h"
 
 //similar to gen_secret in SecretGenerator
+//[TESTED]
 int gen_secrets_extern(unsigned char* dec_key, unsigned char* iv_key, const unsigned char* klicensee, uint16_t ignored_flag, uint16_t ignored_key_id, const unsigned char* base_key, uint32_t base_key_len)
 {
    unsigned char drvkey[0x14] = {0};
@@ -25,6 +26,8 @@ int gen_secrets_extern(unsigned char* dec_key, unsigned char* iv_key, const unsi
 //similar to generate_secret in SecretGenerator
 int generate_secrets(unsigned char* dec_key, unsigned char* iv_key, const unsigned char* klicensee, uint32_t unicv_page_salt)
 {
+   throw std::runtime_error("Untested generate_secrets");
+
    int saltin[2] = {0};
    unsigned char base0[0x14] = {0};
    unsigned char base1[0x14] = {0};
@@ -80,6 +83,8 @@ int gen_secrets(unsigned char* dec_key, unsigned char* iv_key, const unsigned ch
    }
    else
    {
+      throw std::runtime_error("Untested branch in gen_secrets");
+
       saltin1[0] = files_salt;
       saltin1[1] = unicv_page_salt;
       SceKernelUtilsForDriver_sceHmacSha1DigestForDriver(hmac_key0, 0x14, (unsigned char*)saltin1, 8, drvkey); // derive key with two salts
@@ -120,8 +125,7 @@ int DerivePfsKeys(CryptEngineData* data, const derive_keys_ctx* drv_ctx)
          }
          else
          {
-            gen_secrets_extern(data->dec_key, data->iv_key, data->klicensee, data->pmi_bcl_flag, data->key_id, 0, 0x14);
-            return scePfsUtilGetSecret(data->secret, data->klicensee, data->files_salt, data->pmi_bcl_flag, data->unicv_page, data->key_id);
+            throw std::runtime_error("Invalid set of flags in DerivePfsKeys");
          }
       }
    }

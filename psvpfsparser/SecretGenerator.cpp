@@ -9,6 +9,7 @@
 #include "SceKernelUtilsForDriver.h"
 #include "PfsCryptEngineBase.h"
 
+//[TESTED both branches]
 int gen_secret(unsigned char* combo_aligned, uint32_t files_salt, uint32_t unicv_page_salt)
 {
    int saltin0[1] = {0};
@@ -32,6 +33,7 @@ int gen_secret(unsigned char* combo_aligned, uint32_t files_salt, uint32_t unicv
    return 0;
 }
 
+//[TESTED]
 int generate_secret_np(unsigned char* secret, const unsigned char* klicensee, uint32_t files_salt, uint32_t unicv_page_salt, uint16_t key_id)
 {
    unsigned char drvkey[0x14] = {0};
@@ -51,6 +53,8 @@ int generate_secret_np(unsigned char* secret, const unsigned char* klicensee, ui
 
 int generate_secret(unsigned char* secret, const unsigned char* klicensee,  uint32_t unicv_page_salt)
 {
+   throw std::runtime_error("Untested generate_secret");
+
    int saltin[2] = {0};
    unsigned char base0[0x14] = {0};
    unsigned char base1[0x14] = {0};
@@ -78,6 +82,8 @@ int scePfsUtilGetSecret(unsigned char* secret, const unsigned char* klicensee, u
 {
    if((flag & 1) > 0) // check bit 0
    {
+      throw std::runtime_error("Untested branch in scePfsUtilGetSecret");
+
       memset(secret, 0, 0x14);
       return 0;
    }

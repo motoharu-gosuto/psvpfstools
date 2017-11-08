@@ -26,6 +26,8 @@ void verify_step(CryptEngineWorkCtx* crypt_ctx, int64_t tweak_key, int bitSize, 
 
    if((bitSize > 0x1F) || ((0xC0000B03 & (1 << bitSize)) == 0))
    {
+      throw std::runtime_error("Untested decryption branch in verify_step");
+
       if((crypt_ctx->subctx->data->pmi_bcl_flag & 0x41) != 0x41)
       {
          if(crypt_ctx->subctx->nBlocks != 0)
@@ -153,6 +155,8 @@ void work_3_step0(CryptEngineWorkCtx* crypt_ctx, int64_t tweak_key, int bitSize,
 
    if((bitSize > 0x1F) || ((0xC0000B03 & (1 << bitSize)) == 0))
    {   
+      throw std::runtime_error("Untested decryption branch in work_3_step0");
+
       do
       {
          pfs_decrypt_sw(key, subkey_key, 0x80, tweak_key0 + offset, tweak_key1 + 0, crypt_ctx->subctx->data->block_size, crypt_ctx->subctx->data->block_size, buffer + offset, buffer + offset, crypt_ctx->subctx->data->pmi_bcl_flag);
@@ -184,6 +188,8 @@ void work_3_step0(CryptEngineWorkCtx* crypt_ctx, int64_t tweak_key, int bitSize,
 
 void work_3_step1(CryptEngineWorkCtx* crypt_ctx, int bitSize, unsigned char* buffer)
 {
+   throw std::runtime_error("Untested decryption branch work_3_step1");
+
    // variable mapping
 
    unsigned const char* key = crypt_ctx->subctx->data->dec_key;
@@ -363,8 +369,6 @@ void crypt_engine_work_3(CryptEngineWorkCtx* crypt_ctx)
    }
    else
    {
-      throw std::runtime_error("Untested decryption branch");
-
       //first - decrypts block part with single call
       //second - decrypts tail part with single call
       //third - decrypts everything in while loop
@@ -374,7 +378,7 @@ void crypt_engine_work_3(CryptEngineWorkCtx* crypt_ctx)
 
 void crypt_engine_work_2_4(CryptEngineWorkCtx * crypt_ctx, CryptEngineSubctx* r10)
 {
-
+   throw std::runtime_error("Untested decryption branch crypt_engine_work_2_4");
 }
 
 void pfs_decrypt(CryptEngineWorkCtx *work_ctx)

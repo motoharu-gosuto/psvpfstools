@@ -18,13 +18,8 @@
 #include "F00DKeyEncryptor.h"
 #include "PsvPfsParserConfig.h"
 
-int main(int argc, char* argv[])
+int execute(PsvPfsParserConfig& cfg)
 {
-   PsvPfsParserConfig cfg;
-
-   if(parse_options(argc, argv, cfg) < 0)
-      return -1;
-
    //trim slashes in source path
    
    boost::filesystem::path titleIdPath(cfg.title_id_src);
@@ -89,5 +84,24 @@ int main(int argc, char* argv[])
       return -1;
 
 	return 0;
+}
+
+int main(int argc, char* argv[])
+{
+   PsvPfsParserConfig cfg;
+
+   if(parse_options(argc, argv, cfg) < 0)
+      return -1;
+
+   try
+   {
+      execute(cfg);
+   }
+   catch(std::exception& e)
+   {
+      std::cout << "Error: " << e.what() << std::endl;
+   }
+
+   return 0;
 }
 
