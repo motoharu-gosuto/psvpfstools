@@ -1,6 +1,20 @@
 # psvpfstools
 
-Tools for decrypting PS Vita PFS filesystem.
+## Introduction
+
+This is a set of tools that allows to decrypt PFS filesystem layer of PS Vita.
+
+In the past the only good way to do this was to mount PFS for example in Vita Shell and let PS Vita to decrypt the files.
+
+However this tool is a completely new standalone approach that does not require you to have PS Vita.
+
+All decryption is done directly on the PC.
+
+## Public F00D service
+
+PFS tools we designed in such a way that implementation of F00D crypto layer can be provided separately.
+
+Currently you can use a service url located at: http://cma.henkaku.xyz
 
 ## dependencies
 
