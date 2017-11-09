@@ -51,10 +51,6 @@ You have to set these environment variables for cmake:
 #### Ubuntu (example)
 You can install curl library with apt-get: apt-get install libcurl4-gnutls-dev or libcurl4-openssl-dev
 
-You have to set these environment variables for cmake:
-- declare -x CURL_INCLUDE_DIR="/usr/include/"
-- declare -x CURL_LIBRARY="/usr/lib/x86_64-linux-gnu/libcurl.so"
-
 ### boost
 
 #### Windows (example)
@@ -68,9 +64,17 @@ You have to set these environment variables for cmake:
 #### Ubuntu (example)
 You can install boost with apt-get: libboost-all-dev
 
+### zlib
+
+#### Windows (example)
+- Sources: https://github.com/madler/zlib
+
 You have to set these environment variables for cmake:
-- declare -x BOOST_INCLUDEDIR="/usr/include/"
-- declare -x BOOST_LIBRARYDIR="/usr/lib/x86_64-linux-gnu/"
+- ZLIB_INCLUDE_DIR=ZLIB_INCLUDE_DIR=C:\zlib
+- ZLIB_LIBRARY=C:\zlib\contrib\vstudio\vc11\x86\ZlibStatDebug\zlibstat.lib
+
+#### Ubuntu (example)
+You can install zlib with apt-get: zlib1g-dev
 
 ## build
 
