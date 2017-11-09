@@ -16,6 +16,22 @@ PFS tools were designed in such a way that implementation of F00D crypto layer c
 
 Currently you can use a service url located at: http://cma.henkaku.xyz
 
+## What exactly can be decrypted?
+
+In theory everything that is PFS encrypted can be decrypted.
+
+The tool was tested on some games, including 3.61+ and DLCs.
+
+In case of specific problems please refer to the next section.
+
+## Reporting issues
+
+PFS tools are still under developement and testing. 
+
+If you find bugs or have problems with decrypting specific application please consider leaving a report here:
+
+https://github.com/motoharu-gosuto/psvpfstools/issues
+
 ## dependencies
 
 ### curl
