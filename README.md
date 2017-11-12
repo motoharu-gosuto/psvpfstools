@@ -84,7 +84,7 @@ You can install boost with apt-get: libboost-all-dev
 - Sources: https://github.com/madler/zlib
 
 You have to set these environment variables for cmake:
-- ZLIB_INCLUDE_DIR=ZLIB_INCLUDE_DIR=C:\zlib
+- ZLIB_INCLUDE_DIR=C:\zlib
 - ZLIB_LIBRARY=C:\zlib\contrib\vstudio\vc11\x86\ZlibStatDebug\zlibstat.lib
 
 #### Ubuntu (example)
