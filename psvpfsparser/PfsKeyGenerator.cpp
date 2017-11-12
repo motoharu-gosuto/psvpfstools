@@ -2,6 +2,7 @@
 
 #include <string>
 #include <cstring>
+#include <stdexcept>
 
 #include "SceKernelUtilsForDriver.h"
 #include "PfsKeys.h"

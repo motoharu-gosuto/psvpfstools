@@ -2,6 +2,7 @@
 
 #include <stdint.h>
 #include <string>
+#include <stdexcept>
 
 #include <libcrypto/sha1.h>
 

@@ -1,6 +1,36 @@
 # psvpfstools
 
-Tools for decrypting PS Vita PFS filesystem.
+## Introduction
+
+This is a set of tools that allows to decrypt PFS filesystem layer of PS Vita.
+
+In the past the only good way to do this was to mount PFS for example in Vita Shell and let PS Vita to decrypt the files.
+
+However this tool is a completely new standalone approach that **does not require you to have PS Vita**.
+
+All decryption is done **directly on the PC**.
+
+## Public F00D service
+
+PFS tools were designed in such a way that implementation of F00D crypto layer can be provided separately.
+
+Currently you can use a service url located at: http://cma.henkaku.xyz
+
+## What exactly can be decrypted?
+
+In theory everything that is PFS encrypted can be decrypted.
+
+The tool was tested on some games, including 3.61+ and DLCs.
+
+In case of specific problems please refer to the next section.
+
+## Reporting issues
+
+PFS tools are still under developement and testing. 
+
+If you find bugs or have problems with decrypting specific application please consider leaving a report here:
+
+https://github.com/motoharu-gosuto/psvpfstools/issues
 
 ## dependencies
 
@@ -21,10 +51,6 @@ You have to set these environment variables for cmake:
 #### Ubuntu (example)
 You can install curl library with apt-get: apt-get install libcurl4-gnutls-dev or libcurl4-openssl-dev
 
-You have to set these environment variables for cmake:
-- declare -x CURL_INCLUDE_DIR="/usr/include/"
-- declare -x CURL_LIBRARY="/usr/lib/x86_64-linux-gnu/libcurl.so"
-
 ### boost
 
 #### Windows (example)
@@ -38,9 +64,17 @@ You have to set these environment variables for cmake:
 #### Ubuntu (example)
 You can install boost with apt-get: libboost-all-dev
 
+### zlib
+
+#### Windows (example)
+- Sources: https://github.com/madler/zlib
+
 You have to set these environment variables for cmake:
-- declare -x BOOST_INCLUDEDIR="/usr/include/"
-- declare -x BOOST_LIBRARYDIR="/usr/lib/x86_64-linux-gnu/"
+- ZLIB_INCLUDE_DIR=ZLIB_INCLUDE_DIR=C:\zlib
+- ZLIB_LIBRARY=C:\zlib\contrib\vstudio\vc11\x86\ZlibStatDebug\zlibstat.lib
+
+#### Ubuntu (example)
+You can install zlib with apt-get: zlib1g-dev
 
 ## build
 
