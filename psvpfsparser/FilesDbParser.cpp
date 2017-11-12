@@ -125,7 +125,7 @@ bool parseFilesDb(unsigned char* klicensee, std::ifstream& inputStream, sce_ng_p
    }
 
    //check version
-   if(header.version != FILES_EXPECTED_VERSION_3 && header.version != FILES_EXPECTED_VERSION_5)
+   if(header.version != FILES_EXPECTED_VERSION_3 && header.version != FILES_EXPECTED_VERSION_4 && header.version != FILES_EXPECTED_VERSION_5)
    {
       std::cout << "Invalid version" << std::endl;
       return false;

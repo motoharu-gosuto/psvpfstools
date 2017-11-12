@@ -68,6 +68,7 @@ int generate_secrets(unsigned char* dec_key, unsigned char* iv_key, const unsign
 }
 
 //similar to gen_secret in SecretGenerator
+//[TESTED]
 int gen_secrets(unsigned char* dec_key, unsigned char* iv_key, const unsigned char* klicensee, uint32_t files_salt, uint32_t unicv_page_salt)
 {
    int saltin0[1] = {0};
@@ -83,8 +84,6 @@ int gen_secrets(unsigned char* dec_key, unsigned char* iv_key, const unsigned ch
    }
    else
    {
-      throw std::runtime_error("Untested branch in gen_secrets");
-
       saltin1[0] = files_salt;
       saltin1[1] = unicv_page_salt;
       SceKernelUtilsForDriver_sceHmacSha1DigestForDriver(hmac_key0, 0x14, (unsigned char*)saltin1, 8, drvkey); // derive key with two salts

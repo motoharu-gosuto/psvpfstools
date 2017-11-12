@@ -23,6 +23,7 @@
 #define EXPECTED_BLOCK_SIZE 0x400
 
 #define FILES_EXPECTED_VERSION_3 3
+#define FILES_EXPECTED_VERSION_4 4 //looks like files.db salt appeared in this version
 #define FILES_EXPECTED_VERSION_5 5
 
 struct sce_ng_pfs_header_t
