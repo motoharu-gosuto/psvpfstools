@@ -16,6 +16,20 @@ PFS tools were designed in such a way that implementation of F00D crypto layer c
 
 Currently you can use a service url located at: http://cma.henkaku.xyz
 
+## Why do I need F00D service?
+
+The only purpose of F00D service is to take the given key, encrypt it and give it back. F00D service **does not decrypt PFS**. To those that are curious - service **does not use PS Vita** as well.
+
+Typically during decryption process service is called only once to encrypt klicensee that is extracted from zRIF string. 
+
+On Vita - there are 3 hardware implementations of crypto functions:
+- Use key - you have a freedom of giving the key to crypto function and key is used directly.
+- Use slot_id - you have to set the key into specific slot. Then by specifying key_id you instruct F00D to encrypt your key with specific key from F00D. Encrypted key is then used in crypto function of your choice.
+- Use key_id - you give the key and specify key_id. Your key is then encrypted with specific key from F00D. Encrypted key is then put into one of the slots in default range. After that encrypted key can be used in crypto function of your choice.
+
+You can read more about crypto functions here:
+https://wiki.henkaku.xyz/vita/SceSblSsMgr#SceSblSsMgrForDriver
+
 ## What exactly can be decrypted?
 
 In theory everything that is PFS encrypted can be decrypted.
