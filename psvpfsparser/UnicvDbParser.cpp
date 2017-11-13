@@ -313,7 +313,7 @@ int parseUnicvDb(boost::filesystem::path titleIdPath, scei_rodb_t& fdb)
       return -1;
    }
 
-   if(parseUnicvDb(inputStream, fdb) < 0)
+   if(!parseUnicvDb(inputStream, fdb))
       return -1;
 
    return 0;
