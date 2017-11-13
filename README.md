@@ -119,5 +119,3 @@ Options:
 ## Special thanks  
 - Proxima. For initial docs on DMAC5, providing F00D service and help with crypto theory. 
 - St4rk, weaknespase and everyone involved in PkgDecrypt. For zRIF string decode/inflate code.
-- Chris Venter. For libb64.
-- PolarSSL. For cryptographic primitives.
