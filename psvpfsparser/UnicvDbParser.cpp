@@ -294,7 +294,7 @@ bool parseUnicvDb(std::ifstream& inputStream, scei_rodb_t& fdb)
 
 int parseUnicvDb(boost::filesystem::path titleIdPath, scei_rodb_t& fdb)
 {
-   std::cout << "Parsing  unicv.db..." << std::endl;
+   std::cout << "parsing  unicv.db..." << std::endl;
 
    boost::filesystem::path root(titleIdPath);
 

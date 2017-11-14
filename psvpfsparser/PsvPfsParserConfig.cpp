@@ -68,7 +68,7 @@ int parse_options(int argc, char* argv[], PsvPfsParserConfig& cfg)
        else
        {
           std::cout << "Missing option --" << KLICENSEE_NAME << " or --"  ZRIF_NAME << std::endl;
-          return -1;
+          std::cout << "sealedkey will be used" << std::endl;
        }
     }
 

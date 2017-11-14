@@ -17,6 +17,7 @@
 #include "PfsDecryptor.h"
 #include "F00DKeyEncryptor.h"
 #include "PsvPfsParserConfig.h"
+#include "LocalKeyGenerator.h"
 
 int execute(PsvPfsParserConfig& cfg)
 {
@@ -54,8 +55,10 @@ int execute(PsvPfsParserConfig& cfg)
    }
    else
    {
-      std::cout << "Need klicensee or zRIF string to proceed" << std::endl;
-      return -1;
+      std::cout << "using sealedkey..." << std::endl;
+      
+      if(get_sealedkey(cfg.title_id_src, klicensee) < 0)
+         return -1;
    }
 
    set_F00D_url(cfg.f00d_url);

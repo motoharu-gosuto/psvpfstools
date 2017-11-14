@@ -26,6 +26,9 @@
 #define FILES_EXPECTED_VERSION_4 4 //looks like files.db salt appeared in this version
 #define FILES_EXPECTED_VERSION_5 5
 
+#define FILES_GAME_TYPE 1 
+#define FILES_TROPHY_SAVE_TYPE 2
+
 struct sce_ng_pfs_header_t
 {
    uint8_t magic[8];

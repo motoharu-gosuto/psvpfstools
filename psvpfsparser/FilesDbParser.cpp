@@ -103,7 +103,7 @@ bool parseFilesDb(unsigned char* klicensee, std::ifstream& inputStream, sce_ng_p
 
    //generate secret
    unsigned char secret[0x14];
-   scePfsUtilGetSecret(secret, klicensee, header.files_salt, header.flags, 0, 0);
+   scePfsUtilGetSecret(secret, klicensee, header.files_salt, header.unk20, 0, 0);
 
    //verify header
    if(!verify_header(inputStream, header, secret))
@@ -703,7 +703,7 @@ int match_file_lists(std::vector<sce_ng_pfs_file_t>& filesResult, std::set<std::
 //parses files.db and flattens it into file list
 int parseFilesDb(unsigned char* klicensee, boost::filesystem::path titleIdPath, sce_ng_pfs_header_t& header, std::vector<sce_ng_pfs_file_t>& filesResult, std::vector<sce_ng_pfs_dir_t>& dirsResult)
 {
-   std::cout << "Parsing  files.db..." << std::endl;
+   std::cout << "parsing  files.db..." << std::endl;
 
    boost::filesystem::path root(titleIdPath);
 
