@@ -18,7 +18,9 @@ FILE (GLOB HEADER_FILES "../F00DKeyEncryptor.h"
                         "../SecretGenerator.h"
                         "../UnicvDbParser.h"
                         "../Utils.h"
-                        "../PsvPfsParserConfig.h")
+                        "../PsvPfsParserConfig.h"
+                        "../LocalKeyGenerator.h"
+                        "../LocalKeys.h")
 source_group ("Header Files" FILES ${HEADER_FILES})
 
 FILE (GLOB SOURCE_FILES "../F00DKeyEncryptor.cpp"
@@ -37,7 +39,9 @@ FILE (GLOB SOURCE_FILES "../F00DKeyEncryptor.cpp"
                         "../SecretGenerator.cpp"
                         "../UnicvDbParser.cpp"
                         "../Utils.cpp"
-                        "../PsvPfsParserConfig.cpp")
+                        "../PsvPfsParserConfig.cpp"
+                        "../LocalKeyGenerator.cpp"
+                        "../LocalKeys.cpp")
 source_group ("Source Files" FILES ${SOURCE_FILES})
 
 add_executable (${PROJECT} ${HEADER_FILES} ${SOURCE_FILES})
