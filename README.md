@@ -117,5 +117,12 @@ Options:
   -f [ --f00d_url ] arg     Url of F00D service.
   
 ## Special thanks  
-- Proxima. For initial docs on DMAC5, providing F00D service and help with crypto theory. 
+- Proxima. For initial docs on DMAC5, contributing code for keystone and sealedkey checks, providing F00D service and help with crypto theory. 
 - St4rk, weaknespase and everyone involved in PkgDecrypt. For zRIF string decode/inflate code.
+- devnoname120 for hmac_sha256 crypto primitives.
+- SilicaAndPina for pointing at trophy and savedata pfs.
+- CelesteBlue for indicating possibility of sealedkey usage as local key.
+
+## Other thanks
+- Chris Venter. For libb64. Integrated as source.
+- PolarSSL. For cryptographic primitives. Integrated as source.

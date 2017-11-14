@@ -6,7 +6,12 @@ project (${PROJECT})
 add_library(${PROJECT} STATIC ../sha1.h
                               ../sha1.cpp
                               ../aes.h
-                              ../aes.cpp)
+                              ../aes.cpp
+                              ../sha256.h
+                              ../sha256.cpp
+                              ../sha256-internal.cpp
+                              ../sha256_i.h
+                              ../crypto.h)
 set_property(TARGET ${PROJECT} PROPERTY FOLDER "libraries")
 
 include_directories(..)
