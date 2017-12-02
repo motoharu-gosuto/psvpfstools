@@ -39,14 +39,6 @@ struct scei_rodb_header_t
    uint64_t dataSize; //size of data beginning from next chunk
 };
 
-enum cv_entry_type
-{
-   cv_none = 0,
-   ftbl = 1,
-   cvdb = 2,
-   cv_null = 3,
-};
-
 //this file table corresponds to files.db
 //it has exactly same number of scei_ftbl_header_t records with nSectors == 0 as there are directories
 //and same number of scei_ftbl_header_t records with nSectors != 0 as there are files
@@ -114,170 +106,239 @@ struct sig_tbl_t
    std::vector<std::vector<uint8_t> > signatures;
 };
 
-bool validate_ftbl_header(scei_ftbl_header_t& header);
-bool validate_cvdb_header(scei_cvdb_header_t& header);
-bool validate_null_header(scei_null_header_t& header);
+class scei_ftbl_base_t
+{
+public:
+   virtual ~scei_ftbl_base_t()
+   {
+   }
 
+public:
+   virtual bool validate() const = 0;
+
+   virtual char* get_header_raw() const = 0;
+
+   virtual uint32_t header_raw_size() const = 0;
+
+   virtual uint32_t get_numSectors() const = 0;
+
+   virtual uint32_t get_numHashes() const = 0;
+
+   virtual uint32_t get_fileSectorSize() const = 0;
+
+   virtual const uint8_t* get_base_key() const = 0;
+
+   virtual uint32_t get_binTreeNumMaxAvail() const = 0;
+
+   virtual uint32_t get_pageSize() const = 0;
+
+   virtual uint32_t get_version() const = 0;
+};
+
+class scei_ftbl_header_proxy_t : public scei_ftbl_base_t
+{
+private:
+   scei_ftbl_header_t m_header;
+
+public:
+   bool validate() const override;
+
+   char* get_header_raw() const override
+   {
+      return (char*)&m_header;
+   }
+
+   uint32_t header_raw_size() const override
+   {
+      return sizeof(scei_ftbl_header_t);
+   }
+
+   uint32_t get_numSectors() const override
+   {
+      return m_header.nSectors;
+   }
+
+   uint32_t get_numHashes() const override
+   {
+      return m_header.nSectors;
+   }
+
+   uint32_t get_fileSectorSize() const override
+   {
+      return m_header.fileSectorSize;
+   }
+
+   const uint8_t* get_base_key() const override
+   {
+      return m_header.base_key;
+   }
+
+   uint32_t get_binTreeNumMaxAvail() const override
+   {
+      return m_header.binTreeNumMaxAvail; 
+   }
+
+   uint32_t get_pageSize() const override
+   {
+      return m_header.pageSize; 
+   }
+
+   uint32_t get_version() const override
+   {
+      return m_header.version;
+   }
+};
+
+class scei_cvdb_header_proxy_t : public scei_ftbl_base_t
+{
+private:
+   scei_cvdb_header_t m_header;
+
+public:
+   bool validate() const override;
+
+   char* get_header_raw() const override
+   {
+      return (char*)&m_header;
+   }
+
+   uint32_t header_raw_size() const override
+   {
+      return sizeof(scei_cvdb_header_t);
+   }
+
+   uint32_t get_numSectors() const override
+   {
+      return m_header.nSectors;
+   }
+
+   uint32_t get_numHashes() const override
+   {
+      //this is a formula for the number of hashes that will be calculated in merkle tree
+      return m_header.nSectors * 2 - 1;
+   }
+
+   uint32_t get_fileSectorSize() const override
+   {
+      return m_header.fileSectorSize;
+   }
+
+   const uint8_t* get_base_key() const override
+   {
+      throw std::runtime_error("not implemented");
+   }
+
+   uint32_t get_binTreeNumMaxAvail() const override
+   {
+      return ICV_NUM_ENTRIES;
+   }
+
+   uint32_t get_pageSize() const override
+   {
+      return m_header.pageSize; 
+   }
+
+   uint32_t get_version() const override
+   {
+      return m_header.version;
+   }
+};
+
+class scei_null_header_proxy_t : public scei_ftbl_base_t
+{
+private:
+   scei_null_header_t m_header;
+
+public:
+   bool validate() const override;
+
+   char* get_header_raw() const override
+   {
+      return (char*)&m_header;
+   }
+
+   uint32_t header_raw_size() const override
+   {
+      return sizeof(scei_null_header_t);
+   }
+
+   uint32_t get_numSectors() const override
+   {
+      return 0;
+   }
+
+   uint32_t get_numHashes() const override
+   {
+      return 0;
+   }
+
+   uint32_t get_fileSectorSize() const override
+   {
+      return 0;
+   }
+
+   const uint8_t* get_base_key() const override
+   {
+      throw std::runtime_error("not implemented");
+   }
+
+   uint32_t get_binTreeNumMaxAvail() const override
+   {
+      throw std::runtime_error("not implemented");
+   }
+
+   uint32_t get_pageSize() const override
+   {
+      throw std::runtime_error("not implemented");
+   }
+
+   uint32_t get_version() const override
+   {
+      throw std::runtime_error("not implemented");
+   }
+};
+  
 //this is a file table structure - it contais SCEIFTBL header and list of file signature blocks
 //in more generic terms - this is also a data block of size 0x400
 //which is followed by signature blocks
-struct scei_ftbl_t
+class scei_ftbl_t
 {
-public:
-   cv_entry_type m_type;
+private:
+   std::shared_ptr<scei_ftbl_base_t> m_header;
 
 private:
-   scei_ftbl_header_t m_ftHeader;
-   scei_cvdb_header_t m_cvHeader;
-   scei_null_header_t m_nullHeader;
+   uint32_t m_page;
 
 public:
    std::vector<sig_tbl_t> m_blocks;
 
-   uint32_t m_page;
-
 public:
    scei_ftbl_t()
-      : m_page(-1)
+      : m_header(std::shared_ptr<scei_ftbl_base_t>()),
+        m_page(-1)
    {
    }
 
 public:
-   char* header_raw()
+   std::shared_ptr<scei_ftbl_base_t> get_header() const
    {
-      switch(m_type)
-      {
-      case cv_entry_type::ftbl:
-         return (char*)&m_ftHeader; 
-      case cv_entry_type::cvdb:
-         return (char*)&m_cvHeader;
-      case cv_entry_type::cv_null:
-         return (char*)&m_nullHeader;
-      default:
-         throw std::runtime_error("wrong cv_entry_type");
-      }
+      return m_header;
    }
 
-   uint32_t header_raw_size()
+   void set_header(std::shared_ptr<scei_ftbl_base_t> value)
    {
-      switch(m_type)
-      {
-      case cv_entry_type::ftbl:
-         return sizeof(scei_ftbl_header_t);
-      case cv_entry_type::cvdb:
-         return sizeof(scei_cvdb_header_t);
-      case cv_entry_type::cv_null:
-         return sizeof(scei_null_header_t);
-      default:
-         throw std::runtime_error("wrong cv_entry_type");
-      }
-   }
-
-   uint32_t get_nSectors()
-   {
-      switch(m_type)
-      {
-      case cv_entry_type::ftbl:
-         return m_ftHeader.nSectors; 
-      case cv_entry_type::cvdb:
-         return m_cvHeader.nSectors * 2 - 1; //why is this strange formula?
-      case cv_entry_type::cv_null:
-         return 0;
-      default:
-         throw std::runtime_error("wrong cv_entry_type");
-      }
-   }
-
-   uint32_t get_fileSectorSize()
-   {
-      switch(m_type)
-      {
-      case cv_entry_type::ftbl:
-         return m_ftHeader.fileSectorSize; 
-      case cv_entry_type::cvdb:
-         return m_cvHeader.fileSectorSize;
-      case cv_entry_type::cv_null:
-         return EXPECTED_FILE_SECTOR_SIZE;
-      default:
-         throw std::runtime_error("wrong cv_entry_type");
-      }
-   }
-
-   uint8_t* get_base_key()
-   {
-      switch(m_type)
-      {
-      case cv_entry_type::ftbl:
-         return m_ftHeader.base_key; 
-      case cv_entry_type::cvdb:
-         throw std::runtime_error("wrong cv_entry_type");
-      case cv_entry_type::cv_null:
-         throw std::runtime_error("wrong cv_entry_type");
-      default:
-         throw std::runtime_error("wrong cv_entry_type");
-      }
-   }
-
-   uint32_t get_binTreeNumMaxAvail()
-   {
-      switch(m_type)
-      {
-      case cv_entry_type::ftbl:
-         return m_ftHeader.binTreeNumMaxAvail; 
-      case cv_entry_type::cvdb:
-         return ICV_NUM_ENTRIES;
-      case cv_entry_type::cv_null:
-         throw std::runtime_error("wrong cv_entry_type");
-      default:
-         throw std::runtime_error("wrong cv_entry_type");
-      }
-   }
-
-   uint32_t get_pageSize()
-   {
-      switch(m_type)
-      {
-      case cv_entry_type::ftbl:
-         return m_ftHeader.pageSize; 
-      case cv_entry_type::cvdb:
-         return m_cvHeader.pageSize;
-      case cv_entry_type::cv_null:
-         throw std::runtime_error("wrong cv_entry_type");
-      default:
-         throw std::runtime_error("wrong cv_entry_type");
-      }
-   }
-
-   uint32_t get_version()
-   {
-      switch(m_type)
-      {
-      case cv_entry_type::ftbl:
-         return m_ftHeader.version; 
-      case cv_entry_type::cvdb:
-         return m_cvHeader.version;
-      case cv_entry_type::cv_null:
-         throw std::runtime_error("wrong cv_entry_type");
-      default:
-         throw std::runtime_error("wrong cv_entry_type");
-      }
+      m_header = value;
    }
 
 public:
-
-   bool validate()
+   uint32_t get_page() const
    {
-      switch(m_type)
-      {
-      case cv_entry_type::ftbl:
-         return validate_ftbl_header(m_ftHeader);
-      case cv_entry_type::cvdb:
-         return validate_cvdb_header(m_cvHeader);
-      case cv_entry_type::cv_null:
-         return validate_null_header(m_nullHeader);
-      default:
-         throw std::runtime_error("wrong cv_entry_type");
-      }
+      return m_page;
+   }
+
+   void set_page(uint32_t value)
+   {
+      m_page = value;
    }
 };
 
