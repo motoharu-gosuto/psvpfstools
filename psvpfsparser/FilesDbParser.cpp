@@ -58,7 +58,7 @@ bool verify_header(std::ifstream& inputStream, sce_ng_pfs_header_t& header, unsi
    int64_t chunksBeginPos = inputStream.tellg();
 
    //map page to offset
-   int64_t offset = page2off(header.root_icv_page_number, header.pageSize);
+   int64_t offset = page2off_files(header.root_icv_page_number, header.pageSize);
 
    //read raw data at offset
    inputStream.seekg(offset, std::ios_base::beg);
@@ -177,7 +177,7 @@ bool parseFilesDb(unsigned char* klicensee, std::ifstream& inputStream, sce_ng_p
       sce_ng_pfs_block_t& block = blocks.back();
 
       //assign page number
-      block.page = off2page(currentBlockPos, header.pageSize);
+      block.page = off2page_files(currentBlockPos, header.pageSize);
 
       //read header
       inputStream.read((char*)&block.header, sizeof(sce_ng_pfs_block_header_t));
@@ -282,7 +282,7 @@ bool parseFilesDb(unsigned char* klicensee, std::ifstream& inputStream, sce_ng_p
 
       page_icv_data icv;
       icv.offset = currentBlockPos;
-      icv.page = off2page(currentBlockPos, header.pageSize);
+      icv.page = off2page_files(currentBlockPos, header.pageSize);
 
       if(calculate_node_icv( header, secret, &block.header, raw_block_data, icv.icv) < 0)
       {

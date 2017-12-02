@@ -4,14 +4,19 @@
 
 #include "Utils.h"
 
-int64_t page2off(uint32_t page, uint32_t pageSize)
+int64_t page2off_files(uint32_t page, uint32_t pageSize)
 {
    return page * pageSize + pageSize;
 }
 
-uint32_t off2page(int64_t offset, uint32_t pageSize)
+uint32_t off2page_files(int64_t offset, uint32_t pageSize)
 {
    return (offset - pageSize) / pageSize;
+}
+
+uint32_t off2page_unicv(int64_t offset, uint32_t pageSize)
+{
+   return offset / pageSize;
 }
 
 bool validate_merkle_tree(int level, uint32_t page, const std::vector<sce_ng_pfs_block_t>& blocks, const std::multimap<uint32_t, page_icv_data>& page_icvs)
