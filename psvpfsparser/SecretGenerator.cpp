@@ -81,20 +81,36 @@ int generate_secret(unsigned char* secret, const unsigned char* klicensee,  uint
 
 int scePfsUtilGetSecret(unsigned char* secret, const unsigned char* klicensee, uint32_t files_salt, uint16_t flag, uint32_t unicv_page_salt, uint16_t key_id)
 {
-   if(flag == FILES_GAME_TYPE)
-   {
-      generate_secret_np(secret, klicensee, files_salt, unicv_page_salt, key_id);
-      return 0;
-   }
-   else if(flag == FILES_TROPHY_SAVE_TYPE)
-   {
-      return generate_secret(secret, klicensee, unicv_page_salt);
-   }
-   else
+   if((flag & 1) > 0) // check bit 0
    {
       throw std::runtime_error("Untested branch in scePfsUtilGetSecret");
 
       memset(secret, 0, 0x14);
       return 0;
+   }
+   if((flag & 2) > 0) // check bit 1
+   {
+      return generate_secret_np(secret, klicensee, files_salt, unicv_page_salt, key_id);
+   }
+   else
+   {
+      return generate_secret(secret, klicensee, unicv_page_salt);
+   }
+}
+
+//convert pfs type flag to the flags for key derivation
+int secret_type_to_flag(sce_ng_pfs_header_t& header)
+{
+   if(header.type == FILES_GAME_TYPE)
+   {
+      return 2;  
+   }
+   else if(header.type == FILES_TROPHY_SAVE_TYPE)
+   {
+      return 3;
+   }
+   else
+   {
+      return 1;
    }
 }
