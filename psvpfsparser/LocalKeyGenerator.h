@@ -17,7 +17,7 @@ typedef struct sealedkey_t
    uint8_t iv[0x10];
    uint8_t enc_key[0x10];
    uint8_t hmac[0x20];
-}sealedkey_t;
+};
 
 #define KEYSTONE_MAGIC "keystone"
 #define KEYSTONE_EXPECTED_TYPE 2
@@ -32,7 +32,7 @@ typedef struct keystone_t
    uint8_t iv[0x10];
    uint8_t enc_key[0x10];
    uint8_t hmac[0x20];
-}keystone_t;
+};
 
 #pragma pack(pop)
 
