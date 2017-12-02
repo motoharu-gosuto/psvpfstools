@@ -15,8 +15,10 @@
 #include <boost/filesystem.hpp>
 #include <boost/range/adaptor/reversed.hpp>
 #include <boost/algorithm/string/predicate.hpp>
+#include <boost/algorithm/string.hpp>
 
 #include "FilesDbParser.h"
+#include "UnicvDbParser.h"
 
 #include "Utils.h"
 
@@ -103,7 +105,7 @@ bool parseFilesDb(unsigned char* klicensee, std::ifstream& inputStream, sce_ng_p
 
    //generate secret
    unsigned char secret[0x14];
-   scePfsUtilGetSecret(secret, klicensee, header.files_salt, header.unk20, 0, 0);
+   scePfsUtilGetSecret(secret, klicensee, header.files_salt, secret_type_to_flag(header), 0, 0);
 
    //verify header
    if(!verify_header(inputStream, header, secret))
@@ -231,7 +233,14 @@ bool parseFilesDb(unsigned char* klicensee, std::ifstream& inputStream, sce_ng_p
          inputStream.read((char*)&fi, sizeof(sce_ng_pfs_file_info_t));
 
          //check file type
-         if(fi.type != unexisting && fi.type != normal_file && fi.type != directory && fi.type != unencrypted_system_file && fi.type != encrypted_system_file)
+         if(fi.type != unexisting && 
+            fi.type != normal_file && 
+            fi.type != normal_directory && 
+            fi.type != unencrypted_system_file && 
+            fi.type != encrypted_system_file && 
+            fi.type != unk_directory && 
+            fi.type != unk1 &&
+            fi.type != unk2)
          {
             std::cout << "Unexpected file type" << std::endl;
             return false;
@@ -308,7 +317,7 @@ bool constructDirmatrix(const std::vector<sce_ng_pfs_block_t>& blocks, std::map<
    {
       for(uint32_t i = 0; i < block.header.nFiles; i++)
       {
-         if(block.infos[i].type != directory)
+         if(block.infos[i].type != normal_directory && block.infos[i].type != unk_directory)
             continue;
 
          uint32_t child = block.infos[i].idx;
@@ -318,8 +327,11 @@ bool constructDirmatrix(const std::vector<sce_ng_pfs_block_t>& blocks, std::map<
 
          if(block.infos[i].size != 0)
          {
-            std::cout << "Directory " << fileName << " size is invalid" << std::endl;
-            return false;
+            if(block.infos[i].type == normal_directory)
+            {
+               std::cout << "Directory " << fileName << " size is invalid" << std::endl;
+               return false;
+            }
          }
 
          if(child == INVALID_FILE_INDEX)
@@ -350,7 +362,7 @@ bool constructFileMatrix(const std::vector<sce_ng_pfs_block_t>& blocks, std::map
    {
       for(uint32_t i = 0; i < block.header.nFiles; i++)
       {
-         if(block.infos[i].type == directory)
+         if(block.infos[i].type == normal_directory || block.infos[i].type == unk_directory)
             continue;
 
          uint32_t child = block.infos[i].idx;
@@ -422,7 +434,8 @@ const std::vector<sce_ng_pfs_flat_block_t>::const_iterator findFlatBlockDir(cons
    size_t i = 0;
    for(auto& block : flatBlocks)
    {
-      if(block.info.idx == index && block.info.type == directory)
+      if(block.info.idx == index && block.info.type == normal_directory ||
+         block.info.idx == index && block.info.type == unk_directory)
          return flatBlocks.begin() + i;
       i++;
    }
@@ -435,7 +448,8 @@ const std::vector<sce_ng_pfs_flat_block_t>::const_iterator findFlatBlockFile(con
    size_t i = 0;
    for(auto& block : flatBlocks)
    {
-      if(block.info.idx == index && block.info.type != directory)
+      if(block.info.idx == index && block.info.type != normal_directory &&
+         block.info.idx == index && block.info.type != unk_directory)
          return flatBlocks.begin() + i;
       i++;
    }
@@ -515,6 +529,11 @@ bool constructDirPaths(boost::filesystem::path rootPath, std::map<uint32_t, uint
 }
 
 //convert list of flat blocks to list of file paths
+//rootPath - [input]
+//dirMatrix - connection matrix for directories [input]
+//fileMatrix - connection matrix for files [input]
+//flatBlocks - flat list of blocks in files.db [input]
+//filesResult - list of filepaths linked to file flat block and directory flat blocks
 bool constructFilePaths(boost::filesystem::path rootPath, std::map<uint32_t, uint32_t>& dirMatrix, const std::map<uint32_t, uint32_t>& fileMatrix, const std::vector<sce_ng_pfs_flat_block_t>& flatBlocks, std::vector<sce_ng_pfs_file_t>& filesResult)
 {
    std::cout << "Building file paths..." << std::endl;
@@ -595,8 +614,10 @@ std::string fileTypeToString(sce_ng_pfs_file_types ft)
       return "unexisting";
    case normal_file:
       return "normal_file";
-   case directory:
-      return "directory";
+   case normal_directory:
+      return "normal_directory";
+   case unk_directory:
+      return "unk_directory";
    case unencrypted_system_file:
       return "unencrypted_system_file";
    case encrypted_system_file:
@@ -625,7 +646,7 @@ bool validateDirpaths(std::vector<sce_ng_pfs_dir_t>& dirs)
 
 //checks that files exist
 //checks that file size is correct
-bool validateFilepaths(std::vector<sce_ng_pfs_file_t>& files)
+bool validateFilepaths(uint32_t fileSectorSize, std::vector<sce_ng_pfs_file_t>& files)
 {
    std::cout << "Validating file paths..." << std::endl;
 
@@ -642,8 +663,11 @@ bool validateFilepaths(std::vector<sce_ng_pfs_file_t>& files)
       uint64_t size = boost::filesystem::file_size(file.path);
       if(size != file.file.info.size)
       {
-         std::cout << "File " << file.path.generic_string() << " size incorrect" << std::endl;
-         return false;
+         if((size % fileSectorSize) > 0)
+         {
+            std::cout << "File " << file.path.generic_string() << " size incorrect" << std::endl;
+            return false;
+         }
       }
 
       //std::cout << fileTypeToString(file.file.info.type)<< " : ";
@@ -755,7 +779,7 @@ int parseFilesDb(unsigned char* klicensee, boost::filesystem::path titleIdPath, 
       return -1;
 
    //validate result files (path, size)
-   if(!validateFilepaths(filesResult))
+   if(!validateFilepaths(EXPECTED_FILE_SECTOR_SIZE, filesResult))
       return -1;
 
    //match on existing files in filesystem
