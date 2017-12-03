@@ -2,6 +2,38 @@
 
 #include "UnicvDbUtils.h"
 
+bool sig_tbl_header_proxy_t::validate(scei_ftbl_t& fft, uint32_t sizeCheck) const
+{
+   if(m_header.binTreeSize != binTreeSize(0x14, fft.get_header()->get_binTreeNumMaxAvail()))
+   {
+      std::cout << "Unexpected tableSize" << std::endl;
+      return false;
+   }
+
+   //check to see if there are any other sizes
+   if(m_header.sigSize != EXPECTED_SIGNATURE_SIZE)
+   {
+      std::cout << "Unexpected chunk size" << std::endl;
+      return false;
+   }
+
+   //check padding
+   if(m_header.padding != 0)
+   {
+      std::cout << "Unexpected data instead of padding" << std::endl;
+      return false;
+   }
+
+   //this check is usefull for validating file structure
+   if(m_header.nSignatures != sizeCheck)
+   {
+      std::cout << "unexpected number of chunks" << std::endl;
+      return false;
+   }
+
+   return true;
+}
+
 bool scei_ftbl_header_proxy_t::validate() const
 {
    //check that block size is expected

@@ -95,6 +95,47 @@ struct sig_tbl_header_t
    uint32_t padding; //most likely padding ? always zero
 };
 
+class scei_ftbl_t;
+
+class sig_tbl_header_proxy_t
+{
+private:
+   sig_tbl_header_t m_header;
+   
+public:
+   char* get_header_raw() const
+   {
+      return (char*)&m_header;
+   }
+
+   uint32_t header_raw_size() const
+   {
+      return sizeof(sig_tbl_header_t);
+   }
+
+   bool validate(scei_ftbl_t& fft, uint32_t sizeCheck) const;
+
+   uint32_t get_binTreeSize() const
+   {
+      return m_header.binTreeSize;
+   }
+
+   uint32_t get_sigSize() const
+   {
+      return m_header.sigSize;
+   }
+
+   uint32_t get_nSignatures() const
+   {
+      return m_header.nSignatures;
+   }
+
+   uint32_t get_padding() const
+   {
+      return m_header.padding;
+   }
+};
+
 //this is a signature table structure - it contains header and list of signatures
 //in more generic terms - this is also a data block of size 0x400
 //signature table that is used to verify file hashes
@@ -102,7 +143,7 @@ struct sig_tbl_header_t
 //each signature corresponds to block in a real file. block should have size fileSectorSize (0x8000)
 struct sig_tbl_t
 {
-   sig_tbl_header_t dtHeader;
+   sig_tbl_header_proxy_t dtHeader;
    std::vector<std::vector<uint8_t> > signatures;
 };
 
