@@ -97,10 +97,15 @@ struct sig_tbl_header_t
 
 class scei_ftbl_t;
 
-class sig_tbl_header_proxy_t
+class sig_tbl_header_base_t
 {
-private:
+protected:
    sig_tbl_header_t m_header;
+
+public:
+   virtual ~sig_tbl_header_base_t()
+   {
+   }
    
 public:
    char* get_header_raw() const
@@ -108,7 +113,7 @@ public:
       return (char*)&m_header;
    }
 
-   uint32_t header_raw_size() const
+   uint32_t get_header_raw_size() const
    {
       return sizeof(sig_tbl_header_t);
    }
@@ -134,6 +139,25 @@ public:
    {
       return m_header.padding;
    }
+
+public:
+   virtual bool read(std::ifstream& inputStream, scei_ftbl_t& fft, uint32_t sizeCheck, std::vector<std::vector<uint8_t> >& signatures);
+
+   virtual bool validate_tail(const std::vector<uint8_t>& data) const = 0;
+};
+
+class sig_tbl_header_normal_t : public sig_tbl_header_base_t
+{
+public:
+   bool validate_tail(const std::vector<uint8_t>& data) const override;
+};
+
+class sig_tbl_header_merlke_t : public sig_tbl_header_base_t
+{
+public:
+   bool read(std::ifstream& inputStream, scei_ftbl_t& fft, uint32_t sizeCheck, std::vector<std::vector<uint8_t> >& signatures) override;
+
+   bool validate_tail(const std::vector<uint8_t>& data) const override;
 };
 
 //this is a signature table structure - it contains header and list of signatures
@@ -143,8 +167,26 @@ public:
 //each signature corresponds to block in a real file. block should have size fileSectorSize (0x8000)
 struct sig_tbl_t
 {
-   sig_tbl_header_proxy_t dtHeader;
+private:
+   std::shared_ptr<sig_tbl_header_base_t> m_dtHeader;
+
+public:
    std::vector<std::vector<uint8_t> > signatures;
+
+   std::shared_ptr<sig_tbl_header_base_t> get_header() const
+   {
+      return m_dtHeader;
+   }
+
+   void set_header(std::shared_ptr<sig_tbl_header_base_t> value)
+   {
+      m_dtHeader = value;
+   }
+
+   bool read(std::ifstream& inputStream, scei_ftbl_t& fft, uint32_t sizeCheck)
+   {
+      return m_dtHeader->read(inputStream, fft, sizeCheck, signatures);
+   }
 };
 
 class scei_ftbl_base_t
@@ -174,6 +216,8 @@ public:
    virtual uint32_t get_pageSize() const = 0;
 
    virtual uint32_t get_version() const = 0;
+
+   virtual std::string get_magic() const = 0;
 };
 
 class scei_ftbl_header_proxy_t : public scei_ftbl_base_t
@@ -227,6 +271,11 @@ public:
    uint32_t get_version() const override
    {
       return m_header.version;
+   }
+
+   std::string get_magic() const override
+   {
+      return std::string((char*)m_header.magic, 8);
    }
 };
 
@@ -283,6 +332,11 @@ public:
    {
       return m_header.version;
    }
+
+   std::string get_magic() const override
+   {
+      return std::string((char*)m_header.magic, 8);
+   }
 };
 
 class scei_null_header_proxy_t : public scei_ftbl_base_t
@@ -336,6 +390,11 @@ public:
    uint32_t get_version() const override
    {
       throw std::runtime_error("not implemented");
+   }
+
+   std::string get_magic() const override
+   {
+      return std::string((char*)m_header.magic, 8);
    }
 };
   
@@ -391,3 +450,7 @@ struct scei_rodb_t
 };
 
 #pragma pack(pop)
+
+std::shared_ptr<sig_tbl_header_base_t> magic_to_sig_tbl(std::string type);
+
+std::shared_ptr<scei_ftbl_base_t> magic_to_ftbl(std::string type);
