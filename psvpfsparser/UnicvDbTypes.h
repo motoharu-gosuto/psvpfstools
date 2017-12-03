@@ -29,6 +29,8 @@
 
 #pragma pack(push, 1)
 
+//=================================================
+
 struct scei_rodb_header_t
 {
    uint8_t magic[8]; //SCEIRODB
@@ -38,6 +40,40 @@ struct scei_rodb_header_t
    uint32_t unk3; //0xFFFFFFFF
    uint64_t dataSize; //size of data beginning from next chunk
 };
+
+class scei_rodb_header_proxy_t
+{
+private:
+   scei_rodb_header_t m_header;
+
+public:
+   bool validate(uint64_t fileSize) const;
+
+   bool read(std::ifstream& inputStream, uint64_t fileSize);
+
+public:
+   std::string get_magic() const
+   {
+      return std::string((char*)m_header.magic, 8);
+   }
+
+   uint32_t get_version() const
+   {
+      return m_header.version;
+   }
+
+   uint32_t get_blockSize() const
+   {
+      return m_header.blockSize;
+   }
+   
+   uint64_t get_dataSize() const
+   {
+      return m_header.dataSize;
+   }
+};
+
+//=================================================
 
 //this file table corresponds to files.db
 //it has exactly same number of scei_ftbl_header_t records with nSectors == 0 as there are directories
@@ -84,6 +120,8 @@ struct scei_null_header_t
    uint32_t unk3;
 };
 
+//=================================================
+
 //scei_ftbl_header_t.nSectors indicates total number of sectors
 //if it is greater then 0x32 that means that multiple signature blocks will follow
 struct sig_tbl_header_t
@@ -96,6 +134,7 @@ struct sig_tbl_header_t
 };
 
 class scei_ftbl_t;
+class scei_ftbl_base_t;
 
 class sig_tbl_header_base_t
 {
@@ -108,18 +147,6 @@ public:
    }
    
 public:
-   char* get_header_raw() const
-   {
-      return (char*)&m_header;
-   }
-
-   uint32_t get_header_raw_size() const
-   {
-      return sizeof(sig_tbl_header_t);
-   }
-
-   bool validate(scei_ftbl_t& fft, uint32_t sizeCheck) const;
-
    uint32_t get_binTreeSize() const
    {
       return m_header.binTreeSize;
@@ -141,7 +168,9 @@ public:
    }
 
 public:
-   virtual bool read(std::ifstream& inputStream, scei_ftbl_t& fft, uint32_t sizeCheck, std::vector<std::vector<uint8_t> >& signatures);
+   bool validate(std::shared_ptr<scei_ftbl_base_t> fft, uint32_t sizeCheck) const;
+
+   virtual bool read(std::ifstream& inputStream, std::shared_ptr<scei_ftbl_base_t> fft, uint32_t sizeCheck, std::vector<std::vector<uint8_t> >& signatures);
 
    virtual bool validate_tail(const std::vector<uint8_t>& data) const = 0;
 };
@@ -155,7 +184,7 @@ public:
 class sig_tbl_header_merlke_t : public sig_tbl_header_base_t
 {
 public:
-   bool read(std::ifstream& inputStream, scei_ftbl_t& fft, uint32_t sizeCheck, std::vector<std::vector<uint8_t> >& signatures) override;
+   bool read(std::ifstream& inputStream, std::shared_ptr<scei_ftbl_base_t> fft, uint32_t sizeCheck, std::vector<std::vector<uint8_t> >& signatures) override;
 
    bool validate_tail(const std::vector<uint8_t>& data) const override;
 };
@@ -165,44 +194,41 @@ public:
 //signature table that is used to verify file hashes
 //it can hold 0x32 signatures at max
 //each signature corresponds to block in a real file. block should have size fileSectorSize (0x8000)
-struct sig_tbl_t
+class sig_tbl_t
 {
 private:
-   std::shared_ptr<sig_tbl_header_base_t> m_dtHeader;
+   std::shared_ptr<sig_tbl_header_base_t> m_header;
 
 public:
-   std::vector<std::vector<uint8_t> > signatures;
+   sig_tbl_t(std::shared_ptr<sig_tbl_header_base_t> header)
+      : m_header(header)
+   {
+   }
+
+public:
+   std::vector<std::vector<uint8_t> > m_signatures;
 
    std::shared_ptr<sig_tbl_header_base_t> get_header() const
    {
-      return m_dtHeader;
+      return m_header;
    }
 
-   void set_header(std::shared_ptr<sig_tbl_header_base_t> value)
+   bool read(std::ifstream& inputStream, std::shared_ptr<scei_ftbl_base_t> fft, uint32_t sizeCheck)
    {
-      m_dtHeader = value;
-   }
-
-   bool read(std::ifstream& inputStream, scei_ftbl_t& fft, uint32_t sizeCheck)
-   {
-      return m_dtHeader->read(inputStream, fft, sizeCheck, signatures);
+      return m_header->read(inputStream, fft, sizeCheck, m_signatures);
    }
 };
 
-class scei_ftbl_base_t
+//=================================================
+
+class scei_ftbl_header_base_t
 {
 public:
-   virtual ~scei_ftbl_base_t()
+   virtual ~scei_ftbl_header_base_t()
    {
    }
 
 public:
-   virtual bool validate() const = 0;
-
-   virtual char* get_header_raw() const = 0;
-
-   virtual uint32_t header_raw_size() const = 0;
-
    virtual uint32_t get_numSectors() const = 0;
 
    virtual uint32_t get_numHashes() const = 0;
@@ -218,26 +244,19 @@ public:
    virtual uint32_t get_version() const = 0;
 
    virtual std::string get_magic() const = 0;
+
+public:
+   virtual bool validate() const = 0;
+
+   virtual bool read(std::ifstream& inputStream) = 0;
 };
 
-class scei_ftbl_header_proxy_t : public scei_ftbl_base_t
+class scei_ftbl_header_proxy_t : public scei_ftbl_header_base_t
 {
 private:
    scei_ftbl_header_t m_header;
 
 public:
-   bool validate() const override;
-
-   char* get_header_raw() const override
-   {
-      return (char*)&m_header;
-   }
-
-   uint32_t header_raw_size() const override
-   {
-      return sizeof(scei_ftbl_header_t);
-   }
-
    uint32_t get_numSectors() const override
    {
       return m_header.nSectors;
@@ -277,26 +296,19 @@ public:
    {
       return std::string((char*)m_header.magic, 8);
    }
+
+public:
+   bool validate() const override;
+
+   bool read(std::ifstream& inputStream) override;
 };
 
-class scei_cvdb_header_proxy_t : public scei_ftbl_base_t
+class scei_cvdb_header_proxy_t : public scei_ftbl_header_base_t
 {
 private:
    scei_cvdb_header_t m_header;
 
 public:
-   bool validate() const override;
-
-   char* get_header_raw() const override
-   {
-      return (char*)&m_header;
-   }
-
-   uint32_t header_raw_size() const override
-   {
-      return sizeof(scei_cvdb_header_t);
-   }
-
    uint32_t get_numSectors() const override
    {
       return m_header.nSectors;
@@ -337,26 +349,19 @@ public:
    {
       return std::string((char*)m_header.magic, 8);
    }
+
+public:
+   bool validate() const override;
+
+   bool read(std::ifstream& inputStream) override;
 };
 
-class scei_null_header_proxy_t : public scei_ftbl_base_t
+class scei_null_header_proxy_t : public scei_ftbl_header_base_t
 {
 private:
    scei_null_header_t m_header;
 
 public:
-   bool validate() const override;
-
-   char* get_header_raw() const override
-   {
-      return (char*)&m_header;
-   }
-
-   uint32_t header_raw_size() const override
-   {
-      return sizeof(scei_null_header_t);
-   }
-
    uint32_t get_numSectors() const override
    {
       return 0;
@@ -396,38 +401,42 @@ public:
    {
       return std::string((char*)m_header.magic, 8);
    }
+
+public:
+   bool validate() const override;
+
+   bool read(std::ifstream& inputStream) override;
 };
   
-//this is a file table structure - it contais SCEIFTBL header and list of file signature blocks
+//this is a file table structure - it contais SCEIFTBL/SCEICVDB/SCEINULL header and list of file signature blocks
 //in more generic terms - this is also a data block of size 0x400
 //which is followed by signature blocks
-class scei_ftbl_t
+class scei_ftbl_base_t : std::enable_shared_from_this<scei_ftbl_base_t>
 {
-private:
-   std::shared_ptr<scei_ftbl_base_t> m_header;
+protected:
+   std::shared_ptr<scei_ftbl_header_base_t> m_header;
 
-private:
+protected:
    uint32_t m_page;
 
 public:
    std::vector<sig_tbl_t> m_blocks;
 
 public:
-   scei_ftbl_t()
-      : m_header(std::shared_ptr<scei_ftbl_base_t>()),
+   scei_ftbl_base_t(std::shared_ptr<scei_ftbl_header_base_t> header)
+      : m_header(header),
         m_page(-1)
    {
    }
 
-public:
-   std::shared_ptr<scei_ftbl_base_t> get_header() const
+   virtual ~scei_ftbl_base_t()
    {
-      return m_header;
    }
 
-   void set_header(std::shared_ptr<scei_ftbl_base_t> value)
+public:
+   std::shared_ptr<scei_ftbl_header_base_t> get_header() const
    {
-      m_header = value;
+      return m_header;
    }
 
 public:
@@ -436,21 +445,93 @@ public:
       return m_page;
    }
 
-   void set_page(uint32_t value)
+public:
+   virtual bool read(std::ifstream& inputStream, uint64_t& index);
+
+protected:
+   bool read_block(std::ifstream& inputStream, uint64_t& index, uint32_t sizeCheck);
+};
+
+class scei_ftbl_cvdb_proxy_t : public scei_ftbl_base_t
+{
+public:
+   scei_ftbl_cvdb_proxy_t(std::shared_ptr<scei_ftbl_header_base_t> header)
+      : scei_ftbl_base_t(header)
    {
-      m_page = value;
+   }
+
+public:
+   bool read(std::ifstream& inputStream, uint64_t& index) override;
+};
+
+//for now these types do not implement any additional logic that is different from base classes
+//however clear separation in 3 different types is essential
+class scei_ftbl_proxy_t : public scei_ftbl_cvdb_proxy_t
+{
+public:
+   scei_ftbl_proxy_t(std::shared_ptr<scei_ftbl_header_base_t> header)
+      : scei_ftbl_cvdb_proxy_t(header)
+   {
+   } 
+};
+
+class scei_cvdb_proxy_t : public scei_ftbl_cvdb_proxy_t
+{
+public:
+   scei_cvdb_proxy_t(std::shared_ptr<scei_ftbl_header_base_t> header)
+      : scei_ftbl_cvdb_proxy_t(header)
+   {
    }
 };
 
-//this is a root structure - it contains SCEIRODB header and list of SCEIFTBL file table blocks
-struct scei_rodb_t
+class scei_null_proxy_t : public scei_ftbl_base_t
 {
-   scei_rodb_header_t m_dbHeader;
-   std::vector<scei_ftbl_t> tables;
+public:
+   scei_null_proxy_t(std::shared_ptr<scei_ftbl_header_base_t> header)
+      : scei_ftbl_base_t(header)
+   {
+   }
+};
+
+//=================================================
+
+class scei_db_base_t
+{
+public:
+   std::vector<std::shared_ptr<scei_ftbl_base_t> > m_tables;
+
+public:
+   virtual ~scei_db_base_t()
+   {
+   }
+
+public:
+   virtual bool read(boost::filesystem::path filepath) = 0;
+
+protected:
+   bool read_table_item(std::ifstream& inputStream, uint64_t index);
+};
+
+//this is a root object for unicv.db - it contains SCEIRODB header and list of SCEIFTBL file table blocks
+class scei_rodb_t : public scei_db_base_t
+{
+private:
+   scei_rodb_header_proxy_t m_dbHeader;
+
+public:
+   bool read(boost::filesystem::path filepath);
+};
+
+//this is a root object for icv.db - it contains list of SCEICVDB and SCEINULL blocks. there is no additional header
+class scei_icv_t : public scei_db_base_t
+{
+   bool read(boost::filesystem::path filepath);
 };
 
 #pragma pack(pop)
 
 std::shared_ptr<sig_tbl_header_base_t> magic_to_sig_tbl(std::string type);
+
+std::shared_ptr<scei_ftbl_header_base_t> magic_to_ftbl_header(std::string type);
 
 std::shared_ptr<scei_ftbl_base_t> magic_to_ftbl(std::string type);
