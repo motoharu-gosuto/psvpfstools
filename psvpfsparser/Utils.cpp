@@ -12,7 +12,7 @@
 
 #include "Utils.h"
 
-bool isZeroVector(std::vector<uint8_t>& data)
+bool isZeroVector(const std::vector<uint8_t>& data)
 {
    return isZeroVector(data.cbegin(), data.cend());
 }
