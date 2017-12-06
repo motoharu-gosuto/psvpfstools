@@ -24,7 +24,7 @@ std::string brutforce_hashes(std::map<std::string, std::vector<uint8_t>>& fileDa
    //we will be checking only first sector of each file hence we can precalculate a signature_key
    //because both sectret and sector_salt will not vary
    unsigned char signature_key[0x14] = {0};
-   int sector_salt = 0; //sector is most likely a salt which is logically correct in terms of xts-aes
+   int sector_salt = 0; //sector number is most likely a salt which is logically correct in terms of xts-aes
    sha1_hmac(secret, 0x14, (unsigned char*)&sector_salt, 4, signature_key);
 
    std::string found_path;
@@ -56,7 +56,7 @@ std::string brutforce_hashes(std::map<std::string, std::vector<uint8_t>>& fileDa
    }
 }
 
-int bruteforce_map(boost::filesystem::path titleIdPath, unsigned char* klicensee, sce_ng_pfs_header_t& ngpfs, scei_rodb_t& fdb, std::map<uint32_t, std::string>& pageMap, std::set<std::string>& emptyFiles)
+int bruteforce_map(boost::filesystem::path titleIdPath, unsigned char* klicensee, sce_ng_pfs_header_t& ngpfs, std::shared_ptr<scei_db_base_t> fdb, std::map<uint32_t, std::string>& pageMap, std::set<std::string>& emptyFiles)
 {
    std::cout << "Building unicv.db -> files.db relation..." << std::endl;
 
@@ -64,8 +64,8 @@ int bruteforce_map(boost::filesystem::path titleIdPath, unsigned char* klicensee
 
    //check file fileSectorSize
    std::set<uint32_t> fileSectorSizes;
-   for(auto& t : fdb.tables)
-      fileSectorSizes.insert(t.ftHeader.fileSectorSize);
+   for(auto& t : fdb->m_tables)
+      fileSectorSizes.insert(t->get_header()->get_fileSectorSize());
 
    if(fileSectorSizes.size() > 1)
    {
@@ -123,24 +123,24 @@ int bruteforce_map(boost::filesystem::path titleIdPath, unsigned char* klicensee
    }
 
    //brutforce each scei_ftbl_t record
-   for(auto& t : fdb.tables)
+   for(auto& t : fdb->m_tables)
    {
       //process only files that are not empty
-      if(t.ftHeader.nSectors > 0)
+      if(t->get_header()->get_numSectors() > 0)
       {
          //generate secret - one secret per unicv.db page is required
          unsigned char secret[0x14];
-         scePfsUtilGetSecret(secret, klicensee, ngpfs.files_salt, ngpfs.flags, t.page, 0);
+         scePfsUtilGetSecret(secret, klicensee, ngpfs.files_salt, secret_type_to_flag(ngpfs), t->get_page(), 0);
 
-         std::string found_path = brutforce_hashes(fileDatas, secret, t.blocks.front().signatures.front().data()); 
+         std::string found_path = brutforce_hashes(fileDatas, secret, t->m_blocks.front().m_signatures.front().data()); 
          if(found_path.length() > 0)
          {
-            std::cout << "Match found: " << t.page << " " << found_path << std::endl;
-            pageMap.insert(std::make_pair(t.page, found_path));
+            std::cout << "Match found: " << t->get_page() << " " << found_path << std::endl;
+            pageMap.insert(std::make_pair(t->get_page(), found_path));
          }
          else
          {
-            std::cout << "Match not found: " << t.page << std::endl;
+            std::cout << "Match not found: " << t->get_page() << std::endl;
             return -1;
          }
       }
@@ -197,17 +197,17 @@ CryptEngineData g_data;
 CryptEngineSubctx g_sub_ctx;
 std::vector<uint8_t> g_signatureTable;
 
-void init_crypt_ctx(CryptEngineWorkCtx* work_ctx, unsigned char* klicensee, sce_ng_pfs_header_t& ngpfs, scei_rodb_t& fdb, scei_ftbl_t& table, sig_tbl_t& block, uint32_t sector_base, uint32_t tail_size, unsigned char* source)
+void init_crypt_ctx(CryptEngineWorkCtx* work_ctx, unsigned char* klicensee, sce_ng_pfs_header_t& ngpfs, std::shared_ptr<scei_ftbl_base_t> table, sig_tbl_t& block, uint32_t sector_base, uint32_t tail_size, unsigned char* source)
 {     
    memset(&g_data, 0, sizeof(CryptEngineData));
    g_data.klicensee = klicensee;
    g_data.files_salt = ngpfs.files_salt;
-   g_data.unicv_page = table.page;
+   g_data.unicv_page = table->get_page();
    g_data.type = 2; // unknown how to set
-   g_data.pmi_bcl_flag = ngpfs.flags; //not sure
+   g_data.pmi_bcl_flag = secret_type_to_flag(ngpfs); //not sure
    g_data.key_id = 0;
    g_data.flag0 = 6; // unknown how to set
-   g_data.block_size = table.ftHeader.fileSectorSize;
+   g_data.block_size = table->get_header()->get_fileSectorSize();
 
    //--------------------------------
 
@@ -215,9 +215,9 @@ void init_crypt_ctx(CryptEngineWorkCtx* work_ctx, unsigned char* klicensee, sce_
    memset(&drv_ctx, 0, sizeof(derive_keys_ctx));
 
    drv_ctx.unk_40 = 0; // unknown how to set
-   drv_ctx.sceiftbl_version = fdb.dbHeader.version;
+   drv_ctx.sceiftbl_version = table->get_header()->get_version(); // is that correct in generic way? for both games and saves/trophies?
 
-   memcpy(drv_ctx.base_key, table.ftHeader.base_key, 0x14);
+   memcpy(drv_ctx.base_key, table->get_header()->get_base_key(), 0x14);
 
    DerivePfsKeys(&g_data, &drv_ctx); //derive dec_key, iv_key, secret
 
@@ -229,18 +229,18 @@ void init_crypt_ctx(CryptEngineWorkCtx* work_ctx, unsigned char* klicensee, sce_
    g_sub_ctx.unk_10 = (unsigned char*)0;
    g_sub_ctx.unk_18 = 0;
    g_sub_ctx.nBlocksTail = 0;
-   g_sub_ctx.nBlocks = block.dtHeader.nSignatures;
+   g_sub_ctx.nBlocks = block.get_header()->get_nSignatures();
    g_sub_ctx.sector_base = sector_base;
    g_sub_ctx.dest_offset = 0;
    g_sub_ctx.tail_size = tail_size;
 
    g_signatureTable.clear();
-   g_signatureTable.resize(block.signatures.size() * block.dtHeader.sigSize);
+   g_signatureTable.resize(block.m_signatures.size() * block.get_header()->get_sigSize());
    uint32_t signatureTableOffset = 0;
-   for(auto& s :  block.signatures)
+   for(auto& s :  block.m_signatures)
    {
-      memcpy(g_signatureTable.data() + signatureTableOffset, s.data(), block.dtHeader.sigSize);
-      signatureTableOffset += block.dtHeader.sigSize;
+      memcpy(g_signatureTable.data() + signatureTableOffset, s.data(), block.get_header()->get_sigSize());
+      signatureTableOffset += block.get_header()->get_sigSize();
    }
 
    g_sub_ctx.signature_table = g_signatureTable.data();
@@ -253,7 +253,7 @@ void init_crypt_ctx(CryptEngineWorkCtx* work_ctx, unsigned char* klicensee, sce_
    work_ctx->error = 0;
 }
 
-int decrypt_file(boost::filesystem::path titleIdPath, boost::filesystem::path destination_root, const sce_ng_pfs_file_t& file, boost::filesystem::path filepath, unsigned char* klicensee, sce_ng_pfs_header_t& ngpfs, scei_rodb_t& fdb, scei_ftbl_t& table)
+int decrypt_file(boost::filesystem::path titleIdPath, boost::filesystem::path destination_root, const sce_ng_pfs_file_t& file, boost::filesystem::path filepath, unsigned char* klicensee, sce_ng_pfs_header_t& ngpfs, std::shared_ptr<scei_ftbl_base_t> table)
 {
    //construct new path
    std::string old_root = titleIdPath.generic_string();
@@ -295,17 +295,17 @@ int decrypt_file(boost::filesystem::path titleIdPath, boost::filesystem::path de
    }
 
    //if number of sectors is less than or same to number that fits into single signature page
-   if(table.ftHeader.nSectors <= table.ftHeader.binTreeNumMaxAvail)
+   if(table->get_header()->get_numSectors() <= table->get_header()->get_binTreeNumMaxAvail())
    {
       std::vector<uint8_t> buffer(fileSize);
       inputStream.read((char*)buffer.data(), fileSize);
          
-      uint32_t tail_size = fileSize % table.ftHeader.fileSectorSize;
+      uint32_t tail_size = fileSize % table->get_header()->get_fileSectorSize();
       if(tail_size == 0)
-         tail_size = table.ftHeader.fileSectorSize;
+         tail_size = table->get_header()->get_fileSectorSize();
          
       CryptEngineWorkCtx work_ctx;
-      init_crypt_ctx(&work_ctx, klicensee, ngpfs, fdb, table, table.blocks.front(), 0, tail_size, buffer.data());
+      init_crypt_ctx(&work_ctx, klicensee, ngpfs, table, table->m_blocks.front(), 0, tail_size, buffer.data());
 
       pfs_decrypt(&work_ctx);
 
@@ -327,12 +327,12 @@ int decrypt_file(boost::filesystem::path titleIdPath, boost::filesystem::path de
       uintmax_t sector_base = 0;
 
       //go through each block of sectors
-      for(auto& b : table.blocks)
+      for(auto& b : table->m_blocks)
       {
          //if number of sectors is less than number that fits into single signature page
-         if(b.dtHeader.nSignatures < table.ftHeader.binTreeNumMaxAvail)
+         if(b.get_header()->get_nSignatures() < table->get_header()->get_binTreeNumMaxAvail())
          {
-            uint32_t full_block_size = table.ftHeader.binTreeNumMaxAvail * table.ftHeader.fileSectorSize;
+            uint32_t full_block_size = table->get_header()->get_binTreeNumMaxAvail() * table->get_header()->get_fileSectorSize();
 
             if(bytes_left >= full_block_size)
             {
@@ -343,12 +343,12 @@ int decrypt_file(boost::filesystem::path titleIdPath, boost::filesystem::path de
             std::vector<uint8_t> buffer(bytes_left);
             inputStream.read((char*)buffer.data(), bytes_left);
 
-            uint32_t tail_size = bytes_left % table.ftHeader.fileSectorSize;
+            uint32_t tail_size = bytes_left % table->get_header()->get_fileSectorSize();
             if(tail_size == 0)
-               tail_size = table.ftHeader.fileSectorSize;
+               tail_size = table->get_header()->get_fileSectorSize();
          
             CryptEngineWorkCtx work_ctx;
-            init_crypt_ctx(&work_ctx, klicensee, ngpfs, fdb, table, b, sector_base, tail_size, buffer.data());
+            init_crypt_ctx(&work_ctx, klicensee, ngpfs, table, b, sector_base, tail_size, buffer.data());
 
             pfs_decrypt(&work_ctx);
 
@@ -364,7 +364,7 @@ int decrypt_file(boost::filesystem::path titleIdPath, boost::filesystem::path de
          }
          else
          {
-            uint32_t full_block_size = table.ftHeader.binTreeNumMaxAvail * table.ftHeader.fileSectorSize;
+            uint32_t full_block_size = table->get_header()->get_binTreeNumMaxAvail() * table->get_header()->get_fileSectorSize();
 
             //if this is a last block and last sector is not fully filled
             if(bytes_left < full_block_size)
@@ -372,12 +372,12 @@ int decrypt_file(boost::filesystem::path titleIdPath, boost::filesystem::path de
                std::vector<uint8_t> buffer(bytes_left);
                inputStream.read((char*)buffer.data(), bytes_left);
 
-               uint32_t tail_size = bytes_left % table.ftHeader.fileSectorSize;
+               uint32_t tail_size = bytes_left % table->get_header()->get_fileSectorSize();
                if(tail_size == 0)
-                  tail_size = table.ftHeader.fileSectorSize;
+                  tail_size = table->get_header()->get_fileSectorSize();
 
                CryptEngineWorkCtx work_ctx;
-               init_crypt_ctx(&work_ctx, klicensee, ngpfs, fdb, table, b, sector_base, tail_size, buffer.data());
+               init_crypt_ctx(&work_ctx, klicensee, ngpfs, table, b, sector_base, tail_size, buffer.data());
 
                pfs_decrypt(&work_ctx);
 
@@ -398,7 +398,7 @@ int decrypt_file(boost::filesystem::path titleIdPath, boost::filesystem::path de
                inputStream.read((char*)buffer.data(), full_block_size);
 
                CryptEngineWorkCtx work_ctx;
-               init_crypt_ctx(&work_ctx, klicensee, ngpfs, fdb, table, b, sector_base, table.ftHeader.fileSectorSize, buffer.data());
+               init_crypt_ctx(&work_ctx, klicensee, ngpfs, table, b, sector_base, table->get_header()->get_fileSectorSize(), buffer.data());
 
                pfs_decrypt(&work_ctx);
 
@@ -413,7 +413,7 @@ int decrypt_file(boost::filesystem::path titleIdPath, boost::filesystem::path de
                }
 
                bytes_left = bytes_left - full_block_size;
-               sector_base = sector_base + table.ftHeader.binTreeNumMaxAvail;
+               sector_base = sector_base + table->get_header()->get_binTreeNumMaxAvail();
             }
          }
       }
@@ -512,7 +512,7 @@ std::vector<sce_ng_pfs_file_t>::const_iterator find_file_by_path(std::vector<sce
    return files.end();
 }
 
-int decrypt_files(boost::filesystem::path titleIdPath, boost::filesystem::path destTitleIdPath, unsigned char* klicensee, sce_ng_pfs_header_t& ngpfs, std::vector<sce_ng_pfs_file_t>& files, std::vector<sce_ng_pfs_dir_t>& dirs, scei_rodb_t& fdb, std::map<uint32_t, std::string>& pageMap, std::set<std::string>& emptyFiles)
+int decrypt_files(boost::filesystem::path titleIdPath, boost::filesystem::path destTitleIdPath, unsigned char* klicensee, sce_ng_pfs_header_t& ngpfs, std::vector<sce_ng_pfs_file_t>& files, std::vector<sce_ng_pfs_dir_t>& dirs, std::shared_ptr<scei_db_base_t> fdb, std::map<uint32_t, std::string>& pageMap, std::set<std::string>& emptyFiles)
 {
    std::cout << "Creating directories..." << std::endl;
 
@@ -557,17 +557,17 @@ int decrypt_files(boost::filesystem::path titleIdPath, boost::filesystem::path d
 
    std::cout << "Decrypting files..." << std::endl;
 
-   for(auto& t : fdb.tables)
+   for(auto& t : fdb->m_tables)
    {
       //skip empty files and directories
-      if(t.ftHeader.nSectors == 0)
+      if(t->get_header()->get_numSectors() == 0)
          continue;
 
       //find filepath by unicv.db page
-      auto map_entry = pageMap.find(t.page);
+      auto map_entry = pageMap.find(t->get_page());
       if(map_entry == pageMap.end())
       {
-         std::cout << "failed to find page " << t.page << " in map" << std::endl;
+         std::cout << "failed to find page " << t->get_page() << " in map" << std::endl;
          return -1;
       }
 
@@ -581,7 +581,8 @@ int decrypt_files(boost::filesystem::path titleIdPath, boost::filesystem::path d
       }
 
       //directory and unexisting file are unexpected
-      if(file->file.info.type == sce_ng_pfs_file_types::directory ||
+      if(file->file.info.type == sce_ng_pfs_file_types::normal_directory ||
+         file->file.info.type == sce_ng_pfs_file_types::unk_directory ||
          file->file.info.type == sce_ng_pfs_file_types::unexisting)
       {
          std::cout << "Unexpected file type" << std::endl;
@@ -603,7 +604,7 @@ int decrypt_files(boost::filesystem::path titleIdPath, boost::filesystem::path d
       //decrypt unencrypted files
       else
       {
-         if(decrypt_file(titleIdPath, destTitleIdPath, *file, filepath, klicensee, ngpfs, fdb, t) < 0)
+         if(decrypt_file(titleIdPath, destTitleIdPath, *file, filepath, klicensee, ngpfs, t) < 0)
          {
             std::cout << "Failed to decrypt: " << filepath.generic_string() << std::endl;
             return -1;
