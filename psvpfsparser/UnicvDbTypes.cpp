@@ -447,11 +447,11 @@ bool scei_ftbl_cvdb_proxy_t::read(std::ifstream& inputStream, uint64_t& index)
 
 //===========
 
-bool scei_db_base_t::read_table_item(std::ifstream& inputStream, uint64_t index)
+bool scei_db_base_t::read_table_item(std::ifstream& inputStream, uint64_t& index)
 {
    uint8_t magic[8];
    inputStream.read((char*)magic, sizeof(magic));
-   inputStream.seekg(0, std::ios::beg);
+   inputStream.seekg(-8, std::ios::cur);
 
    m_tables.push_back(magic_to_ftbl(std::string((char*)magic, sizeof(magic))));
    std::shared_ptr<scei_ftbl_base_t>& fft = m_tables.back();

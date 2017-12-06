@@ -509,7 +509,7 @@ public:
    virtual bool read(boost::filesystem::path filepath) = 0;
 
 protected:
-   bool read_table_item(std::ifstream& inputStream, uint64_t index);
+   bool read_table_item(std::ifstream& inputStream, uint64_t& index);
 };
 
 //this is a root object for unicv.db - it contains SCEIRODB header and list of SCEIFTBL file table blocks
