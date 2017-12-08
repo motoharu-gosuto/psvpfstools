@@ -7,12 +7,14 @@
 #pragma pack(push, 1)
 
 #define SEALEDKEY_MAGIC "pfsSKKey"
-#define SEALEDKEY_EXPECTED_TYPE 2
+#define SEALEDKEY_EXPECTED_TYPE_MAJOR 2
+#define SEALEDKEY_EXPECTED_TYPE_MINOR 0
 
 typedef struct sealedkey_t
 {
    uint8_t magic[8];
-   uint32_t type;
+   uint16_t type_major;
+   uint16_t type_minor;
    uint32_t padding;
    uint8_t iv[0x10];
    uint8_t enc_key[0x10];
