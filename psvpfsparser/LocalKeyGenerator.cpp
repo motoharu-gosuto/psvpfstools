@@ -12,7 +12,7 @@
 
 #include "LocalKeys.h"
 
-//two check functions are based on code provided by Proxima
+//check functions are based on code provided by Proxima
 
 int check_sealedkey(sealedkey_t& sk)
 {
@@ -44,33 +44,53 @@ int check_keystone(keystone_t& ks)
 {
    uint8_t result[0x20];
 
-   hmac_sha256(keystone_hmac_secret1, 0x20, (unsigned char*)&ks, 0x40, result);
-   if(memcmp(ks.hmac, result, 0x20) == 0) 
+   hmac_sha256(keystone_hmac_secret, 0x20, (unsigned char*)&ks, 0x40, result);
+   if(memcmp(ks.keystone_hmac, result, 0x20) == 0) 
    {
       std::cout << "keystone: matched retail hmac" << std::endl;
       return 0;
    } 
    else 
    {
-      hmac_sha256(keystone_hmac_secret2, 0x20, (unsigned char*)&ks, 0x40, result);
-      if(memcmp(ks.hmac, result, 0x20) == 0) 
+      hmac_sha256(keystone_debug_key, 0x20, (unsigned char*)&ks, 0x40, result);
+      if(memcmp(ks.keystone_hmac, result, 0x20) == 0) 
       {
-         std::cout << "keystone: matched retail hmac" << std::endl;
+         std::cout << "keystone: matched debug hmac!" << std::endl;
          return 0;
-      } 
-      else 
+      }
+      else
       {
-         hmac_sha256(keystone_debugkey, 0x20, (unsigned char*)&ks, 0x40, result);
-         if(memcmp(ks.hmac, result, 0x20) == 0) 
-         {
-            std::cout << "keystone: matched debug hmac!" << std::endl;
-            return 0;
-         }
-         else
-         {
-            std::cout << "keystone: failed to match hmac" << std::endl;
-            return -1;
-         }
+         std::cout << "keystone: failed to match hmac" << std::endl;
+         return -1;
+      }
+   }
+}
+
+int check_keystone(keystone_t& ks, unsigned char* passcode)
+{
+   if(check_keystone(ks) < 0)
+      return -1;
+
+   uint8_t result[0x20];
+
+   hmac_sha256(passcode_hmac_secret, 0x20, passcode, 0x20, result);
+   if(memcmp(ks.passcode_hmac, result, 0x20) == 0) 
+   {
+      std::cout << "keystone: matched passcode hmac" << std::endl;
+      return 0;
+   } 
+   else 
+   {
+      hmac_sha256(passcode_debug_key, 0x20, passcode, 0x20, result);
+      if(memcmp(ks.passcode_hmac, result, 0x20) == 0) 
+      {
+         std::cout << "keystone: matched debug passcode hmac!" << std::endl;
+         return 0;
+      }
+      else
+      {
+         std::cout << "keystone: failed to match passcode hmac" << std::endl;
+         return -1;
       }
    }
 }
@@ -98,7 +118,7 @@ int get_sealedkey(boost::filesystem::path titleIdPath, unsigned char* dec_key)
    return 0;
 }
 
-int get_keystone(boost::filesystem::path titleIdPath, unsigned char* dec_key)
+int get_keystone(boost::filesystem::path titleIdPath, unsigned char* dec_key, char* passcode)
 {
    boost::filesystem::path root(titleIdPath);
    boost::filesystem::path filepath = root / "sce_sys" / "keystone";
@@ -108,17 +128,10 @@ int get_keystone(boost::filesystem::path titleIdPath, unsigned char* dec_key)
    std::ifstream inputStream(filepath.generic_string().c_str(), std::ios::in | std::ios::binary);
    inputStream.read((char*)&ks, 0x60);
 
-   if(check_keystone(ks) < 0)
-      return -1;
-
-   /*
-   aes_context aes_ctx;
-   memset(&aes_ctx, 0, sizeof(aes_ctx));
-   aes_setkey_dec(&aes_ctx, ?, 128);
-   aes_crypt_cbc(&aes_ctx, AES_DECRYPT, sizeof(ks.enc_key), ks.iv, ks.enc_key, dec_key);
-   */
-
-   throw std::runtime_error("get_keystone key decryption is not implemented");
+   if(passcode == 0)
+      return check_keystone(ks);
+   else
+      return check_keystone(ks, (unsigned char*)passcode);
 
    return 0;
 }

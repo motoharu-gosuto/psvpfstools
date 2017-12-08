@@ -29,13 +29,12 @@ typedef struct keystone_t
    uint16_t type;
    uint16_t version;
    uint8_t padding[0x14];
-   uint8_t iv[0x10];
-   uint8_t enc_key[0x10];
-   uint8_t hmac[0x20];
+   uint8_t passcode_hmac[0x20];
+   uint8_t keystone_hmac[0x20];
 } keystone_t;
 
 #pragma pack(pop)
 
 int get_sealedkey(boost::filesystem::path titleIdPath, unsigned char* dec_key);
 
-int get_keystone(boost::filesystem::path titleIdPath, unsigned char* dec_key);
+int get_keystone(boost::filesystem::path titleIdPath, unsigned char* dec_key, char* passcode = 0);
