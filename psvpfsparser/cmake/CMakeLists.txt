@@ -5,7 +5,7 @@ message(${PROJECT})
 
 FILE (GLOB HEADER_FILES "../F00DKeyEncryptor.h"
                         "../FilesDbParser.h"
-                        "../MerkleTree.h"
+                        "../HashTree.h"
                         "../NodeIcvCalculator.h"
                         "../PfsCryptEngine.h"
                         "../PfsCryptEngineBase.h"
@@ -27,7 +27,7 @@ source_group ("Header Files" FILES ${HEADER_FILES})
 
 FILE (GLOB SOURCE_FILES "../F00DKeyEncryptor.cpp"
                         "../FilesDbParser.cpp"
-                        "../MerkleTree.cpp"
+                        "../HashTree.cpp"
                         "../NodeIcvCalculator.cpp"
                         "../PfsCryptEngine.cpp"
                         "../PfsCryptEngineBase.cpp"
