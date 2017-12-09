@@ -2,7 +2,7 @@
 
 #include "UnicvDbUtils.h"
 #include "Utils.h"
-#include "MerkleTree.h"
+#include "HashTree.h"
 
 bool scei_rodb_header_proxy_t::validate(std::uint64_t fileSize) const
 {

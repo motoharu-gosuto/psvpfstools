@@ -24,7 +24,7 @@
 
 #include "SecretGenerator.h"
 #include "NodeIcvCalculator.h"
-#include "MerkleTree.h"
+#include "HashTree.h"
 
 #include <libcrypto/sha1.h>
 
@@ -297,9 +297,9 @@ bool parseFilesDb(unsigned char* klicensee, std::ifstream& inputStream, sce_ng_p
 
    std::cout << "Validating hash tree..." << std::endl;
 
-   if(!validate_merkle_tree(0, header.root_icv_page_number, blocks, page_icvs))
+   if(!validate_hash_tree(0, header.root_icv_page_number, blocks, page_icvs))
    {
-      std::cout << "Failed to validate merkle tree" << std::endl;
+      std::cout << "Failed to validate hash tree" << std::endl;
       return false;
    }
 
