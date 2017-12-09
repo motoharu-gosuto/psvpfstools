@@ -1,6 +1,6 @@
 #include "LocalKeyGenerator.h"
 
-#include <stdint.h>
+#include <cstdint>
 
 #include <string>
 #include <cstring>
@@ -16,7 +16,7 @@
 
 int check_sealedkey(sealedkey_t& sk)
 {
-   uint8_t result[0x20];
+   std::uint8_t result[0x20];
 
    hmac_sha256(sealedkey_retail_key, 0x10, (unsigned char*)&sk, 0x30, result);
    if(memcmp(sk.hmac, result, 0x20) == 0) 
@@ -42,7 +42,7 @@ int check_sealedkey(sealedkey_t& sk)
 
 int check_keystone(keystone_t& ks)
 {
-   uint8_t result[0x20];
+   std::uint8_t result[0x20];
 
    hmac_sha256(keystone_hmac_secret, 0x20, (unsigned char*)&ks, 0x40, result);
    if(memcmp(ks.keystone_hmac, result, 0x20) == 0) 
@@ -71,7 +71,7 @@ int check_keystone(keystone_t& ks, unsigned char* passcode)
    if(check_keystone(ks) < 0)
       return -1;
 
-   uint8_t result[0x20];
+   std::uint8_t result[0x20];
 
    hmac_sha256(passcode_hmac_secret, 0x20, passcode, 0x20, result);
    if(memcmp(ks.passcode_hmac, result, 0x20) == 0) 

@@ -4,7 +4,7 @@
 #include "Utils.h"
 #include "MerkleTree.h"
 
-bool scei_rodb_header_proxy_t::validate(uint64_t fileSize) const
+bool scei_rodb_header_proxy_t::validate(std::uint64_t fileSize) const
 {
    //check file size field
    if(fileSize != (m_header.dataSize + m_header.blockSize)) //do not forget to count header
@@ -49,7 +49,7 @@ bool scei_rodb_header_proxy_t::validate(uint64_t fileSize) const
    return true;
 }
 
-bool scei_rodb_header_proxy_t::read(std::ifstream& inputStream, uint64_t fileSize)
+bool scei_rodb_header_proxy_t::read(std::ifstream& inputStream, std::uint64_t fileSize)
 {
    //read header
    inputStream.read((char*)&m_header, sizeof(scei_rodb_header_t));
@@ -64,7 +64,7 @@ bool scei_rodb_header_proxy_t::read(std::ifstream& inputStream, uint64_t fileSiz
 
 //============
 
-bool sig_tbl_header_base_t::validate(std::shared_ptr<scei_ftbl_base_t> fft, uint32_t sizeCheck) const
+bool sig_tbl_header_base_t::validate(std::shared_ptr<scei_ftbl_base_t> fft, std::uint32_t sizeCheck) const
 {
    if(m_header.binTreeSize != binTreeSize(0x14, fft->get_header()->get_binTreeNumMaxAvail()))
    {
@@ -96,7 +96,7 @@ bool sig_tbl_header_base_t::validate(std::shared_ptr<scei_ftbl_base_t> fft, uint
    return true;
 }
 
-bool sig_tbl_header_base_t::read(std::ifstream& inputStream, std::shared_ptr<scei_ftbl_base_t> fft, uint32_t sizeCheck, std::vector<std::vector<uint8_t> >& signatures)
+bool sig_tbl_header_base_t::read(std::ifstream& inputStream, std::shared_ptr<scei_ftbl_base_t> fft, std::uint32_t sizeCheck, std::vector<std::vector<std::uint8_t> >& signatures)
 {
    //read header
    inputStream.read((char*)&m_header, sizeof(sig_tbl_header_t));
@@ -106,22 +106,22 @@ bool sig_tbl_header_base_t::read(std::ifstream& inputStream, std::shared_ptr<sce
       return false;
 
    //read signatures
-   for(uint32_t c = 0; c < m_header.nSignatures; c++)
+   for(std::uint32_t c = 0; c < m_header.nSignatures; c++)
    {
-      signatures.push_back(std::vector<uint8_t>());
-      std::vector<uint8_t>& dte = signatures.back();
+      signatures.push_back(std::vector<std::uint8_t>());
+      std::vector<std::uint8_t>& dte = signatures.back();
       dte.resize(m_header.sigSize);
       inputStream.read((char*)dte.data(), m_header.sigSize);
    }
 
    //calculate size of tail data - this data should be zero padding
    //instead of skipping it is validated here that it contains only zeroes
-   uint64_t cp = inputStream.tellg();
-   uint64_t dsize = cp % fft->get_header()->get_pageSize(); //calc size of data that was read
-   int64_t tail = fft->get_header()->get_pageSize() - dsize; //calc size of tail data
+   std::uint64_t cp = inputStream.tellg();
+   std::uint64_t dsize = cp % fft->get_header()->get_pageSize(); //calc size of data that was read
+   std::int64_t tail = fft->get_header()->get_pageSize() - dsize; //calc size of tail data
 
    //read tail data
-   std::vector<uint8_t> data(tail);
+   std::vector<std::uint8_t> data(tail);
    inputStream.read((char*)data.data(), tail);
 
    //fast way would be to use seek
@@ -132,7 +132,7 @@ bool sig_tbl_header_base_t::read(std::ifstream& inputStream, std::shared_ptr<sce
 }
 
 
-bool sig_tbl_header_normal_t::validate_tail(const std::vector<uint8_t>& data) const
+bool sig_tbl_header_normal_t::validate_tail(const std::vector<std::uint8_t>& data) const
 {
    //validate tail data
    if(!isZeroVector(data))
@@ -144,7 +144,7 @@ bool sig_tbl_header_normal_t::validate_tail(const std::vector<uint8_t>& data) co
    return true;
 }
 
-bool sig_tbl_header_merlke_t::read(std::ifstream& inputStream, std::shared_ptr<scei_ftbl_base_t> fft, uint32_t sizeCheck, std::vector<std::vector<uint8_t> >& signatures)
+bool sig_tbl_header_merlke_t::read(std::ifstream& inputStream, std::shared_ptr<scei_ftbl_base_t> fft, std::uint32_t sizeCheck, std::vector<std::vector<std::uint8_t> >& signatures)
 {
    //read weird 0x10 byte zero header which makes the data not being aligned on page boder
    unsigned char zero_header[0x10];
@@ -158,7 +158,7 @@ bool sig_tbl_header_merlke_t::read(std::ifstream& inputStream, std::shared_ptr<s
    return sig_tbl_header_base_t::read(inputStream, fft, sizeCheck, signatures);
 }
 
-bool sig_tbl_header_merlke_t::validate_tail(const std::vector<uint8_t>& data) const
+bool sig_tbl_header_merlke_t::validate_tail(const std::vector<std::uint8_t>& data) const
 {
    //TODO: implement proper validation of 0xFFFFFFFF field
    throw std::runtime_error("not implemented");
@@ -358,7 +358,7 @@ std::shared_ptr<scei_ftbl_base_t> magic_to_ftbl(std::string type)
 
 //===========
 
-bool scei_ftbl_base_t::read(std::ifstream& inputStream, uint64_t& index)
+bool scei_ftbl_base_t::read(std::ifstream& inputStream, std::uint64_t& index)
 {
    //read header
    if(!m_header->read(inputStream))
@@ -371,7 +371,7 @@ bool scei_ftbl_base_t::read(std::ifstream& inputStream, uint64_t& index)
    return true;
 }
 
-bool scei_ftbl_base_t::read_block(std::ifstream& inputStream, uint64_t& index, uint32_t sizeCheck)
+bool scei_ftbl_base_t::read_block(std::ifstream& inputStream, std::uint64_t& index, std::uint32_t sizeCheck)
 {
    //create new signature block
    m_blocks.push_back(sig_tbl_t(magic_to_sig_tbl(m_header->get_magic())));
@@ -386,7 +386,7 @@ bool scei_ftbl_base_t::read_block(std::ifstream& inputStream, uint64_t& index, u
    return true;
 }
 
-bool scei_ftbl_cvdb_proxy_t::read(std::ifstream& inputStream, uint64_t& index)
+bool scei_ftbl_cvdb_proxy_t::read(std::ifstream& inputStream, std::uint64_t& index)
 {
    int64_t currentBlockPos = inputStream.tellg();
    
@@ -397,12 +397,12 @@ bool scei_ftbl_cvdb_proxy_t::read(std::ifstream& inputStream, uint64_t& index)
 
    //calculate size of tail data - this data should be zero padding
    //instead of skipping it is validated here that it contains only zeroes
-   uint64_t cp = inputStream.tellg(); //get current pos
-   uint64_t dsize = cp % m_header->get_pageSize(); //calc size of data that was read
-   int64_t tail = m_header->get_pageSize() - dsize; //calc size of tail data
+   std::uint64_t cp = inputStream.tellg(); //get current pos
+   std::uint64_t dsize = cp % m_header->get_pageSize(); //calc size of data that was read
+   std::int64_t tail = m_header->get_pageSize() - dsize; //calc size of tail data
 
    //read tail
-   std::vector<uint8_t> tailData(tail);
+   std::vector<std::uint8_t> tailData(tail);
    inputStream.read((char*)tailData.data(), tail);
 
    //validate tail
@@ -426,10 +426,10 @@ bool scei_ftbl_cvdb_proxy_t::read(std::ifstream& inputStream, uint64_t& index)
    }
    else
    {
-      uint32_t nDataBlocks = m_header->get_numHashes() / m_header->get_binTreeNumMaxAvail();
-      uint32_t nDataTail = m_header->get_numHashes() % m_header->get_binTreeNumMaxAvail();
+      std::uint32_t nDataBlocks = m_header->get_numHashes() / m_header->get_binTreeNumMaxAvail();
+      std::uint32_t nDataTail = m_header->get_numHashes() % m_header->get_binTreeNumMaxAvail();
 
-      for(uint32_t dbi = 0; dbi < nDataBlocks; dbi++)
+      for(std::uint32_t dbi = 0; dbi < nDataBlocks; dbi++)
       {
          if(!read_block(inputStream, index, m_header->get_binTreeNumMaxAvail()))
             return false;
@@ -447,9 +447,9 @@ bool scei_ftbl_cvdb_proxy_t::read(std::ifstream& inputStream, uint64_t& index)
 
 //===========
 
-bool scei_db_base_t::read_table_item(std::ifstream& inputStream, uint64_t& index)
+bool scei_db_base_t::read_table_item(std::ifstream& inputStream, std::uint64_t& index)
 {
-   uint8_t magic[8];
+   std::uint8_t magic[8];
    inputStream.read((char*)magic, sizeof(magic));
    inputStream.seekg(-8, std::ios::cur);
 
@@ -474,7 +474,7 @@ bool scei_rodb_t::read(boost::filesystem::path filepath)
 
    //get stream size
    inputStream.seekg(0, std::ios::end);
-   uint64_t fileSize = inputStream.tellg();
+   std::uint64_t fileSize = inputStream.tellg();
    inputStream.seekg(0, std::ios::beg);
    
    //read header
@@ -488,8 +488,8 @@ bool scei_rodb_t::read(boost::filesystem::path filepath)
    //the only way is to calculate total number of chunks (blocks)
    //and read them as stream splitting it into groups in the process
    
-   uint64_t nBlocks = m_dbHeader.get_dataSize() / m_dbHeader.get_blockSize();
-   uint64_t tailSize = m_dbHeader.get_dataSize() % m_dbHeader.get_blockSize();
+   std::uint64_t nBlocks = m_dbHeader.get_dataSize() / m_dbHeader.get_blockSize();
+   std::uint64_t tailSize = m_dbHeader.get_dataSize() % m_dbHeader.get_blockSize();
 
    //check tail size just in case
    if(tailSize > 0)
@@ -501,7 +501,7 @@ bool scei_rodb_t::read(boost::filesystem::path filepath)
    std::cout << "Total blocks: " << std::dec << nBlocks << std::endl;
 
    //read all blocks
-   for(uint64_t index = 0; index < nBlocks; index++)
+   for(std::uint64_t index = 0; index < nBlocks; index++)
    {
       //read single block
       if(!read_table_item(inputStream, index))
@@ -509,7 +509,7 @@ bool scei_rodb_t::read(boost::filesystem::path filepath)
    }
 
    //check that there is no data left
-   uint64_t endp = inputStream.tellg();
+   std::uint64_t endp = inputStream.tellg();
    if(fileSize != endp)
    {
       std::cout << "Data misalign" << std::endl;
@@ -521,7 +521,7 @@ bool scei_rodb_t::read(boost::filesystem::path filepath)
 
 bool scei_icv_t::read(boost::filesystem::path filepath)
 {
-   uint64_t index = 0;
+   std::uint64_t index = 0;
    for(auto& entry : boost::make_iterator_range(boost::filesystem::directory_iterator(filepath), boost::filesystem::directory_iterator()))
    {
       std::ifstream inputStream(entry.path().generic_string().c_str(), std::ios::in | std::ios::binary);

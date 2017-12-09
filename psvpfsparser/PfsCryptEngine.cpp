@@ -70,8 +70,8 @@ void verify_step(CryptEngineWorkCtx* crypt_ctx, int64_t tweak_key, int bitSize, 
                   
          if(crypt_ctx->subctx->nBlocks != 0)
          {
-            uint32_t counter = 0;
-            uint32_t bytes_left = size;
+            std::uint32_t counter = 0;
+            std::uint32_t bytes_left = size;
 
             unsigned char* source_base = source;
             unsigned char* signatures_base = crypt_ctx->subctx->signature_table;
@@ -168,7 +168,7 @@ void work_3_step0(CryptEngineWorkCtx* crypt_ctx, int64_t tweak_key, int bitSize,
    }
    else
    {
-      uint32_t bytes_left = size;
+      std::uint32_t bytes_left = size;
    
       do
       {
@@ -227,7 +227,7 @@ void work_3_step1(CryptEngineWorkCtx* crypt_ctx, int bitSize, unsigned char* buf
 
    //========= copy result to output buffer if source buffer had no tail ? ============
 
-   uint32_t some_value = crypt_ctx->subctx->nBlocksTail + crypt_ctx->subctx->unk_18;
+   std::uint32_t some_value = crypt_ctx->subctx->nBlocksTail + crypt_ctx->subctx->unk_18;
    
    if((some_value >= crypt_ctx->subctx->nBlocks))
    {
@@ -319,7 +319,7 @@ void work_3_step1(CryptEngineWorkCtx* crypt_ctx, int bitSize, unsigned char* buf
    }
    else
    {
-      uint32_t bytes_left = output_size;
+      std::uint32_t bytes_left = output_size;
       
       do
       {
@@ -339,7 +339,7 @@ void work_3_step1(CryptEngineWorkCtx* crypt_ctx, int bitSize, unsigned char* buf
 
 //TODO CHECK:
 //int var_8C = (int)crypt_ctx->subctx->data->type - 2; // this does not correlate with derive_keys_from_klicensee_219B4A0
-//int some_flag_base = (uint32_t)(data->pmi_bcl_flag - 2);
+//int some_flag_base = (std::uint32_t)(data->pmi_bcl_flag - 2);
 //int some_flag = 0xC0000B03 & (1 << some_flag_base);
 
 //however i have double checked the code and it is correct in both places

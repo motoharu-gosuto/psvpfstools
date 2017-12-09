@@ -1,6 +1,6 @@
 #include "PfsCryptEngineSelectors.h"
 
-#include <stdint.h>
+#include <cstdint>
 #include <string>
 #include <cstring>
 
@@ -12,7 +12,7 @@
 
 unsigned char g_1771100[0x10] = {0};
 
-int pfs_decrypt_hw(const unsigned char* key, const unsigned char* iv_xor_key, int tweak_key0, int tweak_key1, uint32_t size, uint32_t block_size, const unsigned char* src, unsigned char* dst, uint16_t flag, uint16_t key_id)
+int pfs_decrypt_hw(const unsigned char* key, const unsigned char* iv_xor_key, int tweak_key0, int tweak_key1, std::uint32_t size, std::uint32_t block_size, const unsigned char* src, unsigned char* dst, std::uint16_t flag, std::uint16_t key_id)
 {
    unsigned char iv[0x10] = {0};
 
@@ -37,8 +37,8 @@ int pfs_decrypt_hw(const unsigned char* key, const unsigned char* iv_xor_key, in
   
    if(size != 0)
    {
-      uint32_t offset = 0;
-      uint32_t bytes_left = size;
+      std::uint32_t offset = 0;
+      std::uint32_t bytes_left = size;
 
       do
       {
@@ -99,7 +99,7 @@ int pfs_decrypt_hw(const unsigned char* key, const unsigned char* iv_xor_key, in
    return 0;
 }
 
-int pfs_encrypt_hw(const unsigned char* key, const unsigned char* iv_xor_key, int tweak_key0, int tweak_key1, uint32_t size, uint32_t block_size, const unsigned char* src, unsigned char* dst, uint16_t flag, uint16_t key_id)
+int pfs_encrypt_hw(const unsigned char* key, const unsigned char* iv_xor_key, int tweak_key0, int tweak_key1, std::uint32_t size, std::uint32_t block_size, const unsigned char* src, unsigned char* dst, std::uint16_t flag, std::uint16_t key_id)
 {
    unsigned char iv[0x10] = {0};
 
@@ -121,8 +121,8 @@ int pfs_encrypt_hw(const unsigned char* key, const unsigned char* iv_xor_key, in
 
    if(size != 0)
    {
-      uint32_t offset = 0;
-      uint32_t bytes_left = size;
+      std::uint32_t offset = 0;
+      std::uint32_t bytes_left = size;
 
       do
       {         
@@ -185,7 +185,7 @@ int pfs_encrypt_hw(const unsigned char* key, const unsigned char* iv_xor_key, in
 
 //#### GROUP 3, GROUP 4 (sw dec/enc) ####
 
-int pfs_decrypt_sw(const unsigned char* key, const unsigned char* subkey_key, uint32_t keysize, int tweak_key0, int tweak_key1, uint32_t size, uint32_t block_size, const unsigned char* src, unsigned char* dst, uint16_t flag)
+int pfs_decrypt_sw(const unsigned char* key, const unsigned char* subkey_key, std::uint32_t keysize, int tweak_key0, int tweak_key1, std::uint32_t size, std::uint32_t block_size, const unsigned char* src, unsigned char* dst, std::uint16_t flag)
 {
    unsigned char iv[0x10] = {0};
 
@@ -213,8 +213,8 @@ int pfs_decrypt_sw(const unsigned char* key, const unsigned char* subkey_key, ui
 
    memset(iv + 8, 0, 8);
 
-   uint32_t offset = 0;
-   uint32_t bytes_left = size;
+   std::uint32_t offset = 0;
+   std::uint32_t bytes_left = size;
 
    do
    {
@@ -265,7 +265,7 @@ int pfs_decrypt_sw(const unsigned char* key, const unsigned char* subkey_key, ui
    return 0;
 }
 
-int pfs_encrypt_sw(const unsigned char* key, const unsigned char* subkey_key, uint32_t keysize, int tweak_key0, int tweak_key1, uint32_t size, uint32_t block_size, const unsigned char* src, unsigned char* dst, uint16_t flag)
+int pfs_encrypt_sw(const unsigned char* key, const unsigned char* subkey_key, std::uint32_t keysize, int tweak_key0, int tweak_key1, std::uint32_t size, std::uint32_t block_size, const unsigned char* src, unsigned char* dst, std::uint16_t flag)
 {
    unsigned char iv[0x10] = {0};
 
@@ -293,8 +293,8 @@ int pfs_encrypt_sw(const unsigned char* key, const unsigned char* subkey_key, ui
 
    memset(iv + 8, 0, 8);
    
-   uint32_t offset = 0;
-   uint32_t bytes_left = size;
+   std::uint32_t offset = 0;
+   std::uint32_t bytes_left = size;
    
    do
    {

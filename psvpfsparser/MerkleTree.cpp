@@ -4,22 +4,22 @@
 
 #include "Utils.h"
 
-int64_t page2off_files(uint32_t page, uint32_t pageSize)
+int64_t page2off_files(std::uint32_t page, std::uint32_t pageSize)
 {
    return page * pageSize + pageSize;
 }
 
-uint32_t off2page_files(int64_t offset, uint32_t pageSize)
+std::uint32_t off2page_files(std::int64_t offset, std::uint32_t pageSize)
 {
    return (offset - pageSize) / pageSize;
 }
 
-uint32_t off2page_unicv(int64_t offset, uint32_t pageSize)
+std::uint32_t off2page_unicv(std::int64_t offset, std::uint32_t pageSize)
 {
    return offset / pageSize;
 }
 
-bool validate_merkle_tree(int level, uint32_t page, const std::vector<sce_ng_pfs_block_t>& blocks, const std::multimap<uint32_t, page_icv_data>& page_icvs)
+bool validate_merkle_tree(int level, std::uint32_t page, const std::vector<sce_ng_pfs_block_t>& blocks, const std::multimap<std::uint32_t, page_icv_data>& page_icvs)
 {
    const sce_ng_pfs_block_t& current_block = blocks[page]; //it should be safe to use page directly as index
 

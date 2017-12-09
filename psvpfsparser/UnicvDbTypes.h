@@ -1,6 +1,6 @@
 #pragma once
 
-#include <stdint.h>
+#include <cstdint>
 #include <vector>
 
 #include <boost/filesystem.hpp>
@@ -33,12 +33,12 @@
 
 struct scei_rodb_header_t
 {
-   uint8_t magic[8]; //SCEIRODB
-   uint32_t version; // this is probably version? value is always 2
-   uint32_t blockSize; //expected 0x400
-   uint32_t unk2; //0xFFFFFFFF
-   uint32_t unk3; //0xFFFFFFFF
-   uint64_t dataSize; //size of data beginning from next chunk
+   std::uint8_t magic[8]; //SCEIRODB
+   std::uint32_t version; // this is probably version? value is always 2
+   std::uint32_t blockSize; //expected 0x400
+   std::uint32_t unk2; //0xFFFFFFFF
+   std::uint32_t unk3; //0xFFFFFFFF
+   std::uint64_t dataSize; //size of data beginning from next chunk
 };
 
 class scei_rodb_header_proxy_t
@@ -47,9 +47,9 @@ private:
    scei_rodb_header_t m_header;
 
 public:
-   bool validate(uint64_t fileSize) const;
+   bool validate(std::uint64_t fileSize) const;
 
-   bool read(std::ifstream& inputStream, uint64_t fileSize);
+   bool read(std::ifstream& inputStream, std::uint64_t fileSize);
 
 public:
    std::string get_magic() const
@@ -57,17 +57,17 @@ public:
       return std::string((char*)m_header.magic, 8);
    }
 
-   uint32_t get_version() const
+   std::uint32_t get_version() const
    {
       return m_header.version;
    }
 
-   uint32_t get_blockSize() const
+   std::uint32_t get_blockSize() const
    {
       return m_header.blockSize;
    }
    
-   uint64_t get_dataSize() const
+   std::uint64_t get_dataSize() const
    {
       return m_header.dataSize;
    }
@@ -80,44 +80,44 @@ public:
 //and same number of scei_ftbl_header_t records with nSectors != 0 as there are files
 struct scei_ftbl_header_t
 {
-   uint8_t magic[8]; //SCEIFTBL
-   uint32_t version; // this is probably version? value is always 2
-   uint32_t pageSize; //expected 0x400
-   uint32_t binTreeNumMaxAvail; // this is probably max number of sectors in a single sig_tbl_t. expected value is 0x32
-   uint32_t nSectors; //this shows how many sectors of data in total will follow this block. one sig_tbl_t can contain 0x32 sectors at max
+   std::uint8_t magic[8]; //SCEIFTBL
+   std::uint32_t version; // this is probably version? value is always 2
+   std::uint32_t pageSize; //expected 0x400
+   std::uint32_t binTreeNumMaxAvail; // this is probably max number of sectors in a single sig_tbl_t. expected value is 0x32
+   std::uint32_t nSectors; //this shows how many sectors of data in total will follow this block. one sig_tbl_t can contain 0x32 sectors at max
                      //multiple sig_tbl_t group into single file
 
    //This is sector size for files.db
-   uint32_t fileSectorSize; // expected 0x8000
+   std::uint32_t fileSectorSize; // expected 0x8000
    
-   uint32_t padding; //this is probably padding? always zero
+   std::uint32_t padding; //this is probably padding? always zero
 
    //these records are empty if scei_ftbl_header_t corresponds to directory
-   uint8_t data1[20];
-   uint8_t base_key[20]; // this is a base_key that is used to derive iv_xor_key - one of the keys required for decryption
+   std::uint8_t data1[20];
+   std::uint8_t base_key[20]; // this is a base_key that is used to derive iv_xor_key - one of the keys required for decryption
 };
 
 struct scei_cvdb_header_t
 {
-   uint8_t magic[8]; //SCEICVDB
-   uint32_t version; // this is probably version? value is always 2
-   uint32_t fileSectorSize;
-   uint32_t pageSize; //expected 0x400
-   uint32_t padding;
-   uint32_t unk0; //0xFFFFFFFF
-   uint32_t unk1; //0xFFFFFFFF
-   uint64_t dataSize; // from next chunk maybe? or block size
-   uint32_t nSectors;
-   uint8_t data1[20];
+   std::uint8_t magic[8]; //SCEICVDB
+   std::uint32_t version; // this is probably version? value is always 2
+   std::uint32_t fileSectorSize;
+   std::uint32_t pageSize; //expected 0x400
+   std::uint32_t padding;
+   std::uint32_t unk0; //0xFFFFFFFF
+   std::uint32_t unk1; //0xFFFFFFFF
+   std::uint64_t dataSize; // from next chunk maybe? or block size
+   std::uint32_t nSectors;
+   std::uint8_t data1[20];
 };
 
 struct scei_null_header_t
 {
-   uint8_t magic[8]; //SCEINULL
-   uint32_t version; // 1
-   uint32_t unk1;
-   uint32_t unk2;
-   uint32_t unk3;
+   std::uint8_t magic[8]; //SCEINULL
+   std::uint32_t version; // 1
+   std::uint32_t unk1;
+   std::uint32_t unk2;
+   std::uint32_t unk3;
 };
 
 //=================================================
@@ -126,11 +126,11 @@ struct scei_null_header_t
 //if it is greater then 0x32 that means that multiple signature blocks will follow
 struct sig_tbl_header_t
 {
-   uint32_t binTreeSize; // for unicv.db for blocksize 0x400 this would be 0x3f8 = sizeof(sig_tbl_header_t) + (0x32 * 0x14) : which are maxNSectors * sigSize (0x8 bytes are unused)
+   std::uint32_t binTreeSize; // for unicv.db for blocksize 0x400 this would be 0x3f8 = sizeof(sig_tbl_header_t) + (0x32 * 0x14) : which are maxNSectors * sigSize (0x8 bytes are unused)
                          // for icv.db for blocksize 0x400 this would be 0x394 = sizeof(sig_icv_tbl_header_t) + (0x2D * 0x14) : which are 2D * sigSize (0x6C bytes are unused)
-   uint32_t sigSize; //expected 0x14 - size of hmac-sha1 
-   uint32_t nSignatures; //number of chunks in this block
-   uint32_t padding; //most likely padding ? always zero
+   std::uint32_t sigSize; //expected 0x14 - size of hmac-sha1 
+   std::uint32_t nSignatures; //number of chunks in this block
+   std::uint32_t padding; //most likely padding ? always zero
 };
 
 class scei_ftbl_t;
@@ -147,46 +147,46 @@ public:
    }
    
 public:
-   uint32_t get_binTreeSize() const
+   std::uint32_t get_binTreeSize() const
    {
       return m_header.binTreeSize;
    }
 
-   uint32_t get_sigSize() const
+   std::uint32_t get_sigSize() const
    {
       return m_header.sigSize;
    }
 
-   uint32_t get_nSignatures() const
+   std::uint32_t get_nSignatures() const
    {
       return m_header.nSignatures;
    }
 
-   uint32_t get_padding() const
+   std::uint32_t get_padding() const
    {
       return m_header.padding;
    }
 
 public:
-   bool validate(std::shared_ptr<scei_ftbl_base_t> fft, uint32_t sizeCheck) const;
+   bool validate(std::shared_ptr<scei_ftbl_base_t> fft, std::uint32_t sizeCheck) const;
 
-   virtual bool read(std::ifstream& inputStream, std::shared_ptr<scei_ftbl_base_t> fft, uint32_t sizeCheck, std::vector<std::vector<uint8_t> >& signatures);
+   virtual bool read(std::ifstream& inputStream, std::shared_ptr<scei_ftbl_base_t> fft, std::uint32_t sizeCheck, std::vector<std::vector<std::uint8_t> >& signatures);
 
-   virtual bool validate_tail(const std::vector<uint8_t>& data) const = 0;
+   virtual bool validate_tail(const std::vector<std::uint8_t>& data) const = 0;
 };
 
 class sig_tbl_header_normal_t : public sig_tbl_header_base_t
 {
 public:
-   bool validate_tail(const std::vector<uint8_t>& data) const override;
+   bool validate_tail(const std::vector<std::uint8_t>& data) const override;
 };
 
 class sig_tbl_header_merlke_t : public sig_tbl_header_base_t
 {
 public:
-   bool read(std::ifstream& inputStream, std::shared_ptr<scei_ftbl_base_t> fft, uint32_t sizeCheck, std::vector<std::vector<uint8_t> >& signatures) override;
+   bool read(std::ifstream& inputStream, std::shared_ptr<scei_ftbl_base_t> fft, std::uint32_t sizeCheck, std::vector<std::vector<std::uint8_t> >& signatures) override;
 
-   bool validate_tail(const std::vector<uint8_t>& data) const override;
+   bool validate_tail(const std::vector<std::uint8_t>& data) const override;
 };
 
 //this is a signature table structure - it contains header and list of signatures
@@ -206,14 +206,14 @@ public:
    }
 
 public:
-   std::vector<std::vector<uint8_t> > m_signatures;
+   std::vector<std::vector<std::uint8_t> > m_signatures;
 
    std::shared_ptr<sig_tbl_header_base_t> get_header() const
    {
       return m_header;
    }
 
-   bool read(std::ifstream& inputStream, std::shared_ptr<scei_ftbl_base_t> fft, uint32_t sizeCheck)
+   bool read(std::ifstream& inputStream, std::shared_ptr<scei_ftbl_base_t> fft, std::uint32_t sizeCheck)
    {
       return m_header->read(inputStream, fft, sizeCheck, m_signatures);
    }
@@ -229,19 +229,19 @@ public:
    }
 
 public:
-   virtual uint32_t get_numSectors() const = 0;
+   virtual std::uint32_t get_numSectors() const = 0;
 
-   virtual uint32_t get_numHashes() const = 0;
+   virtual std::uint32_t get_numHashes() const = 0;
 
-   virtual uint32_t get_fileSectorSize() const = 0;
+   virtual std::uint32_t get_fileSectorSize() const = 0;
 
-   virtual const uint8_t* get_base_key() const = 0;
+   virtual const std::uint8_t* get_base_key() const = 0;
 
-   virtual uint32_t get_binTreeNumMaxAvail() const = 0;
+   virtual std::uint32_t get_binTreeNumMaxAvail() const = 0;
 
-   virtual uint32_t get_pageSize() const = 0;
+   virtual std::uint32_t get_pageSize() const = 0;
 
-   virtual uint32_t get_version() const = 0;
+   virtual std::uint32_t get_version() const = 0;
 
    virtual std::string get_magic() const = 0;
 
@@ -257,37 +257,37 @@ private:
    scei_ftbl_header_t m_header;
 
 public:
-   uint32_t get_numSectors() const override
+   std::uint32_t get_numSectors() const override
    {
       return m_header.nSectors;
    }
 
-   uint32_t get_numHashes() const override
+   std::uint32_t get_numHashes() const override
    {
       return m_header.nSectors;
    }
 
-   uint32_t get_fileSectorSize() const override
+   std::uint32_t get_fileSectorSize() const override
    {
       return m_header.fileSectorSize;
    }
 
-   const uint8_t* get_base_key() const override
+   const std::uint8_t* get_base_key() const override
    {
       return m_header.base_key;
    }
 
-   uint32_t get_binTreeNumMaxAvail() const override
+   std::uint32_t get_binTreeNumMaxAvail() const override
    {
       return m_header.binTreeNumMaxAvail; 
    }
 
-   uint32_t get_pageSize() const override
+   std::uint32_t get_pageSize() const override
    {
       return m_header.pageSize; 
    }
 
-   uint32_t get_version() const override
+   std::uint32_t get_version() const override
    {
       return m_header.version;
    }
@@ -309,38 +309,38 @@ private:
    scei_cvdb_header_t m_header;
 
 public:
-   uint32_t get_numSectors() const override
+   std::uint32_t get_numSectors() const override
    {
       return m_header.nSectors;
    }
 
-   uint32_t get_numHashes() const override
+   std::uint32_t get_numHashes() const override
    {
       //this is a formula for the number of hashes that will be calculated in merkle tree
       return m_header.nSectors * 2 - 1;
    }
 
-   uint32_t get_fileSectorSize() const override
+   std::uint32_t get_fileSectorSize() const override
    {
       return m_header.fileSectorSize;
    }
 
-   const uint8_t* get_base_key() const override
+   const std::uint8_t* get_base_key() const override
    {
       throw std::runtime_error("not implemented");
    }
 
-   uint32_t get_binTreeNumMaxAvail() const override
+   std::uint32_t get_binTreeNumMaxAvail() const override
    {
       return ICV_NUM_ENTRIES;
    }
 
-   uint32_t get_pageSize() const override
+   std::uint32_t get_pageSize() const override
    {
       return m_header.pageSize; 
    }
 
-   uint32_t get_version() const override
+   std::uint32_t get_version() const override
    {
       return m_header.version;
    }
@@ -362,37 +362,37 @@ private:
    scei_null_header_t m_header;
 
 public:
-   uint32_t get_numSectors() const override
+   std::uint32_t get_numSectors() const override
    {
       return 0;
    }
 
-   uint32_t get_numHashes() const override
+   std::uint32_t get_numHashes() const override
    {
       return 0;
    }
 
-   uint32_t get_fileSectorSize() const override
+   std::uint32_t get_fileSectorSize() const override
    {
       return 0;
    }
 
-   const uint8_t* get_base_key() const override
+   const std::uint8_t* get_base_key() const override
    {
       throw std::runtime_error("not implemented");
    }
 
-   uint32_t get_binTreeNumMaxAvail() const override
+   std::uint32_t get_binTreeNumMaxAvail() const override
    {
       throw std::runtime_error("not implemented");
    }
 
-   uint32_t get_pageSize() const override
+   std::uint32_t get_pageSize() const override
    {
       throw std::runtime_error("not implemented");
    }
 
-   uint32_t get_version() const override
+   std::uint32_t get_version() const override
    {
       throw std::runtime_error("not implemented");
    }
@@ -417,7 +417,7 @@ protected:
    std::shared_ptr<scei_ftbl_header_base_t> m_header;
 
 protected:
-   uint32_t m_page;
+   std::uint32_t m_page;
 
 public:
    std::vector<sig_tbl_t> m_blocks;
@@ -440,16 +440,16 @@ public:
    }
 
 public:
-   uint32_t get_page() const
+   std::uint32_t get_page() const
    {
       return m_page;
    }
 
 public:
-   virtual bool read(std::ifstream& inputStream, uint64_t& index);
+   virtual bool read(std::ifstream& inputStream, std::uint64_t& index);
 
 protected:
-   bool read_block(std::ifstream& inputStream, uint64_t& index, uint32_t sizeCheck);
+   bool read_block(std::ifstream& inputStream, std::uint64_t& index, std::uint32_t sizeCheck);
 };
 
 class scei_ftbl_cvdb_proxy_t : public scei_ftbl_base_t
@@ -461,7 +461,7 @@ public:
    }
 
 public:
-   bool read(std::ifstream& inputStream, uint64_t& index) override;
+   bool read(std::ifstream& inputStream, std::uint64_t& index) override;
 };
 
 //for now these types do not implement any additional logic that is different from base classes
@@ -509,7 +509,7 @@ public:
    virtual bool read(boost::filesystem::path filepath) = 0;
 
 protected:
-   bool read_table_item(std::ifstream& inputStream, uint64_t& index);
+   bool read_table_item(std::ifstream& inputStream, std::uint64_t& index);
 };
 
 //this is a root object for unicv.db - it contains SCEIRODB header and list of SCEIFTBL file table blocks

@@ -79,7 +79,7 @@ int execute(PsvPfsParserConfig& cfg)
    if(parseUnicvDb(titleIdPath, unicv) < 0)
       return -1;
 
-   std::map<uint32_t, std::string> pageMap;
+   std::map<std::uint32_t, std::string> pageMap;
    std::set<std::string> emptyFiles;
    if(bruteforce_map(titleIdPath, klicensee, header, unicv, pageMap, emptyFiles) < 0)
       return -1;

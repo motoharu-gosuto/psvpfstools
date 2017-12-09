@@ -1,5 +1,4 @@
-#include <stdint.h>
-
+#include <cstdint>
 #include <iomanip>
 #include <vector>
 #include <string>
@@ -12,7 +11,7 @@
 
 #include "Utils.h"
 
-bool isZeroVector(const std::vector<uint8_t>& data)
+bool isZeroVector(const std::vector<std::uint8_t>& data)
 {
    return isZeroVector(data.cbegin(), data.cend());
 }

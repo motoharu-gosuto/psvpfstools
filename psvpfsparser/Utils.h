@@ -1,6 +1,6 @@
 #pragma once
 
-#include <stdint.h>
+#include <cstdint>
 #include <vector>
 #include <set>
 
@@ -8,7 +8,7 @@
 #include <boost/range/adaptor/reversed.hpp>
 #include <boost/algorithm/string/predicate.hpp>
 
-bool isZeroVector(const std::vector<uint8_t>& data);
+bool isZeroVector(const std::vector<std::uint8_t>& data);
 
 template<typename T>
 bool isZeroVector(T begin, T end)

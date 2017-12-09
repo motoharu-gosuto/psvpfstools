@@ -11,7 +11,7 @@
 
 //similar to gen_secret in SecretGenerator
 //[TESTED]
-int gen_secrets_extern(unsigned char* dec_key, unsigned char* iv_key, const unsigned char* klicensee, uint16_t ignored_flag, uint16_t ignored_key_id, const unsigned char* base_key, uint32_t base_key_len)
+int gen_secrets_extern(unsigned char* dec_key, unsigned char* iv_key, const unsigned char* klicensee, std::uint16_t ignored_flag, std::uint16_t ignored_key_id, const unsigned char* base_key, std::uint32_t base_key_len)
 {
    unsigned char drvkey[0x14] = {0};
 
@@ -25,7 +25,7 @@ int gen_secrets_extern(unsigned char* dec_key, unsigned char* iv_key, const unsi
 }
 
 //similar to generate_secret in SecretGenerator
-int generate_secrets(unsigned char* dec_key, unsigned char* iv_key, const unsigned char* klicensee, uint32_t unicv_page_salt)
+int generate_secrets(unsigned char* dec_key, unsigned char* iv_key, const unsigned char* klicensee, std::uint32_t unicv_page_salt)
 {
    throw std::runtime_error("Untested generate_secrets");
 
@@ -70,7 +70,7 @@ int generate_secrets(unsigned char* dec_key, unsigned char* iv_key, const unsign
 
 //similar to gen_secret in SecretGenerator
 //[TESTED]
-int gen_secrets(unsigned char* dec_key, unsigned char* iv_key, const unsigned char* klicensee, uint32_t files_salt, uint32_t unicv_page_salt)
+int gen_secrets(unsigned char* dec_key, unsigned char* iv_key, const unsigned char* klicensee, std::uint32_t files_salt, std::uint32_t unicv_page_salt)
 {
    int saltin0[1] = {0};
    int saltin1[2] = {0};
@@ -97,7 +97,7 @@ int gen_secrets(unsigned char* dec_key, unsigned char* iv_key, const unsigned ch
 
 int DerivePfsKeys(CryptEngineData* data, const derive_keys_ctx* drv_ctx)
 {
-   int some_flag_base = (uint32_t)(data->pmi_bcl_flag - 2);
+   int some_flag_base = (std::uint32_t)(data->pmi_bcl_flag - 2);
    int some_flag = 0xC0000B03 & (1 << some_flag_base);
 
    if((some_flag_base > 0x1F) || (some_flag == 0))

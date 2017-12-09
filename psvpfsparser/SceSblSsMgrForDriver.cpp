@@ -8,7 +8,7 @@
 //##### WITH KEYGEN CRYPTO FUNCTIONS #####
 
 //this function is tested and works
-int SceSblSsMgrForDriver_sceSblSsMgrAESCBCDecryptWithKeygenForDriver(const unsigned char* src, unsigned char* dst, int size, const unsigned char* key, int key_size, unsigned char* iv, uint16_t key_id, int mask_enable)
+int SceSblSsMgrForDriver_sceSblSsMgrAESCBCDecryptWithKeygenForDriver(const unsigned char* src, unsigned char* dst, int size, const unsigned char* key, int key_size, unsigned char* iv, std::uint16_t key_id, int mask_enable)
 {
    F00DKeyEncryptor* ec = get_F00D_encryptor();
    unsigned char drv_key[0x20] = {0}; //use max possible buffer
@@ -24,7 +24,7 @@ int SceSblSsMgrForDriver_sceSblSsMgrAESCBCDecryptWithKeygenForDriver(const unsig
 }
 
 //this function is tested and works
-int SceSblSsMgrForDriver_sceSblSsMgrAESCBCEncryptWithKeygenForDriver(const unsigned char* src, unsigned char* dst, int size, const unsigned char* key, int key_size, unsigned char* iv, uint16_t key_id, int mask_enable)
+int SceSblSsMgrForDriver_sceSblSsMgrAESCBCEncryptWithKeygenForDriver(const unsigned char* src, unsigned char* dst, int size, const unsigned char* key, int key_size, unsigned char* iv, std::uint16_t key_id, int mask_enable)
 {
    F00DKeyEncryptor* ec = get_F00D_encryptor();
    unsigned char drv_key[0x20] = {0}; //use max possible buffer
@@ -40,7 +40,7 @@ int SceSblSsMgrForDriver_sceSblSsMgrAESCBCEncryptWithKeygenForDriver(const unsig
 }
 
 //this function is tested and works
-int SceSblSsMgrForDriver_sceSblSsMgrAESECBEncryptWithKeygenForDriver(const unsigned char* src, unsigned char* dst, int size, const unsigned char* key, int key_size, uint16_t key_id, int mask_enable)
+int SceSblSsMgrForDriver_sceSblSsMgrAESECBEncryptWithKeygenForDriver(const unsigned char* src, unsigned char* dst, int size, const unsigned char* key, int key_size, std::uint16_t key_id, int mask_enable)
 {
    F00DKeyEncryptor* ec = get_F00D_encryptor();
    unsigned char drv_key[0x20] = {0}; //use max possible buffer
@@ -94,7 +94,7 @@ int SceSblSsMgrForDriver_sceSblSsMgrAESCMACForDriver(const unsigned char* src, u
 }
 
 //not tested
-int SceSblSsMgrForDriver_sceSblSsMgrAESCMACWithKeygenForDriver(const unsigned char* src, unsigned char* dst, int size, const unsigned char* key, int key_size, unsigned char* iv, uint16_t key_id, int mask_enable, int command_bit)
+int SceSblSsMgrForDriver_sceSblSsMgrAESCMACWithKeygenForDriver(const unsigned char* src, unsigned char* dst, int size, const unsigned char* key, int key_size, unsigned char* iv, std::uint16_t key_id, int mask_enable, int command_bit)
 {
    F00DKeyEncryptor* ec = get_F00D_encryptor();
    unsigned char drv_key[0x20] = {0}; //use max possible buffer

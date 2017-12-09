@@ -1,6 +1,6 @@
 #pragma once
 
-#include <stdint.h>
+#include <cstdint>
 
 #include <boost/filesystem.hpp>
 
@@ -12,13 +12,13 @@
 
 typedef struct sealedkey_t
 {
-   uint8_t magic[8];
-   uint16_t type_major;
-   uint16_t type_minor;
-   uint32_t padding;
-   uint8_t iv[0x10];
-   uint8_t enc_key[0x10];
-   uint8_t hmac[0x20];
+   std::uint8_t magic[8];
+   std::uint16_t type_major;
+   std::uint16_t type_minor;
+   std::uint32_t padding;
+   std::uint8_t iv[0x10];
+   std::uint8_t enc_key[0x10];
+   std::uint8_t hmac[0x20];
 } sealedkey_t;
 
 #define KEYSTONE_MAGIC "keystone"
@@ -27,12 +27,12 @@ typedef struct sealedkey_t
 
 typedef struct keystone_t
 {
-   uint8_t magic[8];
-   uint16_t type;
-   uint16_t version;
-   uint8_t padding[0x14];
-   uint8_t passcode_hmac[0x20];
-   uint8_t keystone_hmac[0x20];
+   std::uint8_t magic[8];
+   std::uint16_t type;
+   std::uint16_t version;
+   std::uint8_t padding[0x14];
+   std::uint8_t passcode_hmac[0x20];
+   std::uint8_t keystone_hmac[0x20];
 } keystone_t;
 
 #pragma pack(pop)

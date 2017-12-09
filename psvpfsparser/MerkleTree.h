@@ -1,23 +1,23 @@
 #pragma once
 
-#include <stdint.h>
+#include <cstdint>
 #include <vector>
 #include <map>
 
 typedef struct page_icv_data
 {
-   int64_t offset;
-   uint32_t page;
-   uint8_t icv[0x14];
+   std::int64_t offset;
+   std::uint32_t page;
+   std::uint8_t icv[0x14];
 }page_icv_data;
 
-int64_t page2off_files(uint32_t page, uint32_t pageSize);
+std::int64_t page2off_files(std::uint32_t page, std::uint32_t pageSize);
 
-uint32_t off2page_files(int64_t offset, uint32_t pageSize);
+std::uint32_t off2page_files(std::int64_t offset, std::uint32_t pageSize);
 
 
-uint32_t off2page_unicv(int64_t offset, uint32_t pageSize);
+std::uint32_t off2page_unicv(std::int64_t offset, std::uint32_t pageSize);
 
 struct sce_ng_pfs_block_t;
 
-bool validate_merkle_tree(int level, uint32_t page, const std::vector<sce_ng_pfs_block_t>& blocks, const std::multimap<uint32_t, page_icv_data>& page_icvs);
+bool validate_merkle_tree(int level, std::uint32_t page, const std::vector<sce_ng_pfs_block_t>& blocks, const std::multimap<std::uint32_t, page_icv_data>& page_icvs);

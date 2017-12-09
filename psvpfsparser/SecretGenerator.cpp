@@ -1,6 +1,6 @@
 #include "SecretGenerator.h"
 
-#include <stdint.h>
+#include <cstdint>
 #include <string>
 #include <stdexcept>
 
@@ -12,7 +12,7 @@
 #include "FilesDbParser.h"
 
 //[TESTED both branches]
-int gen_secret(unsigned char* combo_aligned, uint32_t files_salt, uint32_t unicv_page_salt)
+int gen_secret(unsigned char* combo_aligned, std::uint32_t files_salt, std::uint32_t unicv_page_salt)
 {
    int saltin0[1] = {0};
    int saltin1[2] = {0};
@@ -36,7 +36,7 @@ int gen_secret(unsigned char* combo_aligned, uint32_t files_salt, uint32_t unicv
 }
 
 //[TESTED]
-int generate_secret_np(unsigned char* secret, const unsigned char* klicensee, uint32_t files_salt, uint32_t unicv_page_salt, uint16_t key_id)
+int generate_secret_np(unsigned char* secret, const unsigned char* klicensee, std::uint32_t files_salt, std::uint32_t unicv_page_salt, std::uint16_t key_id)
 {
    unsigned char drvkey[0x14] = {0};
    unsigned char iv[0x10] = {0};
@@ -54,7 +54,7 @@ int generate_secret_np(unsigned char* secret, const unsigned char* klicensee, ui
 }
 
 //[TESTED]
-int generate_secret(unsigned char* secret, const unsigned char* klicensee,  uint32_t unicv_page_salt)
+int generate_secret(unsigned char* secret, const unsigned char* klicensee,  std::uint32_t unicv_page_salt)
 {
    int saltin[2] = {0};
    unsigned char base0[0x14] = {0};
@@ -79,7 +79,7 @@ int generate_secret(unsigned char* secret, const unsigned char* klicensee,  uint
    return 0;
 }
 
-int scePfsUtilGetSecret(unsigned char* secret, const unsigned char* klicensee, uint32_t files_salt, uint16_t flag, uint32_t unicv_page_salt, uint16_t key_id)
+int scePfsUtilGetSecret(unsigned char* secret, const unsigned char* klicensee, std::uint32_t files_salt, std::uint16_t flag, std::uint32_t unicv_page_salt, std::uint16_t key_id)
 {
    if((flag & 1) > 0) // check bit 0
    {

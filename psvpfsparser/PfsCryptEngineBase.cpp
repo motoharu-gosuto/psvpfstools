@@ -1,6 +1,6 @@
 #include "PfsCryptEngineBase.h"
 
-#include <stdint.h>
+#include <cstdint>
 #include <string>
 #include <cstring>
 
@@ -13,7 +13,7 @@
 
 //encrypt / decrypt
 
-int AESCBCEncrypt_base(const unsigned char* key, unsigned char* iv, uint32_t size, const unsigned char* src, unsigned char* dst)
+int AESCBCEncrypt_base(const unsigned char* key, unsigned char* iv, std::uint32_t size, const unsigned char* src, unsigned char* dst)
 {
    int size_tail = size & 0xF;
    int size_block = size & (~0xF);
@@ -48,7 +48,7 @@ int AESCBCEncrypt_base(const unsigned char* key, unsigned char* iv, uint32_t siz
    return 0;
 }
 
-int AESCBCDecrypt_base(const unsigned char* key, unsigned char* iv, uint32_t size, const unsigned char* src, unsigned char* dst)
+int AESCBCDecrypt_base(const unsigned char* key, unsigned char* iv, std::uint32_t size, const unsigned char* src, unsigned char* dst)
 {
    int size_tail = size & 0xF; // get size of tail
    int size_block = size & (~0xF); // get block size aligned to 0x10 boundary
@@ -87,9 +87,9 @@ int AESCBCDecrypt_base(const unsigned char* key, unsigned char* iv, uint32_t siz
 
 //encrypt / decrypt with key_id
 
-int AESCBCDecryptWithKeygen_base(const unsigned char* key, unsigned char* iv, uint32_t size, const unsigned char* src, unsigned char* dst, uint16_t key_id)
+int AESCBCDecryptWithKeygen_base(const unsigned char* key, unsigned char* iv, std::uint32_t size, const unsigned char* src, unsigned char* dst, std::uint16_t key_id)
 {
-   uint16_t kid = 0 - (key_id - 1) + (key_id - 1);
+   std::uint16_t kid = 0 - (key_id - 1) + (key_id - 1);
 
    int size_tail = size & 0xF;
    int size_block = size & (~0xF);
@@ -126,9 +126,9 @@ int AESCBCDecryptWithKeygen_base(const unsigned char* key, unsigned char* iv, ui
    return 0;
 }
 
-int AESCBCEncryptWithKeygen_base(const unsigned char* klicensee, unsigned char* iv, uint32_t size, const unsigned char* src, unsigned char* dst, uint16_t key_id)
+int AESCBCEncryptWithKeygen_base(const unsigned char* klicensee, unsigned char* iv, std::uint32_t size, const unsigned char* src, unsigned char* dst, std::uint16_t key_id)
 {
-   uint16_t kid = 0 - (key_id - 1) + (key_id - 1); // ???
+   std::uint16_t kid = 0 - (key_id - 1) + (key_id - 1); // ???
 
    int size_tail = size & 0xF; // get size of tail
    int size_block = size & (~0xF); // get block size aligned to 0x10 boundary
@@ -169,7 +169,7 @@ int AESCBCEncryptWithKeygen_base(const unsigned char* klicensee, unsigned char* 
 
 // FUNCTIONS ARE SIMILAR
 
-int AESCMAC_base_1(const unsigned char* cmac_key, unsigned char* iv, uint32_t size, const unsigned char* cmac_src, unsigned char* cmac_dst)
+int AESCMAC_base_1(const unsigned char* cmac_key, unsigned char* iv, std::uint32_t size, const unsigned char* cmac_src, unsigned char* cmac_dst)
 {
    int size_tail = size & 0xF;
    int size_block = size & (~0xF);
@@ -208,7 +208,7 @@ int AESCMAC_base_1(const unsigned char* cmac_key, unsigned char* iv, uint32_t si
    return 0;
 }
 
-int AESCMAC_base_2(const unsigned char* cmac_key, unsigned char* iv, uint32_t size, const unsigned char* cmac_src, unsigned char* cmac_dst)
+int AESCMAC_base_2(const unsigned char* cmac_key, unsigned char* iv, std::uint32_t size, const unsigned char* cmac_src, unsigned char* cmac_dst)
 {
    int size_tail = size & 0xF;
    int size_block = size & (~0xF);
@@ -249,9 +249,9 @@ int AESCMAC_base_2(const unsigned char* cmac_key, unsigned char* iv, uint32_t si
 
 // FUNCTIONS ARE SIMILAR
 
-int AESCMACWithKeygen_base_1(const unsigned char* cmac_key, unsigned char* iv, uint32_t size, const unsigned char* cmac_src, unsigned char* cmac_dst, uint16_t key_id)
+int AESCMACWithKeygen_base_1(const unsigned char* cmac_key, unsigned char* iv, std::uint32_t size, const unsigned char* cmac_src, unsigned char* cmac_dst, std::uint16_t key_id)
 {
-   uint16_t kid = 0 - (key_id - 1) + (key_id - 1);
+   std::uint16_t kid = 0 - (key_id - 1) + (key_id - 1);
 
    int size_tail = size & 0xF;
    int size_block = size & (~0xF);
@@ -290,9 +290,9 @@ int AESCMACWithKeygen_base_1(const unsigned char* cmac_key, unsigned char* iv, u
    return 0;
 }
 
-int AESCMACWithKeygen_base_2(const unsigned char* cmac_key, unsigned char* iv, uint32_t size, const unsigned char* cmac_src, unsigned char* cmac_dst, uint16_t key_id)
+int AESCMACWithKeygen_base_2(const unsigned char* cmac_key, unsigned char* iv, std::uint32_t size, const unsigned char* cmac_src, unsigned char* cmac_dst, std::uint16_t key_id)
 {
-   uint16_t kid = 0 - (key_id - 1) + (key_id - 1);
+   std::uint16_t kid = 0 - (key_id - 1) + (key_id - 1);
 
    int size_tail = size & 0xF;
    int size_block = size & (~0xF);
@@ -343,7 +343,7 @@ int AESCMACWithKeygen_base_2(const unsigned char* cmac_key, unsigned char* iv, u
 //XTS-AES
 //https://github.com/libtom/libtomcrypt/blob/c14bcf4d302f954979f0de43f7544cf30873f5a6/src/modes/xts/xts_mult_x.c#L31
 
-int xor_1(int* src, int* iv, int* dst, uint32_t size)
+int xor_1(int* src, int* iv, int* dst, std::uint32_t size)
 {
    int iv_cpy[4] = {0};
    memcpy(iv_cpy, iv, 0x10);
@@ -374,7 +374,7 @@ int xor_1(int* src, int* iv, int* dst, uint32_t size)
 
 //IV is a subkey base
 
-int AESCMACDecryptSw_base(const unsigned char* subkey, const unsigned char* dst_key, const unsigned char* subkey_key, uint32_t key_size, uint32_t size, const unsigned char* src, unsigned char* dst)
+int AESCMACDecryptSw_base(const unsigned char* subkey, const unsigned char* dst_key, const unsigned char* subkey_key, std::uint32_t key_size, std::uint32_t size, const unsigned char* src, unsigned char* dst)
 {
    char aes_ctx[0x1F0] = {0};
    unsigned char drv_subkey[0x10] = {0};
@@ -392,7 +392,7 @@ int AESCMACDecryptSw_base(const unsigned char* subkey, const unsigned char* dst_
    return result0;
 }
 
-int AESCMACEncryptSw_base(const unsigned char* subkey, const unsigned char* dst_key, const unsigned char* subkey_key, uint32_t key_size, uint32_t size, const unsigned char* src, unsigned char* dst)
+int AESCMACEncryptSw_base(const unsigned char* subkey, const unsigned char* dst_key, const unsigned char* subkey_key, std::uint32_t key_size, std::uint32_t size, const unsigned char* src, unsigned char* dst)
 {
    char aes_ctx[0x1F0] = {0};
    unsigned char drv_subkey[0x10] = {0};
@@ -414,7 +414,7 @@ int AESCMACEncryptSw_base(const unsigned char* subkey, const unsigned char* dst_
 
 // this is some CMAC variation but I am not sure ? both functions are similar but most likely ment to be dec / enc
 
-int xor_2(int* src, int* iv, int* dst, uint32_t size)
+int xor_2(int* src, int* iv, int* dst, std::uint32_t size)
 {
    int iv_cpy[4] = {0};
    memcpy(iv_cpy, iv, 0x10);
@@ -443,7 +443,7 @@ int xor_2(int* src, int* iv, int* dst, uint32_t size)
    return 0;
 }
 
-int AESCMACSw_base_1(const unsigned char* subkey, const unsigned char* dst_key, const unsigned char* subkey_key, uint32_t keysize, uint32_t size, const unsigned char* src, unsigned char* dst)
+int AESCMACSw_base_1(const unsigned char* subkey, const unsigned char* dst_key, const unsigned char* subkey_key, std::uint32_t keysize, std::uint32_t size, const unsigned char* src, unsigned char* dst)
 {
    char aes_ctx[0x1F0] = {0};
    unsigned char drv_subkey[0x10] = {0};
@@ -462,7 +462,7 @@ int AESCMACSw_base_1(const unsigned char* subkey, const unsigned char* dst_key, 
    return result0;
 }
 
-int AESCMACSw_base_2(const unsigned char* subkey, const unsigned char* dst_key, const unsigned char* subkey_key, uint32_t keysize, uint32_t size, const unsigned char* src, unsigned char* dst)
+int AESCMACSw_base_2(const unsigned char* subkey, const unsigned char* dst_key, const unsigned char* subkey_key, std::uint32_t keysize, std::uint32_t size, const unsigned char* src, unsigned char* dst)
 {
    char aes_ctx[0x1F0] = {0};
    unsigned char drv_subkey[0x10] = {0};

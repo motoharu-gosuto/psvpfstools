@@ -35,7 +35,7 @@ int node_size(int index)
 }
 
 //get order of the page (max number of hashes per page)
-int order_max_avail(uint32_t pagesize)
+int order_max_avail(std::uint32_t pagesize)
 {
   int index;
   //calculate max possible index until data size does not fit the page
@@ -60,7 +60,7 @@ int calculate_node_icv(sce_ng_pfs_header_t& ngh, unsigned char* secret, sce_ng_p
    if(node_header == 0)
       return -1;
 
-   uint32_t nEntries = node_header->nFiles;
+   std::uint32_t nEntries = node_header->nFiles;
    if (node_header->type > 0)
       nEntries++;
 

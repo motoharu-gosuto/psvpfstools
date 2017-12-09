@@ -6,7 +6,7 @@
 #include <fstream>
 #include <string>
 #include <vector>
-#include <stdint.h>
+#include <cstdint>
 #include <algorithm>
 #include <map>
 #include <iomanip>
@@ -163,7 +163,7 @@ bool parseFilesDb(unsigned char* klicensee, std::ifstream& inputStream, sce_ng_p
    //seek back to the beginning of tail
    inputStream.seekg(chunksBeginPos, std::ios_base::beg);
 
-   std::multimap<uint32_t, page_icv_data> page_icvs;
+   std::multimap<std::uint32_t, page_icv_data> page_icvs;
    unsigned char* raw_block_data = new unsigned char[header.pageSize];
 
    while(true)
@@ -198,7 +198,7 @@ bool parseFilesDb(unsigned char* klicensee, std::ifstream& inputStream, sce_ng_p
       }
 
       //read file records
-      for(uint32_t i = 0; i < block.header.nFiles; i++)
+      for(std::uint32_t i = 0; i < block.header.nFiles; i++)
       {
          block.files.push_back(sce_ng_pfs_file_header_t());
          sce_ng_pfs_file_header_t& fh = block.files.back();
@@ -206,11 +206,11 @@ bool parseFilesDb(unsigned char* klicensee, std::ifstream& inputStream, sce_ng_p
       }
 
       //skip / test / read unused data
-      uint32_t nUnused = MAX_FILES_IN_BLOCK - block.header.nFiles;
-      uint32_t nUnusedSize1 = nUnused * sizeof(sce_ng_pfs_file_header_t);
+      std::uint32_t nUnused = MAX_FILES_IN_BLOCK - block.header.nFiles;
+      std::uint32_t nUnusedSize1 = nUnused * sizeof(sce_ng_pfs_file_header_t);
       if(nUnusedSize1 > 0)
       {
-         std::vector<uint8_t> unusedData1(nUnusedSize1);
+         std::vector<std::uint8_t> unusedData1(nUnusedSize1);
          inputStream.read((char*)unusedData1.data(), nUnusedSize1);
 
          if(!isZeroVector(unusedData1))
@@ -226,7 +226,7 @@ bool parseFilesDb(unsigned char* klicensee, std::ifstream& inputStream, sce_ng_p
       //read file information records
       //looks like there are 9 + 1 records in total
       //some of the records may contain INVALID_FILE_INDEX as idx
-      for(uint32_t i = 0; i < 10; i++)
+      for(std::uint32_t i = 0; i < 10; i++)
       {
          block.infos.push_back(sce_ng_pfs_file_info_t());
          sce_ng_pfs_file_info_t& fi = block.infos.back();
@@ -260,7 +260,7 @@ bool parseFilesDb(unsigned char* klicensee, std::ifstream& inputStream, sce_ng_p
       }
 
       //read hash table
-      for(int32_t i = 0; i < 10; i++)
+      for(std::int32_t i = 0; i < 10; i++)
       {
          block.hashes.push_back(sce_ng_pfs_hash_t());
          sce_ng_pfs_hash_t& h = block.hashes.back();
@@ -309,19 +309,19 @@ bool parseFilesDb(unsigned char* klicensee, std::ifstream& inputStream, sce_ng_p
 }
 
 //build child index -> parent index relationship map
-bool constructDirmatrix(const std::vector<sce_ng_pfs_block_t>& blocks, std::map<uint32_t, uint32_t>& dirMatrix)
+bool constructDirmatrix(const std::vector<sce_ng_pfs_block_t>& blocks, std::map<std::uint32_t, std::uint32_t>& dirMatrix)
 {   
    std::cout << "Building directory matrix..." << std::endl;
 
    for(auto& block : blocks)
    {
-      for(uint32_t i = 0; i < block.header.nFiles; i++)
+      for(std::uint32_t i = 0; i < block.header.nFiles; i++)
       {
          if(block.infos[i].type != normal_directory && block.infos[i].type != unk_directory)
             continue;
 
-         uint32_t child = block.infos[i].idx;
-         uint32_t parent = block.files[i].index;
+         std::uint32_t child = block.infos[i].idx;
+         std::uint32_t parent = block.files[i].index;
 
          std::string fileName = std::string((const char*)block.files[i].fileName);
 
@@ -354,19 +354,19 @@ bool constructDirmatrix(const std::vector<sce_ng_pfs_block_t>& blocks, std::map<
 }
 
 //build child index -> parent index relationship map
-bool constructFileMatrix(const std::vector<sce_ng_pfs_block_t>& blocks, std::map<uint32_t, uint32_t>& fileMatrix)
+bool constructFileMatrix(const std::vector<sce_ng_pfs_block_t>& blocks, std::map<std::uint32_t, std::uint32_t>& fileMatrix)
 {
    std::cout << "Building file matrix..." << std::endl;
 
    for(auto& block : blocks)
    {
-      for(uint32_t i = 0; i < block.header.nFiles; i++)
+      for(std::uint32_t i = 0; i < block.header.nFiles; i++)
       {
          if(block.infos[i].type == normal_directory || block.infos[i].type == unk_directory)
             continue;
 
-         uint32_t child = block.infos[i].idx;
-         uint32_t parent = block.files[i].index;
+         std::uint32_t child = block.infos[i].idx;
+         std::uint32_t parent = block.files[i].index;
 
          std::string fileName = std::string((const char*)block.files[i].fileName);
 
@@ -411,7 +411,7 @@ void flattenBlocks(const std::vector<sce_ng_pfs_block_t>& blocks, std::vector<sc
 
    for(auto& block : blocks)
    {
-      for(uint32_t i = 0; i < block.header.nFiles; i++)
+      for(std::uint32_t i = 0; i < block.header.nFiles; i++)
       {
          //have to skip unexisting files
          if(block.infos[i].size == 0 && block.infos[i].type == unexisting)
@@ -429,7 +429,7 @@ void flattenBlocks(const std::vector<sce_ng_pfs_block_t>& blocks, std::vector<sc
 }
 
 //find directory flat block by index
-const std::vector<sce_ng_pfs_flat_block_t>::const_iterator findFlatBlockDir(const std::vector<sce_ng_pfs_flat_block_t>& flatBlocks, uint32_t index)
+const std::vector<sce_ng_pfs_flat_block_t>::const_iterator findFlatBlockDir(const std::vector<sce_ng_pfs_flat_block_t>& flatBlocks, std::uint32_t index)
 {
    size_t i = 0;
    for(auto& block : flatBlocks)
@@ -443,7 +443,7 @@ const std::vector<sce_ng_pfs_flat_block_t>::const_iterator findFlatBlockDir(cons
 }
 
 //find file flat block by index
-const std::vector<sce_ng_pfs_flat_block_t>::const_iterator findFlatBlockFile(const std::vector<sce_ng_pfs_flat_block_t>& flatBlocks, uint32_t index)
+const std::vector<sce_ng_pfs_flat_block_t>::const_iterator findFlatBlockFile(const std::vector<sce_ng_pfs_flat_block_t>& flatBlocks, std::uint32_t index)
 {
    size_t i = 0;
    for(auto& block : flatBlocks)
@@ -456,17 +456,17 @@ const std::vector<sce_ng_pfs_flat_block_t>::const_iterator findFlatBlockFile(con
    return flatBlocks.end();
 }
 
-bool constructDirPaths(boost::filesystem::path rootPath, std::map<uint32_t, uint32_t>& dirMatrix, const std::vector<sce_ng_pfs_flat_block_t>& flatBlocks, std::vector<sce_ng_pfs_dir_t>& dirsResult)
+bool constructDirPaths(boost::filesystem::path rootPath, std::map<std::uint32_t, std::uint32_t>& dirMatrix, const std::vector<sce_ng_pfs_flat_block_t>& flatBlocks, std::vector<sce_ng_pfs_dir_t>& dirsResult)
 {
    std::cout << "Building dir paths..." << std::endl;
 
    for(auto& dir_entry : dirMatrix)
    {
       //start searching from dir up to root
-      uint32_t childIndex = dir_entry.first;
-      uint32_t parentIndex = dir_entry.second;
+      std::uint32_t childIndex = dir_entry.first;
+      std::uint32_t parentIndex = dir_entry.second;
 
-      std::vector<uint32_t> indexes;
+      std::vector<std::uint32_t> indexes;
 
       //search till the root - get all indexes for the path
       while(parentIndex != 0)
@@ -534,17 +534,17 @@ bool constructDirPaths(boost::filesystem::path rootPath, std::map<uint32_t, uint
 //fileMatrix - connection matrix for files [input]
 //flatBlocks - flat list of blocks in files.db [input]
 //filesResult - list of filepaths linked to file flat block and directory flat blocks
-bool constructFilePaths(boost::filesystem::path rootPath, std::map<uint32_t, uint32_t>& dirMatrix, const std::map<uint32_t, uint32_t>& fileMatrix, const std::vector<sce_ng_pfs_flat_block_t>& flatBlocks, std::vector<sce_ng_pfs_file_t>& filesResult)
+bool constructFilePaths(boost::filesystem::path rootPath, std::map<std::uint32_t, std::uint32_t>& dirMatrix, const std::map<std::uint32_t, std::uint32_t>& fileMatrix, const std::vector<sce_ng_pfs_flat_block_t>& flatBlocks, std::vector<sce_ng_pfs_file_t>& filesResult)
 {
    std::cout << "Building file paths..." << std::endl;
 
    for(auto& file_entry : fileMatrix)
    {
       //start searching from file up to root
-      uint32_t childIndex = file_entry.first;
-      uint32_t parentIndex = file_entry.second;
+      std::uint32_t childIndex = file_entry.first;
+      std::uint32_t parentIndex = file_entry.second;
 
-      std::vector<uint32_t> indexes;
+      std::vector<std::uint32_t> indexes;
 
       //search till the root - get all indexes for the path
       while(parentIndex != 0)
@@ -646,7 +646,7 @@ bool validateDirpaths(std::vector<sce_ng_pfs_dir_t>& dirs)
 
 //checks that files exist
 //checks that file size is correct
-bool validateFilepaths(uint32_t fileSectorSize, std::vector<sce_ng_pfs_file_t>& files)
+bool validateFilepaths(std::uint32_t fileSectorSize, std::vector<sce_ng_pfs_file_t>& files)
 {
    std::cout << "Validating file paths..." << std::endl;
 
@@ -660,7 +660,7 @@ bool validateFilepaths(uint32_t fileSectorSize, std::vector<sce_ng_pfs_file_t>& 
          return false;
       }
       
-      uint64_t size = boost::filesystem::file_size(file.path);
+      std::uint64_t size = boost::filesystem::file_size(file.path);
       if(size != file.file.info.size)
       {
          if((size % fileSectorSize) > 0)
@@ -752,12 +752,12 @@ int parseFilesDb(unsigned char* klicensee, boost::filesystem::path titleIdPath, 
       return -1;
 
    //build child index -> parent index relationship map
-   std::map<uint32_t, uint32_t> dirMatrix;
+   std::map<std::uint32_t, std::uint32_t> dirMatrix;
    if(!constructDirmatrix(blocks, dirMatrix))
       return -1;
 
    //build child index -> parent index relationship map
-   std::map<uint32_t, uint32_t> fileMatrix;
+   std::map<std::uint32_t, std::uint32_t> fileMatrix;
    if(!constructFileMatrix(blocks, fileMatrix))
       return -1;
    
