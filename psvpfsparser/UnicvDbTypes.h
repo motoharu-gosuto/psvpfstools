@@ -5,7 +5,13 @@
 
 #include <boost/filesystem.hpp>
 
-//i guess this is sony computer entertainment inc readonly database
+//some terms
+//SCEIRODB (magic word) - sony computer entertainment interface readonly database (unicv file)
+//SCEIFTBL (magic word) - sce interface file table (file record in unicv)
+//SCEICVDB (magic word) - sce interface C vector database (icv file corresponding to real file)
+//SCEINULL (magic word) - sce interface NULL (icv file corresponding to real directory)
+//SCEUNICV (this is not a magic word) - sce unified interface C vector (icv files packed into one binary)
+
 #define DB_MAGIC_WORD "SCEIRODB"
 
 #define FT_MAGIC_WORD "SCEIFTBL"
