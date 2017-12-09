@@ -4,7 +4,7 @@
 #include "Utils.h"
 #include "HashTree.h"
 
-bool scei_rodb_header_proxy_t::validate(std::uint64_t fileSize) const
+bool sce_irodb_header_proxy_t::validate(std::uint64_t fileSize) const
 {
    //check file size field
    if(fileSize != (m_header.dataSize + m_header.blockSize)) //do not forget to count header
@@ -49,10 +49,10 @@ bool scei_rodb_header_proxy_t::validate(std::uint64_t fileSize) const
    return true;
 }
 
-bool scei_rodb_header_proxy_t::read(std::ifstream& inputStream, std::uint64_t fileSize)
+bool sce_irodb_header_proxy_t::read(std::ifstream& inputStream, std::uint64_t fileSize)
 {
    //read header
-   inputStream.read((char*)&m_header, sizeof(scei_rodb_header_t));
+   inputStream.read((char*)&m_header, sizeof(sce_irodb_header_t));
 
    if(!validate(fileSize))
       return false;
@@ -64,7 +64,7 @@ bool scei_rodb_header_proxy_t::read(std::ifstream& inputStream, std::uint64_t fi
 
 //============
 
-bool sig_tbl_header_base_t::validate(std::shared_ptr<scei_ftbl_base_t> fft, std::uint32_t sizeCheck) const
+bool sig_tbl_header_base_t::validate(std::shared_ptr<sce_iftbl_base_t> fft, std::uint32_t sizeCheck) const
 {
    if(m_header.binTreeSize != binTreeSize(0x14, fft->get_header()->get_binTreeNumMaxAvail()))
    {
@@ -96,7 +96,7 @@ bool sig_tbl_header_base_t::validate(std::shared_ptr<scei_ftbl_base_t> fft, std:
    return true;
 }
 
-bool sig_tbl_header_base_t::read(std::ifstream& inputStream, std::shared_ptr<scei_ftbl_base_t> fft, std::uint32_t sizeCheck, std::vector<std::vector<std::uint8_t> >& signatures)
+bool sig_tbl_header_base_t::read(std::ifstream& inputStream, std::shared_ptr<sce_iftbl_base_t> fft, std::uint32_t sizeCheck, std::vector<std::vector<std::uint8_t> >& signatures)
 {
    //read header
    inputStream.read((char*)&m_header, sizeof(sig_tbl_header_t));
@@ -144,7 +144,7 @@ bool sig_tbl_header_normal_t::validate_tail(const std::vector<std::uint8_t>& dat
    return true;
 }
 
-bool sig_tbl_header_merlke_t::read(std::ifstream& inputStream, std::shared_ptr<scei_ftbl_base_t> fft, std::uint32_t sizeCheck, std::vector<std::vector<std::uint8_t> >& signatures)
+bool sig_tbl_header_merlke_t::read(std::ifstream& inputStream, std::shared_ptr<sce_iftbl_base_t> fft, std::uint32_t sizeCheck, std::vector<std::vector<std::uint8_t> >& signatures)
 {
    //read weird 0x10 byte zero header which makes the data not being aligned on page boder
    unsigned char zero_header[0x10];
@@ -166,7 +166,7 @@ bool sig_tbl_header_merlke_t::validate_tail(const std::vector<std::uint8_t>& dat
 
 //===========
 
-bool scei_ftbl_header_proxy_t::validate() const
+bool sce_iftbl_header_proxy_t::validate() const
 {
    //check that block size is expected
    //this will allow to fail if there are any other unexpected block sizes
@@ -214,14 +214,14 @@ bool scei_ftbl_header_proxy_t::validate() const
    return true;
 }
 
-bool scei_ftbl_header_proxy_t::read(std::ifstream& inputStream)
+bool sce_iftbl_header_proxy_t::read(std::ifstream& inputStream)
 {
-   inputStream.read((char*)&m_header, sizeof(scei_ftbl_header_t));
+   inputStream.read((char*)&m_header, sizeof(sce_iftbl_header_t));
    return true;
 }
 
 
-bool scei_cvdb_header_proxy_t::validate() const
+bool sce_icvdb_header_proxy_t::validate() const
 {
    if(m_header.pageSize != EXPECTED_PAGE_SIZE)
    {
@@ -270,14 +270,14 @@ bool scei_cvdb_header_proxy_t::validate() const
    return true;
 }
 
-bool scei_cvdb_header_proxy_t::read(std::ifstream& inputStream)
+bool sce_icvdb_header_proxy_t::read(std::ifstream& inputStream)
 {
-   inputStream.read((char*)&m_header, sizeof(scei_cvdb_header_t));
+   inputStream.read((char*)&m_header, sizeof(sce_icvdb_header_t));
    return true;
 }
 
 
-bool scei_null_header_proxy_t::validate() const
+bool sce_inull_header_proxy_t::validate() const
 {
    if(std::string((const char*)m_header.magic, 8) != NULL_MAGIC_WORD)
    {
@@ -312,9 +312,9 @@ bool scei_null_header_proxy_t::validate() const
    return true;
 }
 
-bool scei_null_header_proxy_t::read(std::ifstream& inputStream)
+bool sce_inull_header_proxy_t::read(std::ifstream& inputStream)
 {
-   inputStream.read((char*)&m_header, sizeof(scei_null_header_t));
+   inputStream.read((char*)&m_header, sizeof(sce_inull_header_t));
    return true;
 }
 
@@ -332,33 +332,33 @@ std::shared_ptr<sig_tbl_header_base_t> magic_to_sig_tbl(std::string type)
       throw std::runtime_error("wrong magic");
 }
 
-std::shared_ptr<scei_ftbl_header_base_t> magic_to_ftbl_header(std::string type)
+std::shared_ptr<sce_iftbl_header_base_t> magic_to_ftbl_header(std::string type)
 {
    if(type == FT_MAGIC_WORD)
-      return std::make_shared<scei_ftbl_header_proxy_t>();
+      return std::make_shared<sce_iftbl_header_proxy_t>();
    else if(type == CV_DB_MAGIC_WORD)
-      return std::make_shared<scei_cvdb_header_proxy_t>();
+      return std::make_shared<sce_icvdb_header_proxy_t>();
    else if(type == NULL_MAGIC_WORD)
-      return std::make_shared<scei_null_header_proxy_t>();
+      return std::make_shared<sce_inull_header_proxy_t>();
    else
       throw std::runtime_error("wrong magic");
 }
 
-std::shared_ptr<scei_ftbl_base_t> magic_to_ftbl(std::string type)
+std::shared_ptr<sce_iftbl_base_t> magic_to_ftbl(std::string type)
 {
    if(type == FT_MAGIC_WORD)
-      return std::make_shared<scei_ftbl_proxy_t>(magic_to_ftbl_header(type));
+      return std::make_shared<sce_iftbl_proxy_t>(magic_to_ftbl_header(type));
    else if(type == CV_DB_MAGIC_WORD)
-      return std::make_shared<scei_cvdb_proxy_t>(magic_to_ftbl_header(type));
+      return std::make_shared<sce_icvdb_proxy_t>(magic_to_ftbl_header(type));
    else if(type == NULL_MAGIC_WORD)
-      return std::make_shared<scei_null_proxy_t>(magic_to_ftbl_header(type));
+      return std::make_shared<sce_inull_proxy_t>(magic_to_ftbl_header(type));
    else
       throw std::runtime_error("wrong magic");
 }
 
 //===========
 
-bool scei_ftbl_base_t::read(std::ifstream& inputStream, std::uint64_t& index)
+bool sce_iftbl_base_t::read(std::ifstream& inputStream, std::uint64_t& index)
 {
    //read header
    if(!m_header->read(inputStream))
@@ -371,7 +371,7 @@ bool scei_ftbl_base_t::read(std::ifstream& inputStream, std::uint64_t& index)
    return true;
 }
 
-bool scei_ftbl_base_t::read_block(std::ifstream& inputStream, std::uint64_t& index, std::uint32_t sizeCheck)
+bool sce_iftbl_base_t::read_block(std::ifstream& inputStream, std::uint64_t& index, std::uint32_t sizeCheck)
 {
    //create new signature block
    m_blocks.push_back(sig_tbl_t(magic_to_sig_tbl(m_header->get_magic())));
@@ -386,11 +386,11 @@ bool scei_ftbl_base_t::read_block(std::ifstream& inputStream, std::uint64_t& ind
    return true;
 }
 
-bool scei_ftbl_cvdb_proxy_t::read(std::ifstream& inputStream, std::uint64_t& index)
+bool sce_iftbl_cvdb_proxy_t::read(std::ifstream& inputStream, std::uint64_t& index)
 {
    int64_t currentBlockPos = inputStream.tellg();
    
-   if(!scei_ftbl_base_t::read(inputStream, index))
+   if(!sce_iftbl_base_t::read(inputStream, index))
       return false;
 
    m_page = off2page_unicv(currentBlockPos, m_header->get_pageSize());
@@ -447,14 +447,14 @@ bool scei_ftbl_cvdb_proxy_t::read(std::ifstream& inputStream, std::uint64_t& ind
 
 //===========
 
-bool scei_db_base_t::read_table_item(std::ifstream& inputStream, std::uint64_t& index)
+bool sce_idb_base_t::read_table_item(std::ifstream& inputStream, std::uint64_t& index)
 {
    std::uint8_t magic[8];
    inputStream.read((char*)magic, sizeof(magic));
    inputStream.seekg(-8, std::ios::cur);
 
    m_tables.push_back(magic_to_ftbl(std::string((char*)magic, sizeof(magic))));
-   std::shared_ptr<scei_ftbl_base_t>& fft = m_tables.back();
+   std::shared_ptr<sce_iftbl_base_t>& fft = m_tables.back();
 
    if(!fft->read(inputStream, index))
       return false;
@@ -462,7 +462,7 @@ bool scei_db_base_t::read_table_item(std::ifstream& inputStream, std::uint64_t& 
    return true;
 }
 
-bool scei_rodb_t::read(boost::filesystem::path filepath)
+bool sce_irodb_t::read(boost::filesystem::path filepath)
 {
    std::ifstream inputStream(filepath.generic_string().c_str(), std::ios::in | std::ios::binary);
 
@@ -519,7 +519,7 @@ bool scei_rodb_t::read(boost::filesystem::path filepath)
    return true;
 }
 
-bool scei_icv_t::read(boost::filesystem::path filepath)
+bool sce_icvdb_t::read(boost::filesystem::path filepath)
 {
    std::uint64_t index = 0;
    for(auto& entry : boost::make_iterator_range(boost::filesystem::directory_iterator(filepath), boost::filesystem::directory_iterator()))

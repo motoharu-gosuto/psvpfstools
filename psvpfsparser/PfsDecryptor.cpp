@@ -56,7 +56,7 @@ std::string brutforce_hashes(std::map<std::string, std::vector<std::uint8_t>>& f
    }
 }
 
-int bruteforce_map(boost::filesystem::path titleIdPath, unsigned char* klicensee, sce_ng_pfs_header_t& ngpfs, std::shared_ptr<scei_db_base_t> fdb, std::map<std::uint32_t, std::string>& pageMap, std::set<std::string>& emptyFiles)
+int bruteforce_map(boost::filesystem::path titleIdPath, unsigned char* klicensee, sce_ng_pfs_header_t& ngpfs, std::shared_ptr<sce_idb_base_t> fdb, std::map<std::uint32_t, std::string>& pageMap, std::set<std::string>& emptyFiles)
 {
    std::cout << "Building unicv.db -> files.db relation..." << std::endl;
 
@@ -122,7 +122,7 @@ int bruteforce_map(boost::filesystem::path titleIdPath, unsigned char* klicensee
       }
    }
 
-   //brutforce each scei_ftbl_t record
+   //brutforce each sce_iftbl_t record
    for(auto& t : fdb->m_tables)
    {
       //process only files that are not empty
@@ -197,7 +197,7 @@ CryptEngineData g_data;
 CryptEngineSubctx g_sub_ctx;
 std::vector<std::uint8_t> g_signatureTable;
 
-void init_crypt_ctx(CryptEngineWorkCtx* work_ctx, unsigned char* klicensee, sce_ng_pfs_header_t& ngpfs, std::shared_ptr<scei_ftbl_base_t> table, sig_tbl_t& block, std::uint32_t sector_base, std::uint32_t tail_size, unsigned char* source)
+void init_crypt_ctx(CryptEngineWorkCtx* work_ctx, unsigned char* klicensee, sce_ng_pfs_header_t& ngpfs, std::shared_ptr<sce_iftbl_base_t> table, sig_tbl_t& block, std::uint32_t sector_base, std::uint32_t tail_size, unsigned char* source)
 {     
    memset(&g_data, 0, sizeof(CryptEngineData));
    g_data.klicensee = klicensee;
@@ -253,7 +253,7 @@ void init_crypt_ctx(CryptEngineWorkCtx* work_ctx, unsigned char* klicensee, sce_
    work_ctx->error = 0;
 }
 
-int decrypt_file(boost::filesystem::path titleIdPath, boost::filesystem::path destination_root, const sce_ng_pfs_file_t& file, boost::filesystem::path filepath, unsigned char* klicensee, sce_ng_pfs_header_t& ngpfs, std::shared_ptr<scei_ftbl_base_t> table)
+int decrypt_file(boost::filesystem::path titleIdPath, boost::filesystem::path destination_root, const sce_ng_pfs_file_t& file, boost::filesystem::path filepath, unsigned char* klicensee, sce_ng_pfs_header_t& ngpfs, std::shared_ptr<sce_iftbl_base_t> table)
 {
    //construct new path
    std::string old_root = titleIdPath.generic_string();
@@ -512,7 +512,7 @@ std::vector<sce_ng_pfs_file_t>::const_iterator find_file_by_path(std::vector<sce
    return files.end();
 }
 
-int decrypt_files(boost::filesystem::path titleIdPath, boost::filesystem::path destTitleIdPath, unsigned char* klicensee, sce_ng_pfs_header_t& ngpfs, std::vector<sce_ng_pfs_file_t>& files, std::vector<sce_ng_pfs_dir_t>& dirs, std::shared_ptr<scei_db_base_t> fdb, std::map<std::uint32_t, std::string>& pageMap, std::set<std::string>& emptyFiles)
+int decrypt_files(boost::filesystem::path titleIdPath, boost::filesystem::path destTitleIdPath, unsigned char* klicensee, sce_ng_pfs_header_t& ngpfs, std::vector<sce_ng_pfs_file_t>& files, std::vector<sce_ng_pfs_dir_t>& dirs, std::shared_ptr<sce_idb_base_t> fdb, std::map<std::uint32_t, std::string>& pageMap, std::set<std::string>& emptyFiles)
 {
    std::cout << "Creating directories..." << std::endl;
 

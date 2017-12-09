@@ -75,7 +75,7 @@ int execute(PsvPfsParserConfig& cfg)
    if(parseFilesDb(klicensee, titleIdPath, header, files, dirs) < 0)
       return -1;
 
-   std::shared_ptr<scei_db_base_t> unicv;
+   std::shared_ptr<sce_idb_base_t> unicv;
    if(parseUnicvDb(titleIdPath, unicv) < 0)
       return -1;
 

@@ -11,7 +11,7 @@
 
 #include "UnicvDbTypes.h"
 
-int parseUnicvDb(boost::filesystem::path titleIdPath, std::shared_ptr<scei_db_base_t>& fdb)
+int parseUnicvDb(boost::filesystem::path titleIdPath, std::shared_ptr<sce_idb_base_t>& fdb)
 {
    std::cout << "parsing  unicv.db..." << std::endl;
 
@@ -29,7 +29,7 @@ int parseUnicvDb(boost::filesystem::path titleIdPath, std::shared_ptr<scei_db_ba
       }
       else
       {
-         fdb = std::make_shared<scei_icv_t>();
+         fdb = std::make_shared<sce_icvdb_t>();
          if(!fdb->read(filepath2))
             return -1;
 
@@ -38,7 +38,7 @@ int parseUnicvDb(boost::filesystem::path titleIdPath, std::shared_ptr<scei_db_ba
    }
    else
    {
-      fdb = std::make_shared<scei_rodb_t>();
+      fdb = std::make_shared<sce_irodb_t>();
       if(!fdb->read(filepath))
          return -1;
 

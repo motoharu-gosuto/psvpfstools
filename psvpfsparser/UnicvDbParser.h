@@ -2,4 +2,4 @@
 
 #include "UnicvDbTypes.h"
 
-int parseUnicvDb(boost::filesystem::path titleIdPath, std::shared_ptr<scei_db_base_t>& fdb);
+int parseUnicvDb(boost::filesystem::path titleIdPath, std::shared_ptr<sce_idb_base_t>& fdb);
