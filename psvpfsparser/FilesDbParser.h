@@ -13,6 +13,9 @@
 #include <iomanip>
 
 #include <boost/filesystem.hpp>
+#include <boost/algorithm/string.hpp>
+
+#include "Utils.h"
 
 #pragma pack(push, 1)
 
@@ -146,16 +149,46 @@ struct sce_ng_pfs_flat_block_t
 
 struct sce_ng_pfs_file_t
 {
-   boost::filesystem::path path;
+private:
+   sce_junction m_path;
+
+public:
    sce_ng_pfs_flat_block_t file;
    std::vector<sce_ng_pfs_flat_block_t> dirs;
+
+   sce_ng_pfs_file_t(const sce_junction& p)
+      : m_path(p)
+   {
+
+   }
+
+public:
+   const sce_junction& path() const
+   {
+      return m_path;
+   }
 };
 
 struct sce_ng_pfs_dir_t
 {
-   boost::filesystem::path path;
+private:
+   sce_junction m_path;
+
+public:
    sce_ng_pfs_flat_block_t dir;
    std::vector<sce_ng_pfs_flat_block_t> dirs;
+
+   sce_ng_pfs_dir_t(const sce_junction& p)
+      : m_path(p)
+   {
+
+   }
+
+public:
+   const sce_junction& path() const
+   {
+      return m_path;
+   }
 };
 
 #pragma pack(pop)

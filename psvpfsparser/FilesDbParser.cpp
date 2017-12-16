@@ -20,8 +20,6 @@
 #include "FilesDbParser.h"
 #include "UnicvDbParser.h"
 
-#include "Utils.h"
-
 #include "SecretGenerator.h"
 #include "NodeIcvCalculator.h"
 #include "HashTree.h"
@@ -35,7 +33,7 @@ bool verify_header(std::ifstream& inputStream, sce_ng_pfs_header_t& header, unsi
    //verify header signature
    
    char rsa_sig0_copy[0x100];
-   char icv_hmac_sig_copy[0x100];
+   char icv_hmac_sig_copy[0x14];
    
    memcpy(rsa_sig0_copy, header.rsa_sig0, 0x100);
    memcpy(icv_hmac_sig_copy, header.header_sig, 0x14);
@@ -58,12 +56,12 @@ bool verify_header(std::ifstream& inputStream, sce_ng_pfs_header_t& header, unsi
    int64_t chunksBeginPos = inputStream.tellg();
 
    //map page to offset
-   int64_t offset = page2off_files(header.root_icv_page_number, header.pageSize);
+   int64_t offset = page2off(header.root_icv_page_number, header.pageSize);
 
    //read raw data at offset
    inputStream.seekg(offset, std::ios_base::beg);
-   unsigned char root_block_raw_data[0x400];
-   inputStream.read((char*)root_block_raw_data, 0x400);
+   std::vector<unsigned char> root_block_raw_data(header.pageSize);
+   inputStream.read((char*)root_block_raw_data.data(), header.pageSize);
 
    //seek back to the beginning of the page
    inputStream.seekg(offset, std::ios_base::beg);
@@ -73,7 +71,7 @@ bool verify_header(std::ifstream& inputStream, sce_ng_pfs_header_t& header, unsi
    inputStream.read((char*)&root_node_header, sizeof(sce_ng_pfs_block_header_t));
 
    unsigned char root_icv[0x14];
-   if(calculate_node_icv(header, secret, &root_node_header, root_block_raw_data, root_icv) < 0)
+   if(calculate_node_icv(header, secret, &root_node_header, root_block_raw_data.data(), root_icv) < 0)
    {
       std::cout << "failed to calculate root icv" << std::endl;
       return false;
@@ -164,7 +162,7 @@ bool parseFilesDb(unsigned char* klicensee, std::ifstream& inputStream, sce_ng_p
    inputStream.seekg(chunksBeginPos, std::ios_base::beg);
 
    std::multimap<std::uint32_t, page_icv_data> page_icvs;
-   unsigned char* raw_block_data = new unsigned char[header.pageSize];
+   std::vector<unsigned char> raw_block_data(header.pageSize);
 
    while(true)
    {
@@ -177,7 +175,7 @@ bool parseFilesDb(unsigned char* klicensee, std::ifstream& inputStream, sce_ng_p
       sce_ng_pfs_block_t& block = blocks.back();
 
       //assign page number
-      block.page = off2page_files(currentBlockPos, header.pageSize);
+      block.page = off2page(currentBlockPos, header.pageSize);
 
       //read header
       inputStream.read((char*)&block.header, sizeof(sce_ng_pfs_block_header_t));
@@ -278,22 +276,22 @@ bool parseFilesDb(unsigned char* klicensee, std::ifstream& inputStream, sce_ng_p
 
       //re read block
       inputStream.seekg(-(int64_t)header.pageSize, std::ios::cur);
-      inputStream.read((char*)raw_block_data, header.pageSize);
+      inputStream.read((char*)raw_block_data.data(), header.pageSize);
 
+      //calculate icv of the page
       page_icv_data icv;
       icv.offset = currentBlockPos;
-      icv.page = off2page_files(currentBlockPos, header.pageSize);
+      icv.page = off2page(currentBlockPos, header.pageSize);
 
-      if(calculate_node_icv( header, secret, &block.header, raw_block_data, icv.icv) < 0)
+      if(calculate_node_icv( header, secret, &block.header, raw_block_data.data(), icv.icv) < 0)
       {
          std::cout << "failed to calculate icv" << std::endl;
          return false;
       }
 
+      //add icv to the list
       page_icvs.insert(std::make_pair(block.header.parent_page_number, icv));
    }
-
-   delete[] raw_block_data;
 
    std::cout << "Validating hash tree..." << std::endl;
 
@@ -518,9 +516,11 @@ bool constructDirPaths(boost::filesystem::path rootPath, std::map<std::uint32_t,
       }
       path /= dirName;
 
-      dirsResult.push_back(sce_ng_pfs_dir_t());
+      //use generic string here to normalize the path !
+      sce_junction p(path.generic_string());
+
+      dirsResult.push_back(sce_ng_pfs_dir_t(p));
       sce_ng_pfs_dir_t& ft = dirsResult.back();
-      ft.path = boost::filesystem::path(path.generic_string()); //reconstruct generic path
       ft.dir = *dirFlatBlock;
       ft.dirs = dirFlatBlocks;
    }
@@ -596,9 +596,11 @@ bool constructFilePaths(boost::filesystem::path rootPath, std::map<std::uint32_t
       }
       path /= fileName;
 
-      filesResult.push_back(sce_ng_pfs_file_t());
+      //use generic string here to normalize the path !
+      sce_junction p(path.generic_string());
+
+      filesResult.push_back(sce_ng_pfs_file_t(p));
       sce_ng_pfs_file_t& ft = filesResult.back();
-      ft.path = boost::filesystem::path(path.generic_string()); //reconstruct generic path
       ft.file = *fileFlatBlock;
       ft.dirs = dirFlatBlocks;
    }
@@ -628,15 +630,27 @@ std::string fileTypeToString(sce_ng_pfs_file_types ft)
 }
 
 //checks that directory exists
-bool validateDirpaths(std::vector<sce_ng_pfs_dir_t>& dirs)
+bool linkDirpaths(std::vector<sce_ng_pfs_dir_t>& dirs, std::set<boost::filesystem::path> real_directories)
 {
-   std::cout << "Validating dir paths..." << std::endl;
+   std::cout << "Linking dir paths..." << std::endl;
 
    for(auto& dir : dirs)
    {
-      if(!boost::filesystem::exists(dir.path))
+      //comparison should be done with is_equal (upper case) so it can not be replaced by .find()
+      bool found = false;
+      for(auto& real_dir : real_directories)
       {
-         std::cout << "Directory " << dir.path.generic_string() << " does not exist" << std::endl;
+         if(dir.path().is_equal(real_dir))
+         {
+            dir.path().link_to_real(real_dir);
+            found = true;
+            break;
+         }
+      }
+      
+      if(!found)
+      {
+         std::cout << "Directory " << dir.path() << " does not exist" << std::endl;
          return false;
       }
    }
@@ -646,54 +660,67 @@ bool validateDirpaths(std::vector<sce_ng_pfs_dir_t>& dirs)
 
 //checks that files exist
 //checks that file size is correct
-bool validateFilepaths(std::uint32_t fileSectorSize, std::vector<sce_ng_pfs_file_t>& files)
+bool linkFilepaths(std::uint32_t fileSectorSize, std::vector<sce_ng_pfs_file_t>& files, std::set<boost::filesystem::path> real_files)
 {
-   std::cout << "Validating file paths..." << std::endl;
+   std::cout << "Linking file paths..." << std::endl;
 
    for(auto& file : files)
    {
-      //std::cout << file.path << " : ";
-      
-      if(!boost::filesystem::exists(file.path))
+      //comparison should be done with is_equal (upper case) so it can not be replaced by .find()
+      bool found = false;
+      for(auto& real_file : real_files)
       {
-         std::cout << "File " << file.path.generic_string() << " does not exist" << std::endl;
+         if(file.path().is_equal(real_file))
+         {
+            file.path().link_to_real(real_file);
+            found = true;
+            break;
+         }
+      }
+
+      if(!found)
+      {
+         std::cout << "File " << file.path() << " does not exist" << std::endl;
          return false;
       }
-      
-      std::uint64_t size = boost::filesystem::file_size(file.path);
+
+      boost::uintmax_t size = file.path().file_size();
       if(size != file.file.info.size)
       {
          if((size % fileSectorSize) > 0)
          {
-            std::cout << "File " << file.path.generic_string() << " size incorrect" << std::endl;
+            std::cout << "File " << file.path() << " size incorrect" << std::endl;
             return false;
          }
       }
-
-      //std::cout << fileTypeToString(file.file.info.type)<< " : ";
-
-      //std::cout << std::hex << std::setw(8) << std::setfill('0') << file.file.info.size << std::endl;
    }
 
    return true;
 }
 
 //returns number of extra files in real file system which are not present in files.db
-int match_file_lists(std::vector<sce_ng_pfs_file_t>& filesResult, std::set<std::string> files)
+int match_file_lists(const std::vector<sce_ng_pfs_file_t>& filesResult, const std::set<boost::filesystem::path>& files)
 {
    std::cout << "Matching file paths..." << std::endl;
-
-   std::set<std::string> fileResultPaths;
-
-   for(auto& f :  filesResult)
-      fileResultPaths.insert(f.path.string());
 
    int real_extra = 0;
 
    bool print = false;
-   for(auto& p : files)
+   for(auto& rp : files)
    {
-      if(fileResultPaths.find(p) == fileResultPaths.end())
+      bool found = false;
+
+      //comparison should be done with is_equal (upper case) so it can not be replaced by .find()
+      for(auto& vp : filesResult)
+      {
+         if(vp.path().is_equal(rp))
+         {
+            found = true;
+            break;
+         }
+      }
+
+      if(!found)
       {
          if(!print)
          {
@@ -701,15 +728,27 @@ int match_file_lists(std::vector<sce_ng_pfs_file_t>& filesResult, std::set<std::
             print = true;
          }
 
-         std::cout << p << std::endl;
+         std::cout << rp.generic_string() << std::endl;
          real_extra++;
       }
    }
 
    print = false;
-   for(auto& p : fileResultPaths)
+   for(auto& vp : filesResult)
    {
-      if(files.find(p) == files.end())
+      bool found = false;
+
+      //comparison should be done with is_equal (upper case) so it can not be replaced by .find()
+      for(auto& rp : files)
+      {
+         if(vp.path().is_equal(rp))
+         {
+            found = true;
+            break;
+         }
+      }
+
+      if(!found)
       {
          if(!print)
          {
@@ -717,7 +756,7 @@ int match_file_lists(std::vector<sce_ng_pfs_file_t>& filesResult, std::set<std::
             print = true;
          }
 
-         std::cout << p << std::endl;
+         std::cout << vp.path() << std::endl;
       }
    }
 
@@ -774,18 +813,18 @@ int parseFilesDb(unsigned char* klicensee, boost::filesystem::path titleIdPath, 
    if(!constructFilePaths(root, dirMatrix, fileMatrix, flatBlocks, filesResult))
       return -1;
 
-   //validate result dirs (path)
-   if(!validateDirpaths(dirsResult))
-      return -1;
-
-   //validate result files (path, size)
-   if(!validateFilepaths(EXPECTED_FILE_SECTOR_SIZE, filesResult))
-      return -1;
-
-   //match on existing files in filesystem
-   std::set<std::string> files;
-   std::set<std::string> directories;
+   //get the list of real filesystem paths
+   std::set<boost::filesystem::path> files;
+   std::set<boost::filesystem::path> directories;
    getFileListNoPfs(root, files, directories);
+
+   //link result dirs to real filesystem
+   if(!linkDirpaths(dirsResult, directories))
+      return -1;
+
+   //link result files to real filesystem
+   if(!linkFilepaths(EXPECTED_FILE_SECTOR_SIZE, filesResult, files))
+      return -1;
 
    //match files and get number of extra files that do not exist in files.db
    int numExtra = match_file_lists(filesResult, files);
