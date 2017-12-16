@@ -4,19 +4,14 @@
 
 #include "Utils.h"
 
-int64_t page2off_files(std::uint32_t page, std::uint32_t pageSize)
+int64_t page2off(std::uint32_t page, std::uint32_t pageSize)
 {
    return page * pageSize + pageSize;
 }
 
-std::uint32_t off2page_files(std::int64_t offset, std::uint32_t pageSize)
+std::uint32_t off2page(std::int64_t offset, std::uint32_t pageSize)
 {
    return (offset - pageSize) / pageSize;
-}
-
-std::uint32_t off2page_unicv(std::int64_t offset, std::uint32_t pageSize)
-{
-   return offset / pageSize;
 }
 
 bool validate_hash_tree(int level, std::uint32_t page, const std::vector<sce_ng_pfs_block_t>& blocks, const std::multimap<std::uint32_t, page_icv_data>& page_icvs)
