@@ -11,6 +11,12 @@
 
 #include "Utils.h"
 
+std::ostream& operator<<(std::ostream& os, const sce_junction& p)
+{  
+   os << p.m_value.generic_string();  
+   return os;  
+}
+
 bool isZeroVector(const std::vector<std::uint8_t>& data)
 {
    return isZeroVector(data.cbegin(), data.cend());
@@ -53,11 +59,11 @@ int print_bytes(const unsigned char* bytes, int length)
 }
 
 //get files recoursively
-void getFileListNoPfs(boost::filesystem::path path, std::set<std::string>& files, std::set<std::string>& directories)
+void getFileListNoPfs(boost::filesystem::path root_path, std::set<boost::filesystem::path>& files, std::set<boost::filesystem::path>& directories)
 {
-   if (!path.empty())
+   if (!root_path.empty())
    {
-      boost::filesystem::path apk_path(path);
+      boost::filesystem::path apk_path(root_path);
       boost::filesystem::recursive_directory_iterator end;
 
       for (boost::filesystem::recursive_directory_iterator i(apk_path); i != end; ++i)
@@ -65,17 +71,17 @@ void getFileListNoPfs(boost::filesystem::path path, std::set<std::string>& files
          const boost::filesystem::path cp = (*i);
 
          //skip paths that are not included in files.db
-         if(boost::starts_with(cp, (path / boost::filesystem::path("sce_pfs"))))
+         if(boost::starts_with(cp, (root_path / boost::filesystem::path("sce_pfs"))))
             continue;
 
-         if(boost::starts_with(cp, (path / boost::filesystem::path("sce_sys") / boost::filesystem::path("package"))))
+         if(boost::starts_with(cp, (root_path / boost::filesystem::path("sce_sys") / boost::filesystem::path("package"))))
             continue;
 
          //add file or directory
          if(boost::filesystem::is_directory(cp))
-            directories.insert(cp.generic_string());
+            directories.insert(boost::filesystem::path(cp.generic_string())); //recreate from generic string to normalize slashes
          else
-            files.insert(cp.generic_string());
+            files.insert(boost::filesystem::path(cp.generic_string())); //recreate from generic string to normalize slashes
       }
    }
 }
