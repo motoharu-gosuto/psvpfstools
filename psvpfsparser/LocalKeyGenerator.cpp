@@ -6,6 +6,7 @@
 #include <cstring>
 #include <iostream>
 #include <stdexcept>
+#include <fstream>
 
 #include <libcrypto/sha256.h>
 #include <libcrypto/aes.h>

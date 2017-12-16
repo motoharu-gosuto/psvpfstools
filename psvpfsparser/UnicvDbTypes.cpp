@@ -166,7 +166,7 @@ bool sig_tbl_header_merlke_t::validate_tail(std::shared_ptr<sce_iftbl_base_t> ff
 
    uint32_t* unk_value_base = (uint32_t*)(data_copy.data() + (data_copy.size() - 0x5C));
 
-   for(int i = 0; i < fft->get_header()->get_numSectors(); i++)
+   for(std::uint32_t i = 0; i < fft->get_header()->get_numSectors(); i++)
    {
       if(*(unk_value_base + i) != 0xFFFFFFFF)
       {
