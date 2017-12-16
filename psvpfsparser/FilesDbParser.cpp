@@ -432,8 +432,8 @@ const std::vector<sce_ng_pfs_flat_block_t>::const_iterator findFlatBlockDir(cons
    size_t i = 0;
    for(auto& block : flatBlocks)
    {
-      if(block.info.idx == index && block.info.type == normal_directory ||
-         block.info.idx == index && block.info.type == unk_directory)
+      if((block.info.idx == index && block.info.type == normal_directory) ||
+         (block.info.idx == index && block.info.type == unk_directory))
          return flatBlocks.begin() + i;
       i++;
    }
@@ -446,8 +446,8 @@ const std::vector<sce_ng_pfs_flat_block_t>::const_iterator findFlatBlockFile(con
    size_t i = 0;
    for(auto& block : flatBlocks)
    {
-      if(block.info.idx == index && block.info.type != normal_directory &&
-         block.info.idx == index && block.info.type != unk_directory)
+      if((block.info.idx == index && block.info.type != normal_directory) &&
+         (block.info.idx == index && block.info.type != unk_directory))
          return flatBlocks.begin() + i;
       i++;
    }

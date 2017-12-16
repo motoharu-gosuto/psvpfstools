@@ -32,7 +32,7 @@ void verify_step(CryptEngineWorkCtx* crypt_ctx, int64_t tweak_key, int bitSize, 
       {
          if(crypt_ctx->subctx->nBlocks != 0)
          {
-            int counter = 0;
+            std::uint32_t counter = 0;
 
             unsigned char* source_base = source;
             unsigned char* signatures_base = crypt_ctx->subctx->signature_table;
@@ -151,7 +151,7 @@ void work_3_step0(CryptEngineWorkCtx* crypt_ctx, int64_t tweak_key, int bitSize,
    //============== remove first encryption layer ? =========================
 
    int offset = 0;
-   int counter = 0;
+   std::uint32_t counter = 0;
 
    if((bitSize > 0x1F) || ((0xC0000B03 & (1 << bitSize)) == 0))
    {   
