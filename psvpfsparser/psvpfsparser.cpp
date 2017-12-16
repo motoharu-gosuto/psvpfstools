@@ -79,15 +79,15 @@ int execute(PsvPfsParserConfig& cfg)
    if(parseUnicvDb(titleIdPath, unicv) < 0)
       return -1;
 
-   std::map<std::uint32_t, std::string> pageMap;
-   std::set<std::string> emptyFiles;
+   std::map<std::uint32_t, sce_junction> pageMap;
+   std::set<sce_junction> emptyFiles;
    if(bruteforce_map(titleIdPath, klicensee, header, unicv, pageMap, emptyFiles) < 0)
       return -1;
 
    if(decrypt_files(titleIdPath, destTitleIdPath, klicensee, header, files, dirs, unicv, pageMap, emptyFiles) < 0)
       return -1;
 
-	return 0;
+   return 0;
 }
 
 int main(int argc, char* argv[])
