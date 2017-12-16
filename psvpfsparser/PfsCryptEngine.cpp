@@ -301,7 +301,7 @@ void work_3_step1(CryptEngineWorkCtx* crypt_ctx, int bitSize, unsigned char* buf
    }
 
    int offset = 0;
-   int counter = 0;
+   std::uint32_t counter = 0;
 
    if((bitSize > 0x1F) || ((0xC0000B03 & (1 << bitSize)) == 0))
    {
