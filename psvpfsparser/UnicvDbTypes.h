@@ -419,7 +419,7 @@ public:
 //this is a file table structure - it contais SCEIFTBL/SCEICVDB/SCEINULL header and list of file signature blocks
 //in more generic terms - this is also a data block of size 0x400
 //which is followed by signature blocks
-class sce_iftbl_base_t : std::enable_shared_from_this<sce_iftbl_base_t>
+class sce_iftbl_base_t : public std::enable_shared_from_this<sce_iftbl_base_t>
 {
 protected:
    std::shared_ptr<sce_iftbl_header_base_t> m_header;
