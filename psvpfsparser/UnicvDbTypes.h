@@ -178,13 +178,13 @@ public:
 
    virtual bool read(std::ifstream& inputStream, std::shared_ptr<sce_iftbl_base_t> fft, std::uint32_t sizeCheck, std::vector<std::vector<std::uint8_t> >& signatures);
 
-   virtual bool validate_tail(const std::vector<std::uint8_t>& data) const = 0;
+   virtual bool validate_tail(std::shared_ptr<sce_iftbl_base_t> fft, const std::vector<std::uint8_t>& data) const = 0;
 };
 
 class sig_tbl_header_normal_t : public sig_tbl_header_base_t
 {
 public:
-   bool validate_tail(const std::vector<std::uint8_t>& data) const override;
+   bool validate_tail(std::shared_ptr<sce_iftbl_base_t> fft, const std::vector<std::uint8_t>& data) const override;
 };
 
 class sig_tbl_header_merlke_t : public sig_tbl_header_base_t
@@ -192,7 +192,7 @@ class sig_tbl_header_merlke_t : public sig_tbl_header_base_t
 public:
    bool read(std::ifstream& inputStream, std::shared_ptr<sce_iftbl_base_t> fft, std::uint32_t sizeCheck, std::vector<std::vector<std::uint8_t> >& signatures) override;
 
-   bool validate_tail(const std::vector<std::uint8_t>& data) const override;
+   bool validate_tail(std::shared_ptr<sce_iftbl_base_t> fft, const std::vector<std::uint8_t>& data) const override;
 };
 
 //this is a signature table structure - it contains header and list of signatures
@@ -313,6 +313,8 @@ class sce_icvdb_header_proxy_t : public sce_iftbl_header_base_t
 {
 private:
    sce_icvdb_header_t m_header;
+
+   uint64_t m_realDataSize;
 
 public:
    std::uint32_t get_numSectors() const override

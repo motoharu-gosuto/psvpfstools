@@ -128,11 +128,11 @@ bool sig_tbl_header_base_t::read(std::ifstream& inputStream, std::shared_ptr<sce
    //inputStream.seekg(tail, std::ios::cur);
 
    //validate tail in specific class
-   return validate_tail(data);
+   return validate_tail(fft, data);
 }
 
 
-bool sig_tbl_header_normal_t::validate_tail(const std::vector<std::uint8_t>& data) const
+bool sig_tbl_header_normal_t::validate_tail(std::shared_ptr<sce_iftbl_base_t> fft, const std::vector<std::uint8_t>& data) const
 {
    //validate tail data
    if(!isZeroVector(data))
@@ -158,10 +158,30 @@ bool sig_tbl_header_merlke_t::read(std::ifstream& inputStream, std::shared_ptr<s
    return sig_tbl_header_base_t::read(inputStream, fft, sizeCheck, signatures);
 }
 
-bool sig_tbl_header_merlke_t::validate_tail(const std::vector<std::uint8_t>& data) const
+bool sig_tbl_header_merlke_t::validate_tail(std::shared_ptr<sce_iftbl_base_t> fft, const std::vector<std::uint8_t>& data) const
 {
-   //TODO: implement proper validation of 0xFFFFFFFF field
-   throw std::runtime_error("not implemented");
+   std::vector<std::uint8_t> data_copy(data);
+
+   uint32_t* unk_value_base = (uint32_t*)(data_copy.data() + (data_copy.size() - 0x5C));
+
+   for(int i = 0; i < fft->get_header()->get_numSectors(); i++)
+   {
+      if(*(unk_value_base + i) != 0xFFFFFFFF)
+      {
+         std::cout << "Unexpected value in signature table tail" << std::endl;
+         return false;
+      }
+
+      *(unk_value_base + i) = 0;
+   }
+
+   if(!isZeroVector(data_copy))
+   {
+      std::cout << "Invalid zero vector" << std::endl;
+      return false;
+   }
+
+   return true;
 }
 
 //===========
@@ -247,7 +267,11 @@ bool sce_icvdb_header_proxy_t::validate() const
       return false;
    }   
 
-   //TODO: maybe should check m_header.dataSize somehow?
+   if((m_realDataSize - m_header.pageSize) != m_header.dataSize)
+   {
+      std::cout << "Unexpected dataSize" << std::endl;
+      return false;
+   }
 
    if(m_header.unk0 != 0xFFFFFFFF)
    {
@@ -272,7 +296,12 @@ bool sce_icvdb_header_proxy_t::validate() const
 
 bool sce_icvdb_header_proxy_t::read(std::ifstream& inputStream)
 {
+   inputStream.seekg(0, std::ios::end);
+   m_realDataSize = inputStream.tellg();
+   inputStream.seekg(0, std::ios::beg);
+
    inputStream.read((char*)&m_header, sizeof(sce_icvdb_header_t));
+
    return true;
 }
 
@@ -388,12 +417,8 @@ bool sce_iftbl_base_t::read_block(std::ifstream& inputStream, std::uint64_t& ind
 
 bool sce_iftbl_cvdb_proxy_t::read(std::ifstream& inputStream, std::uint64_t& index)
 {
-   int64_t currentBlockPos = inputStream.tellg();
-   
    if(!sce_iftbl_base_t::read(inputStream, index))
       return false;
-
-   m_page = off2page_unicv(currentBlockPos, m_header->get_pageSize());
 
    //calculate size of tail data - this data should be zero padding
    //instead of skipping it is validated here that it contains only zeroes
@@ -414,6 +439,10 @@ bool sce_iftbl_cvdb_proxy_t::read(std::ifstream& inputStream, std::uint64_t& ind
 
    //fast way would be to use seek
    //inputStream.seekg(tail, std::ios::cur);
+
+   int64_t currentBlockPos = inputStream.tellg();
+
+   m_page = off2page(currentBlockPos, m_header->get_pageSize());
 
    //check if there are any data blocks after current entry
    if(m_header->get_numSectors() == 0)
