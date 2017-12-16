@@ -107,7 +107,7 @@ int secret_type_to_flag(sce_ng_pfs_header_t& header)
    }
    else if(header.type == FILES_TROPHY_SAVE_TYPE)
    {
-      return 3;
+      return 0;
    }
    else
    {
