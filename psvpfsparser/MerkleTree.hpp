@@ -260,7 +260,7 @@ int depth_mapper(std::shared_ptr<merkle_tree_node<T> > node, void* ctx)
 template<typename T>
 int map_by_depth(const merkle_tree<T>& mkt, typename depth_mapper_context<T>::type& nodeDepthMap)
 {
-   walk_tree_recoursive_forward(mkt, depth_mapper, &nodeDepthMap);
+   walk_tree(mkt, depth_mapper, &nodeDepthMap);
    return 0;
 }
 
