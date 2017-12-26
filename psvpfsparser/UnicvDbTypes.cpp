@@ -389,7 +389,7 @@ std::shared_ptr<sce_iftbl_base_t> magic_to_ftbl(std::string type)
 
 //===========
 
-bool sce_iftbl_base_t::read(std::ifstream& inputStream, std::uint64_t& index)
+bool sce_iftbl_base_t::read(std::ifstream& inputStream, std::uint64_t& index, std::uint32_t icv_salt)
 {
    //read header
    if(!m_header->read(inputStream))
@@ -417,9 +417,9 @@ bool sce_iftbl_base_t::read_block(std::ifstream& inputStream, std::uint64_t& ind
    return true;
 }
 
-bool sce_iftbl_cvdb_proxy_t::read(std::ifstream& inputStream, std::uint64_t& index)
+bool sce_iftbl_cvdb_proxy_t::read(std::ifstream& inputStream, std::uint64_t& index, std::uint32_t icv_salt)
 {
-   if(!sce_iftbl_base_t::read(inputStream, index))
+   if(!sce_iftbl_base_t::read(inputStream, index, icv_salt))
       return false;
 
    //calculate size of tail data - this data should be zero padding
@@ -476,9 +476,39 @@ bool sce_iftbl_cvdb_proxy_t::read(std::ifstream& inputStream, std::uint64_t& ind
    }
 }
 
+
+std::uint32_t sce_iftbl_proxy_t::get_icv_salt() const
+{
+   return get_page(); // unicv.db uses page number as salt
+}
+
+
+std::uint32_t sce_icvdb_proxy_t::get_icv_salt() const
+{
+   return m_icv_salt; // icv.db uses file name as salt
+}
+
+bool sce_icvdb_proxy_t::read(std::ifstream& inputStream, std::uint64_t& index, std::uint32_t icv_salt)
+{
+   m_icv_salt = icv_salt;
+   return sce_iftbl_cvdb_proxy_t::read(inputStream, index, icv_salt);
+}
+
+
+std::uint32_t sce_inull_proxy_t::get_icv_salt() const
+{
+   return m_icv_salt; // icv.db uses file name as salt
+}
+
+bool sce_inull_proxy_t::read(std::ifstream& inputStream, std::uint64_t& index, std::uint32_t icv_salt)
+{
+   m_icv_salt = icv_salt;
+   return sce_iftbl_base_t::read(inputStream, index, icv_salt);
+}
+
 //===========
 
-bool sce_idb_base_t::read_table_item(std::ifstream& inputStream, std::uint64_t& index)
+bool sce_idb_base_t::read_table_item(std::ifstream& inputStream, std::uint64_t& index, std::uint32_t icv_salt)
 {
    std::uint8_t magic[8];
    inputStream.read((char*)magic, sizeof(magic));
@@ -487,7 +517,7 @@ bool sce_idb_base_t::read_table_item(std::ifstream& inputStream, std::uint64_t& 
    m_tables.push_back(magic_to_ftbl(std::string((char*)magic, sizeof(magic))));
    std::shared_ptr<sce_iftbl_base_t>& fft = m_tables.back();
 
-   if(!fft->read(inputStream, index))
+   if(!fft->read(inputStream, index, icv_salt))
       return false;
 
    return true;
@@ -535,7 +565,7 @@ bool sce_irodb_t::read(boost::filesystem::path filepath)
    for(std::uint64_t index = 0; index < nBlocks; index++)
    {
       //read single block
-      if(!read_table_item(inputStream, index))
+      if(!read_table_item(inputStream, index, 0))
          return false;
    }
 
@@ -557,8 +587,11 @@ bool sce_icvdb_t::read(boost::filesystem::path filepath)
    {
       std::ifstream inputStream(entry.path().generic_string().c_str(), std::ios::in | std::ios::binary);
 
+      std::string saltStr = entry.path().stem().generic_string();
+      std::uint32_t saltNum =  std::stoul(saltStr, nullptr, 16);
+
       //read single block
-      if(!read_table_item(inputStream, index))
+      if(!read_table_item(inputStream, index, saltNum))
          return false;
    }
    return true;

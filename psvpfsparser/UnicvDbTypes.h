@@ -454,10 +454,13 @@ public:
    }
 
 public:
-   virtual bool read(std::ifstream& inputStream, std::uint64_t& index);
+   virtual bool read(std::ifstream& inputStream, std::uint64_t& index, std::uint32_t icv_salt);
 
 protected:
    bool read_block(std::ifstream& inputStream, std::uint64_t& index, std::uint32_t sizeCheck);
+
+public:
+   virtual std::uint32_t get_icv_salt() const = 0;
 };
 
 class sce_iftbl_cvdb_proxy_t : public sce_iftbl_base_t
@@ -469,7 +472,7 @@ public:
    }
 
 public:
-   bool read(std::ifstream& inputStream, std::uint64_t& index) override;
+   bool read(std::ifstream& inputStream, std::uint64_t& index, std::uint32_t icv_salt) override;
 };
 
 //for now these types do not implement any additional logic that is different from base classes
@@ -481,24 +484,45 @@ public:
       : sce_iftbl_cvdb_proxy_t(header)
    {
    } 
+
+public:
+   std::uint32_t get_icv_salt() const override;
 };
 
 class sce_icvdb_proxy_t : public sce_iftbl_cvdb_proxy_t
 {
+private:
+   std::uint32_t m_icv_salt;
+
 public:
    sce_icvdb_proxy_t(std::shared_ptr<sce_iftbl_header_base_t> header)
       : sce_iftbl_cvdb_proxy_t(header)
    {
    }
+
+public:
+   std::uint32_t get_icv_salt() const override;
+
+public:
+   bool read(std::ifstream& inputStream, std::uint64_t& index, std::uint32_t icv_salt) override;
 };
 
 class sce_inull_proxy_t : public sce_iftbl_base_t
 {
+private:
+   std::uint32_t m_icv_salt;
+
 public:
    sce_inull_proxy_t(std::shared_ptr<sce_iftbl_header_base_t> header)
       : sce_iftbl_base_t(header)
    {
    }
+
+public:
+   std::uint32_t get_icv_salt() const override;
+
+public:
+   bool read(std::ifstream& inputStream, std::uint64_t& index, std::uint32_t icv_salt) override;
 };
 
 //=================================================
@@ -517,7 +541,7 @@ public:
    virtual bool read(boost::filesystem::path filepath) = 0;
 
 protected:
-   bool read_table_item(std::ifstream& inputStream, std::uint64_t& index);
+   bool read_table_item(std::ifstream& inputStream, std::uint64_t& index, std::uint32_t icv_salt);
 };
 
 //this is a root object for unicv.db - it contains SCEIRODB header and list of SCEIFTBL file table blocks
