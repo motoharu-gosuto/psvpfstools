@@ -413,11 +413,21 @@ int load_page_map(boost::filesystem::path filepath, std::map<std::uint32_t, std:
    return 0;
 }
 
+int collect_leaf(std::shared_ptr<merkle_tree_node<icv> > node, void* ctx)
+{
+   if(!node->isLeaf())
+      return 0;
+
+   std::vector<std::shared_ptr<merkle_tree_node<icv> > >* leaves = (std::vector<std::shared_ptr<merkle_tree_node<icv> > >*)ctx;
+   leaves->push_back(node);
+   return 0;
+}
+
 CryptEngineData g_data;
 CryptEngineSubctx g_sub_ctx;
 std::vector<std::uint8_t> g_signatureTable;
 
-void init_crypt_ctx(CryptEngineWorkCtx* work_ctx, unsigned char* klicensee, sce_ng_pfs_header_t& ngpfs, std::shared_ptr<sce_iftbl_base_t> table, sig_tbl_t& block, std::uint32_t sector_base, std::uint32_t tail_size, unsigned char* source)
+int init_crypt_ctx(CryptEngineWorkCtx* work_ctx, unsigned char* klicensee, sce_ng_pfs_header_t& ngpfs, std::shared_ptr<sce_iftbl_base_t> table, sig_tbl_t& block, std::uint32_t sector_base, std::uint32_t tail_size, unsigned char* source, bool isUnicv)
 {     
    memset(&g_data, 0, sizeof(CryptEngineData));
    g_data.klicensee = klicensee;
@@ -437,7 +447,14 @@ void init_crypt_ctx(CryptEngineWorkCtx* work_ctx, unsigned char* klicensee, sce_
    drv_ctx.unk_40 = 0; // unknown how to set
    drv_ctx.sceiftbl_version = table->get_header()->get_version(); // is that correct in generic way? for both games and saves/trophies?
 
-   memcpy(drv_ctx.base_key, table->get_header()->get_base_key(), 0x14);
+   if(isUnicv)
+   {
+      memcpy(drv_ctx.base_key, table->get_header()->get_base_key(), 0x14);
+   }
+   else
+   {
+      memset(drv_ctx.base_key, 0, 0x14);
+   }
 
    DerivePfsKeys(&g_data, &drv_ctx); //derive dec_key, iv_key, secret
 
@@ -454,13 +471,52 @@ void init_crypt_ctx(CryptEngineWorkCtx* work_ctx, unsigned char* klicensee, sce_
    g_sub_ctx.dest_offset = 0;
    g_sub_ctx.tail_size = tail_size;
 
-   g_signatureTable.clear();
-   g_signatureTable.resize(block.m_signatures.size() * block.get_header()->get_sigSize());
-   std::uint32_t signatureTableOffset = 0;
-   for(auto& s :  block.m_signatures)
+   if(isUnicv)
    {
-      memcpy(g_signatureTable.data() + signatureTableOffset, s.m_data.data(), block.get_header()->get_sigSize());
-      signatureTableOffset += block.get_header()->get_sigSize();
+      g_signatureTable.clear();
+      g_signatureTable.resize(block.m_signatures.size() * block.get_header()->get_sigSize());
+      std::uint32_t signatureTableOffset = 0;
+      for(auto& s :  block.m_signatures)
+      {
+         memcpy(g_signatureTable.data() + signatureTableOffset, s.m_data.data(), block.get_header()->get_sigSize());
+         signatureTableOffset += block.get_header()->get_sigSize();
+      }
+   }
+   else
+   {
+      //for icv files we need to restore natural order of hashes in hash table (which is the order of sectors in file)
+
+      //create merkle tree for corresponding table
+      std::shared_ptr<merkle_tree<icv> > mkt = generate_merkle_tree<icv>(table->get_header()->get_numSectors());
+      index_merkle_tree(mkt);
+
+      //collect leaves
+      std::vector<std::shared_ptr<merkle_tree_node<icv> > > leaves;
+      walk_tree(mkt, collect_leaf, &leaves);
+
+      if(mkt->nLeaves != leaves.size())
+      {
+         std::cout << "Invalid number of leaves collected" << std::endl;
+         return -1;
+      }
+
+      std::map<std::uint32_t, icv> nartualHashTable;
+
+      //skip first chunk of hashes that corresponds to nodes of merkle tree (we only need to go through leaves)
+      for(std::uint32_t i = mkt->nNodes - mkt->nLeaves, j = 0; i < block.m_signatures.size(); i++, j++)
+      {
+         nartualHashTable.insert(std::make_pair(leaves[j]->m_index, block.m_signatures[i]));         
+      }
+
+      g_signatureTable.clear();
+      g_signatureTable.resize(nartualHashTable.size() * block.get_header()->get_sigSize());
+
+      std::uint32_t signatureTableOffset = 0;
+      for(auto& s :  nartualHashTable)
+      {
+         memcpy(g_signatureTable.data() + signatureTableOffset, s.second.m_data.data(), block.get_header()->get_sigSize());
+         signatureTableOffset += block.get_header()->get_sigSize();
+      }
    }
 
    g_sub_ctx.signature_table = g_signatureTable.data();
@@ -471,9 +527,11 @@ void init_crypt_ctx(CryptEngineWorkCtx* work_ctx, unsigned char* klicensee, sce_
    
    work_ctx->subctx = &g_sub_ctx;
    work_ctx->error = 0;
+
+   return 0;
 }
 
-int decrypt_file(boost::filesystem::path titleIdPath, boost::filesystem::path destination_root, const sce_ng_pfs_file_t& file, const sce_junction& filepath, unsigned char* klicensee, sce_ng_pfs_header_t& ngpfs, std::shared_ptr<sce_iftbl_base_t> table)
+int decrypt_icv_file(boost::filesystem::path titleIdPath, boost::filesystem::path destination_root, const sce_ng_pfs_file_t& file, const sce_junction& filepath, unsigned char* klicensee, sce_ng_pfs_header_t& ngpfs, std::shared_ptr<sce_iftbl_base_t> table)
 {
    //create new file
 
@@ -494,6 +552,80 @@ int decrypt_file(boost::filesystem::path titleIdPath, boost::filesystem::path de
 
    std::uintmax_t fileSize = filepath.file_size();
 
+   //in icv files there are more hashes than sectors due to merkle tree
+   //that is why we have to use get_numHashes() method here
+   //this is different from unicv where it has one has per sector
+   //we can use get_numSectors() there
+
+   //if number of sectors is less than or same to number that fits into single signature page
+   if(table->get_header()->get_numHashes() <= table->get_header()->get_binTreeNumMaxAvail())
+   {
+      std::vector<std::uint8_t> buffer(fileSize);
+      inputStream.read((char*)buffer.data(), fileSize);
+         
+      std::uint32_t tail_size = fileSize % table->get_header()->get_fileSectorSize();
+      if(tail_size == 0)
+         tail_size = table->get_header()->get_fileSectorSize();
+         
+      CryptEngineWorkCtx work_ctx;
+      if(init_crypt_ctx(&work_ctx, klicensee, ngpfs, table, table->m_blocks.front(), 0, tail_size, buffer.data(), false) < 0)
+         return -1;
+
+      pfs_decrypt(&work_ctx);
+
+      if(work_ctx.error < 0)
+      {
+         std::cout << "Crypto Engine failed" << std::endl;
+         return -1;
+      }
+      else
+      {
+         outputStream.write((char*)buffer.data(), fileSize);
+      }
+   }
+   else
+   {
+      //I do not think that icv file supports more than one signature page
+      //meaning that size is limited to 23 sectors
+      //lets keep things simple for now
+      //if it supports more than one signature page - different places in the code will have to be fixed
+      std::cout << "Maximum number of hashes in icv file is exceeded" << std::endl;
+      return -1;
+   }
+
+   inputStream.close();
+
+   outputStream.close();
+
+   return 0;
+}
+
+int decrypt_unicv_file(boost::filesystem::path titleIdPath, boost::filesystem::path destination_root, const sce_ng_pfs_file_t& file, const sce_junction& filepath, unsigned char* klicensee, sce_ng_pfs_header_t& ngpfs, std::shared_ptr<sce_iftbl_base_t> table)
+{
+   //create new file
+
+   std::ofstream outputStream;
+   if(!filepath.create_empty_file(titleIdPath, destination_root, outputStream))
+      return -1;
+
+   //open encrypted file
+
+   std::ifstream inputStream;
+   if(!filepath.open(inputStream))
+   {
+      std::cout << "Failed to open " << filepath << std::endl;
+      return -1;
+   }
+
+   //do decryption
+
+   std::uintmax_t fileSize = filepath.file_size();
+
+   //in unicv files - there is one hash per sector
+   //that is why we can use get_numSectors() method here
+   //this is different from icv where it has more hashes than sectors due to merkle tree
+   //we have to use get_numHashes() there
+
    //if number of sectors is less than or same to number that fits into single signature page
    if(table->get_header()->get_numSectors() <= table->get_header()->get_binTreeNumMaxAvail())
    {
@@ -505,7 +637,8 @@ int decrypt_file(boost::filesystem::path titleIdPath, boost::filesystem::path de
          tail_size = table->get_header()->get_fileSectorSize();
          
       CryptEngineWorkCtx work_ctx;
-      init_crypt_ctx(&work_ctx, klicensee, ngpfs, table, table->m_blocks.front(), 0, tail_size, buffer.data());
+      if(init_crypt_ctx(&work_ctx, klicensee, ngpfs, table, table->m_blocks.front(), 0, tail_size, buffer.data(), true) < 0)
+         return -1;
 
       pfs_decrypt(&work_ctx);
 
@@ -548,7 +681,8 @@ int decrypt_file(boost::filesystem::path titleIdPath, boost::filesystem::path de
                tail_size = table->get_header()->get_fileSectorSize();
          
             CryptEngineWorkCtx work_ctx;
-            init_crypt_ctx(&work_ctx, klicensee, ngpfs, table, b, sector_base, tail_size, buffer.data());
+            if(init_crypt_ctx(&work_ctx, klicensee, ngpfs, table, b, sector_base, tail_size, buffer.data(), true) < 0)
+               return -1;
 
             pfs_decrypt(&work_ctx);
 
@@ -577,7 +711,8 @@ int decrypt_file(boost::filesystem::path titleIdPath, boost::filesystem::path de
                   tail_size = table->get_header()->get_fileSectorSize();
 
                CryptEngineWorkCtx work_ctx;
-               init_crypt_ctx(&work_ctx, klicensee, ngpfs, table, b, sector_base, tail_size, buffer.data());
+               if(init_crypt_ctx(&work_ctx, klicensee, ngpfs, table, b, sector_base, tail_size, buffer.data(), true) < 0)
+                  return -1;
 
                pfs_decrypt(&work_ctx);
 
@@ -598,7 +733,8 @@ int decrypt_file(boost::filesystem::path titleIdPath, boost::filesystem::path de
                inputStream.read((char*)buffer.data(), full_block_size);
 
                CryptEngineWorkCtx work_ctx;
-               init_crypt_ctx(&work_ctx, klicensee, ngpfs, table, b, sector_base, table->get_header()->get_fileSectorSize(), buffer.data());
+               if(init_crypt_ctx(&work_ctx, klicensee, ngpfs, table, b, sector_base, table->get_header()->get_fileSectorSize(), buffer.data(), true) < 0)
+                  return -1;
 
                pfs_decrypt(&work_ctx);
 
@@ -624,6 +760,14 @@ int decrypt_file(boost::filesystem::path titleIdPath, boost::filesystem::path de
    outputStream.close();
 
    return 0;
+}
+
+int decrypt_file(boost::filesystem::path titleIdPath, boost::filesystem::path destination_root, const sce_ng_pfs_file_t& file, const sce_junction& filepath, unsigned char* klicensee, sce_ng_pfs_header_t& ngpfs, std::shared_ptr<sce_iftbl_base_t> table, bool isUnicv)
+{
+   if(isUnicv)
+      return decrypt_unicv_file(titleIdPath, destination_root, file, filepath, klicensee, ngpfs, table);
+   else
+      return decrypt_icv_file(titleIdPath, destination_root, file, filepath, klicensee, ngpfs, table);
 }
 
 std::vector<sce_ng_pfs_file_t>::const_iterator find_file_by_path(std::vector<sce_ng_pfs_file_t>& files, const sce_junction& p)
@@ -685,7 +829,7 @@ int decrypt_files(boost::filesystem::path titleIdPath, boost::filesystem::path d
          continue;
 
       //find filepath by unicv.db page
-      auto map_entry = pageMap.find(t->get_page());
+      auto map_entry = pageMap.find(t->get_icv_salt());
       if(map_entry == pageMap.end())
       {
          std::cout << "failed to find page " << t->get_page() << " in map" << std::endl;
@@ -725,7 +869,7 @@ int decrypt_files(boost::filesystem::path titleIdPath, boost::filesystem::path d
       //decrypt unencrypted files
       else
       {
-         if(decrypt_file(titleIdPath, destTitleIdPath, *file, filepath, klicensee, ngpfs, t) < 0)
+         if(decrypt_file(titleIdPath, destTitleIdPath, *file, filepath, klicensee, ngpfs, t, fdb->isUnicv()) < 0)
          {
             std::cout << "Failed to decrypt: " << filepath << std::endl;
             return -1;
