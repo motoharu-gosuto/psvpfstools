@@ -17,7 +17,7 @@ class sce_idb_base_t;
 struct sce_ng_pfs_file_t;
 struct sce_ng_pfs_dir_t;
 
-int bruteforce_map(boost::filesystem::path titleIdPath, unsigned char* klicensee, sce_ng_pfs_header_t& ngpfs, std::shared_ptr<sce_idb_base_t> fdb, std::map<std::uint32_t, sce_junction>& pageMap, std::set<sce_junction>& emptyFiles);
+int bruteforce_map(boost::filesystem::path titleIdPath, unsigned char* klicensee, sce_ng_pfs_header_t& ngpfs, std::shared_ptr<sce_idb_base_t> fdb, std::map<std::uint32_t, sce_junction>& pageMap, std::set<sce_junction>& emptyFiles, bool isUnicv);
 
 int load_page_map(boost::filesystem::path filepath, std::map<std::uint32_t, std::string>& pageMap);
 

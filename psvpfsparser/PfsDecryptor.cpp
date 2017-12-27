@@ -18,14 +18,25 @@
 #include "FilesDbParser.h"
 #include "PfsCryptEngine.h"
 #include "PfsKeyGenerator.h"
+#include "MerkleTree.hpp"
 
-std::shared_ptr<sce_junction> brutforce_hashes(std::map<sce_junction, std::vector<std::uint8_t>>& fileDatas, unsigned char* secret, unsigned char* signature)
+std::shared_ptr<sce_junction> brutforce_hashes(std::map<sce_junction, std::vector<std::uint8_t>>& fileDatas, const unsigned char* secret, const unsigned char* signature, bool isUnicv)
 {
-   //we will be checking only first sector of each file hence we can precalculate a signature_key
-   //because both sectret and sector_salt will not vary
    unsigned char signature_key[0x14] = {0};
-   int sector_salt = 0; //sector number is most likely a salt which is logically correct in terms of xts-aes
-   sha1_hmac(secret, 0x14, (unsigned char*)&sector_salt, 4, signature_key);
+
+   if(isUnicv)
+   {
+      //we will be checking only first sector of each file hence we can precalculate a signature_key
+      //because both secret and sector_salt will not vary
+      int sector_salt = 0; //sector number is most likely a salt which is logically correct in terms of xts-aes
+      sha1_hmac(secret, 0x14, (unsigned char*)&sector_salt, 4, signature_key);
+   }
+   else
+   {
+      //for icv files sector salt is not used. salt is global and is specified in the name of the file
+      //this means that we can just use secret as is
+      memcpy(signature_key, secret, 0x14);
+   }
 
    //go through each first sector of the file
    for(auto& f : fileDatas)
@@ -47,7 +58,179 @@ std::shared_ptr<sce_junction> brutforce_hashes(std::map<sce_junction, std::vecto
    return std::shared_ptr<sce_junction>();
 }
 
-int bruteforce_map(boost::filesystem::path titleIdPath, unsigned char* klicensee, sce_ng_pfs_header_t& ngpfs, std::shared_ptr<sce_idb_base_t> fdb, std::map<std::uint32_t, sce_junction>& pageMap, std::set<sce_junction>& emptyFiles)
+int find_zero_sector_index(std::shared_ptr<merkle_tree_node<icv> > node, void* ctx)
+{
+   std::pair<std::uint32_t, std::uint32_t>* ctx_pair = (std::pair<std::uint32_t, std::uint32_t>*)ctx;
+
+   if(node->isLeaf())
+   {
+      if(node->m_index == 0)
+      {
+         ctx_pair->second = ctx_pair->first; //save global counter to result
+      }
+      else
+      {
+         ctx_pair->first++; //increase global counter
+      }
+      return 0;
+   }
+   else
+   {
+      ctx_pair->first++; //increase global counter
+      return 0;
+   }
+}
+
+int assign_hash(std::shared_ptr<merkle_tree_node<icv> > node, void* ctx)
+{
+   if(!node->isLeaf())
+      return 0;
+
+   std::map<std::uint32_t, icv>* sectorHashMap = (std::map<std::uint32_t, icv>*)ctx;
+
+   auto item = sectorHashMap->find(node->m_index);
+   if(item == sectorHashMap->end())
+      throw std::runtime_error("Missing sector hash");
+      
+   node->m_context.m_data.assign(item->second.m_data.begin(), item->second.m_data.end());
+
+   return 0;
+}
+
+int combine_hash(std::shared_ptr<merkle_tree_node<icv> > result, std::shared_ptr<merkle_tree_node<icv> > left, std::shared_ptr<merkle_tree_node<icv> > right, void* ctx)
+{
+   unsigned char bytes28[0x28] = {0};
+   memcpy(bytes28, left->m_context.m_data.data(), 0x14);
+   memcpy(bytes28 + 0x14, right->m_context.m_data.data(), 0x14);
+
+   unsigned char* secret = (unsigned char*)ctx;
+
+   result->m_context.m_data.resize(0x14);
+   sha1_hmac(secret, 0x14, bytes28, 0x28, result->m_context.m_data.data());
+
+   return 0;
+}
+
+int collect_hash(std::shared_ptr<merkle_tree_node<icv> > node, void* ctx)
+{
+   std::vector<icv>* hashTable = (std::vector<icv>*)ctx;
+   hashTable->push_back(node->m_context);
+   return 0;
+}
+
+int compare_hash_tables(const std::vector<icv>& left, const std::vector<icv>& right)
+{
+   if(left.size() != right.size())
+      return -1;
+   
+   for(std::size_t i = 0; i < left.size(); i++)
+   {
+      if(memcmp(left[i].m_data.data(), right[i].m_data.data(), 0x14) != 0)
+         return -1;
+   }
+   
+   return 0;
+}
+
+//pageMap - relates icv salt (icv filename) to junction (real file in filesystem)
+//merkleTrees - relates icv table entry (icv file) to merkle tree of real file
+//idea is to find icv table entry by icv filename - this way we can relate junction to merkle tree
+//then we can read the file and hash it into merkle tree
+//then merkle tree is collected into hash table
+//then hash table is compared to the hash table from icv table entry
+int validate_merkle_trees(unsigned char* klicensee, sce_ng_pfs_header_t& ngpfs, std::map<std::uint32_t, sce_junction>& pageMap, std::vector<std::pair<std::shared_ptr<sce_iftbl_base_t>, std::shared_ptr<merkle_tree<icv> > > >& merkleTrees)
+{
+   std::cout << "Validating merkle trees..." << std::endl;
+
+   for(auto entry : merkleTrees)
+   {
+      //get table
+      std::shared_ptr<sce_iftbl_base_t> table = entry.first;
+
+      //calculate secret
+      unsigned char secret[0x14];
+      scePfsUtilGetSecret(secret, klicensee, ngpfs.files_salt, secret_type_to_flag(ngpfs), table->get_icv_salt(), 0);
+
+      //find junction
+      auto junctionIt = pageMap.find(table->get_icv_salt());
+      if(junctionIt == pageMap.end())
+      {
+         std::cout << "Table item not found in page map" << std::endl;
+         return -1;
+      }
+      
+      const sce_junction& junction = junctionIt->second;
+
+      //read junction into sector map
+      std::ifstream inputStream;
+      junction.open(inputStream);
+
+      std::uint32_t sectorSize = table->get_header()->get_fileSectorSize();
+      std::uintmax_t fileSize = junction.file_size(); 
+
+      std::uint32_t nSectors = fileSize / sectorSize;
+      std::uint32_t tailSize = fileSize % sectorSize;
+
+      std::map<std::uint32_t, icv> sectorHashMap;
+
+      std::vector<std::uint8_t> raw_data(sectorSize);
+      for(std::uint32_t i = 0; i < nSectors; i++)
+      {
+         auto currentItem = sectorHashMap.insert(std::make_pair(i, icv()));
+         icv& currentIcv = currentItem.first->second;
+
+         inputStream.read((char*)raw_data.data(), sectorSize);
+
+         currentIcv.m_data.resize(0x14);
+         sha1_hmac(secret, 0x14, raw_data.data(), sectorSize, currentIcv.m_data.data());
+      }
+
+      if(tailSize > 0)
+      {
+         auto currentItem = sectorHashMap.insert(std::make_pair(nSectors, icv()));
+         icv& currentIcv = currentItem.first->second;
+
+         inputStream.read((char*)raw_data.data(), tailSize);
+
+         currentIcv.m_data.resize(0x14);
+         sha1_hmac(secret, 0x14, raw_data.data(), tailSize, currentIcv.m_data.data());
+      }
+
+      try
+      {
+         //get merkle tree (it should already be indexed)
+         std::shared_ptr<merkle_tree<icv> > mkt = entry.second;
+
+         //assign hashes to leaves
+         walk_tree(mkt, assign_hash, &sectorHashMap);
+
+         //calculate node hashes
+         bottom_top_walk_combine(mkt, combine_hash, secret);
+
+         //collect hashes into table
+         std::vector<icv> hashTable;
+         walk_tree(mkt, collect_hash, &hashTable);
+
+         //compare tables
+         if(compare_hash_tables(hashTable, table->m_blocks.front().m_signatures) < 0)
+         {
+            std::cout << "Merkle tree is invalid in file " << junction << std::endl;
+            return -1;
+         }
+
+         std::cout << std::hex << table->get_icv_salt() << " OK" << std::endl;
+      }
+      catch(std::runtime_error& e)
+      {
+         std::cout << e.what() << std::endl;
+         return -1;
+      }  
+   }
+
+   return 0;
+}
+
+int bruteforce_map(boost::filesystem::path titleIdPath, unsigned char* klicensee, sce_ng_pfs_header_t& ngpfs, std::shared_ptr<sce_idb_base_t> fdb, std::map<std::uint32_t, sce_junction>& pageMap, std::set<sce_junction>& emptyFiles, bool isUnicv)
 {
    std::cout << "Building unicv.db -> files.db relation..." << std::endl;
 
@@ -56,7 +239,11 @@ int bruteforce_map(boost::filesystem::path titleIdPath, unsigned char* klicensee
    //check file fileSectorSize
    std::set<std::uint32_t> fileSectorSizes;
    for(auto& t : fdb->m_tables)
-      fileSectorSizes.insert(t->get_header()->get_fileSectorSize());
+   {
+      //skip SCEINULL blocks
+      if(t->m_blocks.size() > 0)
+         fileSectorSizes.insert(t->get_header()->get_fileSectorSize());
+   }
 
    if(fileSectorSizes.size() > 1)
    {
@@ -108,6 +295,8 @@ int bruteforce_map(boost::filesystem::path titleIdPath, unsigned char* klicensee
       }
    }
 
+   std::vector<std::pair<std::shared_ptr<sce_iftbl_base_t>, std::shared_ptr<merkle_tree<icv> > > > merkleTrees;
+
    //brutforce each sce_iftbl_t record
    for(auto& t : fdb->m_tables)
    {
@@ -116,20 +305,65 @@ int bruteforce_map(boost::filesystem::path titleIdPath, unsigned char* klicensee
       {
          //generate secret - one secret per unicv.db page is required
          unsigned char secret[0x14];
-         scePfsUtilGetSecret(secret, klicensee, ngpfs.files_salt, secret_type_to_flag(ngpfs), t->get_page(), 0);
+         scePfsUtilGetSecret(secret, klicensee, ngpfs.files_salt, secret_type_to_flag(ngpfs), t->get_icv_salt(), 0);
 
-         std::shared_ptr<sce_junction> found_path = brutforce_hashes(fileDatas, secret, t->m_blocks.front().m_signatures.front().data()); 
-         if(found_path)
+         std::shared_ptr<sce_junction> found_path;
+
+         if(isUnicv)
          {
-            std::cout << "Match found: " << t->get_page() << " " << *found_path << std::endl;
-            pageMap.insert(std::make_pair(t->get_page(), *found_path));
+            //in unicv - hash table has same order as sectors in a file
+            const unsigned char* zeroSectorIcv = t->m_blocks.front().m_signatures.front().m_data.data();
+
+            //try to find match by hash of zero sector
+            found_path = brutforce_hashes(fileDatas, secret, zeroSectorIcv, isUnicv); 
          }
          else
          {
-            std::cout << "Match not found: " << t->get_page() << std::endl;
+            try
+            {
+               //create merkle tree for corresponding table
+               std::shared_ptr<merkle_tree<icv> > mkt = generate_merkle_tree<icv>(t->get_header()->get_numSectors());
+               index_merkle_tree(mkt);
+
+               //save merkle tree
+               merkleTrees.push_back(std::make_pair(t, mkt));
+
+               //use merkle tree to find index of zero sector in hash table
+               std::pair<std::uint32_t, std::uint32_t> ctx;
+               walk_tree(mkt, find_zero_sector_index, &ctx);
+
+               //in icv - hash table is ordered according to merkle tree structure
+               //that is why it is required to walk through the tree to find zero sector hash in hash table
+               const unsigned char* zeroSectorIcv = t->m_blocks.front().m_signatures.at(ctx.second).m_data.data();
+
+               //try to find match by hash of zero sector
+               found_path = brutforce_hashes(fileDatas, secret, zeroSectorIcv, isUnicv);
+            }
+            catch(std::runtime_error& e)
+            {
+               std::cout << e.what() << std::endl;
+               return -1;
+            } 
+         }
+
+         if(found_path)
+         {
+            std::cout << "Match found: " << t->get_icv_salt() << " " << *found_path << std::endl;
+            pageMap.insert(std::make_pair(t->get_icv_salt(), *found_path));
+         }
+         else
+         {
+            std::cout << "Match not found: " << t->get_icv_salt() << std::endl;
             return -1;
          }
       }
+   }
+
+   //in icv - additional step checks that hash table corresponds to merkle tree
+   if(!isUnicv)
+   {
+      if(validate_merkle_trees(klicensee, ngpfs, pageMap, merkleTrees) < 0)
+         return -1;
    }
 
    if(files.size() != (pageMap.size() + emptyFiles.size()))
@@ -188,7 +422,7 @@ void init_crypt_ctx(CryptEngineWorkCtx* work_ctx, unsigned char* klicensee, sce_
    memset(&g_data, 0, sizeof(CryptEngineData));
    g_data.klicensee = klicensee;
    g_data.files_salt = ngpfs.files_salt;
-   g_data.unicv_page = table->get_page();
+   g_data.unicv_page = table->get_icv_salt();
    g_data.type = 2; // unknown how to set
    g_data.pmi_bcl_flag = secret_type_to_flag(ngpfs); //not sure
    g_data.key_id = 0;
@@ -225,7 +459,7 @@ void init_crypt_ctx(CryptEngineWorkCtx* work_ctx, unsigned char* klicensee, sce_
    std::uint32_t signatureTableOffset = 0;
    for(auto& s :  block.m_signatures)
    {
-      memcpy(g_signatureTable.data() + signatureTableOffset, s.data(), block.get_header()->get_sigSize());
+      memcpy(g_signatureTable.data() + signatureTableOffset, s.m_data.data(), block.get_header()->get_sigSize());
       signatureTableOffset += block.get_header()->get_sigSize();
    }
 
