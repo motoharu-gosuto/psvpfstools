@@ -98,7 +98,7 @@ bool sig_tbl_header_base_t::validate(std::shared_ptr<sce_iftbl_base_t> fft, std:
    return true;
 }
 
-bool sig_tbl_header_base_t::read(std::ifstream& inputStream, std::shared_ptr<sce_iftbl_base_t> fft, std::uint32_t sizeCheck, std::vector<std::vector<std::uint8_t> >& signatures)
+bool sig_tbl_header_base_t::read(std::ifstream& inputStream, std::shared_ptr<sce_iftbl_base_t> fft, std::uint32_t sizeCheck, std::vector<icv>& signatures)
 {
    //read header
    inputStream.read((char*)&m_header, sizeof(sig_tbl_header_t));
@@ -110,10 +110,10 @@ bool sig_tbl_header_base_t::read(std::ifstream& inputStream, std::shared_ptr<sce
    //read signatures
    for(std::uint32_t c = 0; c < m_header.nSignatures; c++)
    {
-      signatures.push_back(std::vector<std::uint8_t>());
-      std::vector<std::uint8_t>& dte = signatures.back();
-      dte.resize(m_header.sigSize);
-      inputStream.read((char*)dte.data(), m_header.sigSize);
+      signatures.push_back(icv());
+      icv& dte = signatures.back();
+      dte.m_data.resize(m_header.sigSize);
+      inputStream.read((char*)dte.m_data.data(), m_header.sigSize);
    }
 
    //calculate size of tail data - this data should be zero padding
@@ -146,7 +146,7 @@ bool sig_tbl_header_normal_t::validate_tail(std::shared_ptr<sce_iftbl_base_t> ff
    return true;
 }
 
-bool sig_tbl_header_merlke_t::read(std::ifstream& inputStream, std::shared_ptr<sce_iftbl_base_t> fft, std::uint32_t sizeCheck, std::vector<std::vector<std::uint8_t> >& signatures)
+bool sig_tbl_header_merlke_t::read(std::ifstream& inputStream, std::shared_ptr<sce_iftbl_base_t> fft, std::uint32_t sizeCheck, std::vector<icv>& signatures)
 {
    //read weird 0x10 byte zero header which makes the data not being aligned on page boder
    unsigned char zero_header[0x10];

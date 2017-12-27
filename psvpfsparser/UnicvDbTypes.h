@@ -139,6 +139,12 @@ struct sig_tbl_header_t
    std::uint32_t padding; //most likely padding ? always zero
 };
 
+class icv
+{
+public:
+   std::vector<std::uint8_t> m_data;
+};
+
 class sce_iftbl_t;
 class sce_iftbl_base_t;
 
@@ -176,7 +182,7 @@ public:
 public:
    bool validate(std::shared_ptr<sce_iftbl_base_t> fft, std::uint32_t sizeCheck) const;
 
-   virtual bool read(std::ifstream& inputStream, std::shared_ptr<sce_iftbl_base_t> fft, std::uint32_t sizeCheck, std::vector<std::vector<std::uint8_t> >& signatures);
+   virtual bool read(std::ifstream& inputStream, std::shared_ptr<sce_iftbl_base_t> fft, std::uint32_t sizeCheck, std::vector<icv>& signatures);
 
    virtual bool validate_tail(std::shared_ptr<sce_iftbl_base_t> fft, const std::vector<std::uint8_t>& data) const = 0;
 };
@@ -190,7 +196,7 @@ public:
 class sig_tbl_header_merlke_t : public sig_tbl_header_base_t
 {
 public:
-   bool read(std::ifstream& inputStream, std::shared_ptr<sce_iftbl_base_t> fft, std::uint32_t sizeCheck, std::vector<std::vector<std::uint8_t> >& signatures) override;
+   bool read(std::ifstream& inputStream, std::shared_ptr<sce_iftbl_base_t> fft, std::uint32_t sizeCheck, std::vector<icv>& signatures) override;
 
    bool validate_tail(std::shared_ptr<sce_iftbl_base_t> fft, const std::vector<std::uint8_t>& data) const override;
 };
@@ -212,7 +218,7 @@ public:
    }
 
 public:
-   std::vector<std::vector<std::uint8_t> > m_signatures;
+   std::vector<icv> m_signatures;
 
    std::shared_ptr<sig_tbl_header_base_t> get_header() const
    {
