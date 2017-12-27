@@ -51,6 +51,8 @@ class merkle_tree
 public:
    //number of nodes is used to make iterating through the tree easier
    std::uint32_t nNodes;
+   //number of leaves in the tree - can be usefull
+   std::uint32_t nLeaves;
    //root of the merkle tree
    std::shared_ptr<merkle_tree_node<T> > root;
 };
@@ -112,6 +114,7 @@ std::shared_ptr<merkle_tree<T> > generate_merkle_tree(std::uint32_t nSectors)
    //return a merkle tree
    std::shared_ptr<merkle_tree<T> > mkt = std::make_shared<merkle_tree<T> >();
    mkt->nNodes = nNodesMax;
+   mkt->nLeaves = nSectors;
    mkt->root = root;
    return mkt;
 }
