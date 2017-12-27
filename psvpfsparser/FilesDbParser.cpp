@@ -325,11 +325,7 @@ bool constructDirmatrix(const std::vector<sce_ng_pfs_block_t>& blocks, std::map<
 
          if(block.infos[i].size != 0)
          {
-            if(block.infos[i].type == normal_directory)
-            {
-               std::cout << "Directory " << fileName << " size is invalid" << std::endl;
-               return false;
-            }
+            std::cout << "Directory " << fileName << " size is invalid" << std::endl;
          }
 
          if(child == INVALID_FILE_INDEX)
