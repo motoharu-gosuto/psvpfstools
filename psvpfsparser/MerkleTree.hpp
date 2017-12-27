@@ -60,7 +60,7 @@ public:
 //this generates an empty merkle tree with specified number of leaves
 //merkle tree is always a full tree
 template<typename T>
-merkle_tree<T> generate_merkle_tree(std::uint32_t nSectors)
+std::shared_ptr<merkle_tree<T> > generate_merkle_tree(std::uint32_t nSectors)
 {
    // number of nodes is N = 2 * L - 1 if L is number of leaves
    // in case of merkle trees - leaves are sector hashes
@@ -110,9 +110,9 @@ merkle_tree<T> generate_merkle_tree(std::uint32_t nSectors)
    }
 
    //return a merkle tree
-   merkle_tree<T> mkt;
-   mkt.nNodes = nNodesMax;
-   mkt.root = root;
+   std::shared_ptr<merkle_tree<T> > mkt;
+   mkt->nNodes = nNodesMax;
+   mkt->root = root;
    return mkt;
 }
 
@@ -127,32 +127,32 @@ struct merkle_node_walker
 //this functions walks through tree nodes from top to bottom from left to right
 //this is non recoursive walk that goes level by level in depth
 template<typename T>
-int walk_tree(const merkle_tree<T>& mkt, typename merkle_node_walker<T>::type* wlk, void* ctx)
+int walk_tree(std::shared_ptr<merkle_tree<T> > mkt, typename merkle_node_walker<T>::type* wlk, void* ctx)
 {
    std::uint32_t nNodes = 1;   
 
    std::vector<std::shared_ptr<merkle_tree_node<T> > > children;
    std::vector<std::shared_ptr<merkle_tree_node<T> > > children_temp;
 
-   children.push_back(mkt.root);
-   wlk(mkt.root, ctx);
+   children.push_back(mkt->root);
+   wlk(mkt->root, ctx);
 
    //this is a non recoursive algorithm that iterates through merkle tree
    //level by level going from left to right, from top to bottom
-   while(nNodes != mkt.nNodes)
+   while(nNodes != mkt->nNodes)
    {
       for(auto c : children)
       {
          wlk(c->m_left, ctx);
          children_temp.push_back(c->m_left);
          nNodes++;
-         if(nNodes == mkt.nNodes)
+         if(nNodes == mkt->nNodes)
             throw std::runtime_error("Not a full binary tree");
 
          wlk(c->m_right, ctx);
          children_temp.push_back(c->m_right);
          nNodes++;
-         if(nNodes == mkt.nNodes)
+         if(nNodes == mkt->nNodes)
             break;
 
          //if algo exits here it means we have unbalanced tree (full tree with last level not completely full)
@@ -223,7 +223,7 @@ int tree_indexer(std::shared_ptr<merkle_tree_node<T> > node, void* ctx)
 
 //this is a tree_indexer wrapper that keeps state locally
 template<typename T>
-int index_merkle_tree(const merkle_tree<T>& mkt)
+int index_merkle_tree(std::shared_ptr<merkle_tree<T> > mkt)
 {
    int index = 1;
    walk_tree(mkt, tree_indexer, &index);
@@ -258,7 +258,7 @@ int depth_mapper(std::shared_ptr<merkle_tree_node<T> > node, void* ctx)
 }
 
 template<typename T>
-int map_by_depth(const merkle_tree<T>& mkt, typename depth_mapper_context<T>::type& nodeDepthMap)
+int map_by_depth(std::shared_ptr<merkle_tree<T> > mkt, typename depth_mapper_context<T>::type& nodeDepthMap)
 {
    walk_tree(mkt, depth_mapper, &nodeDepthMap);
    return 0;
@@ -273,7 +273,7 @@ struct node_combiner
 };
 
 template<typename T>
-int bottom_top_walk_combine(const merkle_tree<T>& mkt, typename node_combiner<T>::type* wlk, void* ctx)
+int bottom_top_walk_combine(std::shared_ptr<merkle_tree<T> > mkt, typename node_combiner<T>::type* wlk, void* ctx)
 {
    //build depth slice
    depth_mapper_context<T>::type nodeDepthMap;
