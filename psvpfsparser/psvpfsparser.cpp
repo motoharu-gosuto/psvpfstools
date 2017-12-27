@@ -81,7 +81,7 @@ int execute(PsvPfsParserConfig& cfg)
 
    std::map<std::uint32_t, sce_junction> pageMap;
    std::set<sce_junction> emptyFiles;
-   if(bruteforce_map(titleIdPath, klicensee, header, unicv, pageMap, emptyFiles) < 0)
+   if(bruteforce_map(titleIdPath, klicensee, header, unicv, pageMap, emptyFiles, unicv->isUnicv()) < 0)
       return -1;
 
    if(decrypt_files(titleIdPath, destTitleIdPath, klicensee, header, files, dirs, unicv, pageMap, emptyFiles) < 0)
