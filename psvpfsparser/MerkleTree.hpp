@@ -110,7 +110,7 @@ std::shared_ptr<merkle_tree<T> > generate_merkle_tree(std::uint32_t nSectors)
    }
 
    //return a merkle tree
-   std::shared_ptr<merkle_tree<T> > mkt;
+   std::shared_ptr<merkle_tree<T> > mkt = std::make_shared<merkle_tree<T> >();
    mkt->nNodes = nNodesMax;
    mkt->root = root;
    return mkt;
