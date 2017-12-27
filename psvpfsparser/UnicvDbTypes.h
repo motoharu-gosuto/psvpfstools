@@ -114,7 +114,7 @@ struct sce_icvdb_header_t
    std::uint32_t unk1; //0xFFFFFFFF
    std::uint64_t dataSize; // from next chunk maybe? or block size
    std::uint32_t nSectors;
-   std::uint8_t data1[20];
+   std::uint8_t merkleTreeRoot[20];
 };
 
 struct sce_inull_header_t
@@ -261,6 +261,8 @@ public:
    virtual bool validate() const = 0;
 
    virtual bool read(std::ifstream& inputStream) = 0;
+
+   virtual bool post_validate(const std::vector<sig_tbl_t>& blocks) const = 0;
 };
 
 class sce_iftbl_header_proxy_t : public sce_iftbl_header_base_t
@@ -313,6 +315,11 @@ public:
    bool validate() const override;
 
    bool read(std::ifstream& inputStream) override;
+
+   bool post_validate(const std::vector<sig_tbl_t>& blocks) const override
+   {
+      return true;
+   }
 };
 
 class sce_icvdb_header_proxy_t : public sce_iftbl_header_base_t
@@ -368,6 +375,17 @@ public:
    bool validate() const override;
 
    bool read(std::ifstream& inputStream) override;
+
+   bool post_validate(const std::vector<sig_tbl_t>& blocks) const override
+   {
+      const unsigned char* rootSig = blocks.front().m_signatures.front().m_data.data();
+      if(memcmp(rootSig, m_header.merkleTreeRoot, 0x14) != 0)
+      {
+         std::cout << "Root icv is invalid" << std::endl;
+         return false;
+      }
+      return true;
+   }
 };
 
 class sce_inull_header_proxy_t : public sce_iftbl_header_base_t
@@ -420,6 +438,11 @@ public:
    bool validate() const override;
 
    bool read(std::ifstream& inputStream) override;
+
+   bool post_validate(const std::vector<sig_tbl_t>& blocks) const override
+   {
+      return true;
+   }
 };
   
 //this is a file table structure - it contais SCEIFTBL/SCEICVDB/SCEINULL header and list of file signature blocks

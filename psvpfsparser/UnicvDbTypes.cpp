@@ -453,7 +453,10 @@ bool sce_iftbl_cvdb_proxy_t::read(std::ifstream& inputStream, std::uint64_t& ind
    //check if there is single block read required or multiple
    if(m_header->get_numHashes() < m_header->get_binTreeNumMaxAvail())
    {
-      return read_block(inputStream, index, m_header->get_numHashes());
+      if(!read_block(inputStream, index, m_header->get_numHashes()))
+         return false;
+
+      return m_header->post_validate(m_blocks);
    }
    else
    {
@@ -472,7 +475,7 @@ bool sce_iftbl_cvdb_proxy_t::read(std::ifstream& inputStream, std::uint64_t& ind
             return false;
       }
 
-      return true;
+      return m_header->post_validate(m_blocks);
    }
 }
 
