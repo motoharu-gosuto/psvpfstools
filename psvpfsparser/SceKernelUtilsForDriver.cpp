@@ -4,13 +4,6 @@
 
 //##### SW CRYPTO FUNCTIONS #####
 
-int SceKernelUtilsForDriver_aes_init_2(aes_context* ctx, std::uint32_t blocksize, std::uint32_t keysize, const unsigned char *key)
-{
-   memset(ctx, 0, sizeof(aes_context));
-   aes_setkey_enc(ctx, key, keysize);
-   return 0;
-}
-
 //since this function does not have size - it is assumed that it encrypts 0x10 bytes
 int SceKernelUtilsForDriver_aes_encrypt_2(aes_context* ctx, const unsigned char* src, unsigned char* dst)
 {

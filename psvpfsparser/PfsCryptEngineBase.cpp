@@ -421,9 +421,10 @@ int AESCMACDecryptSw_base(const unsigned char* tweak, const unsigned char* dst_k
    aes_context aes_ctx;
    unsigned char tweak_enc_value[0x10] = {0};
 
-   SceKernelUtilsForDriver_aes_init_2(&aes_ctx, 0x80, key_size, tweak_enc_key);
+   memset(&aes_ctx, 0, sizeof(aes_context));
+   aes_setkey_enc(&aes_ctx, tweak_enc_key, key_size);
 
-   SceKernelUtilsForDriver_aes_encrypt_2(&aes_ctx, tweak, tweak_enc_value);
+   aes_crypt_ecb(&aes_ctx, AES_ENCRYPT, tweak, tweak_enc_value);
 
    xor_1((std::uint32_t*)src, (std::uint32_t*)tweak_enc_value, (std::uint32_t*)dst, size);
 
@@ -440,9 +441,10 @@ int AESCMACEncryptSw_base(const unsigned char* tweak, const unsigned char* dst_k
    aes_context aes_ctx;
    unsigned char tweak_enc_value[0x10] = {0};
 
-   SceKernelUtilsForDriver_aes_init_2(&aes_ctx, 0x80, key_size, tweak_enc_key);
+   memset(&aes_ctx, 0, sizeof(aes_context));
+   aes_setkey_enc(&aes_ctx, tweak_enc_key, key_size);
 
-   SceKernelUtilsForDriver_aes_encrypt_2(&aes_ctx, tweak, tweak_enc_value);
+   aes_crypt_ecb(&aes_ctx, AES_ENCRYPT, tweak, tweak_enc_value);
 
    xor_1((std::uint32_t*)src, (std::uint32_t*)tweak_enc_value, (std::uint32_t*)dst, size);
 
@@ -495,9 +497,10 @@ int AESCMACSw_base_1(const unsigned char* subkey, const unsigned char* dst_key, 
    unsigned char drv_subkey[0x10] = {0};
    unsigned char iv[0x10] = {0}; //HOW IV IS INITIALIZED ? - it should not be initialized. sceSblSsMgrAESCMACForDriver only takes 0 as IV - look at wiki
    
-   SceKernelUtilsForDriver_aes_init_2(&aes_ctx, 0x80, keysize, subkey_key);
+   memset(&aes_ctx, 0, sizeof(aes_context));
+   aes_setkey_enc(&aes_ctx, subkey_key, keysize);
 
-   SceKernelUtilsForDriver_aes_encrypt_2(&aes_ctx, subkey, drv_subkey);
+   aes_crypt_ecb(&aes_ctx, AES_ENCRYPT, subkey, drv_subkey);
 
    xor_2((std::uint32_t*)src, (std::uint32_t*)drv_subkey, (std::uint32_t*)dst, size); // WHAT DOES THIS DO IF dst IS OVERWRITTEN BY NEXT CMAC CALL ANYWAY ?
 
@@ -516,9 +519,10 @@ int AESCMACSw_base_2(const unsigned char* subkey, const unsigned char* dst_key, 
    unsigned char drv_subkey[0x10] = {0};
    unsigned char iv[0x10] = {0}; //HOW IV IS INITIALIZED ? - it should not be initialized. sceSblSsMgrAESCMACForDriver only takes 0 as IV - look at wiki
 
-   SceKernelUtilsForDriver_aes_init_2(&aes_ctx, 0x80, keysize, subkey_key);
+   memset(&aes_ctx, 0, sizeof(aes_context));
+   aes_setkey_enc(&aes_ctx, subkey_key, keysize);
 
-   SceKernelUtilsForDriver_aes_encrypt_2(&aes_ctx, subkey, drv_subkey);
+   aes_crypt_ecb(&aes_ctx, AES_ENCRYPT, subkey, drv_subkey);
 
    xor_2((std::uint32_t*)src, (std::uint32_t*)drv_subkey, (std::uint32_t*)dst, size); // WHAT DOES THIS DO IF dst IS OVERWRITTEN BY NEXT CMAC CALL ANYWAY ?
 
