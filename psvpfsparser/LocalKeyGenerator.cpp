@@ -119,7 +119,7 @@ int get_sealedkey(boost::filesystem::path titleIdPath, unsigned char* dec_key)
    return 0;
 }
 
-int get_keystone(boost::filesystem::path titleIdPath, unsigned char* dec_key, char* passcode)
+int get_keystone(boost::filesystem::path titleIdPath, char* passcode)
 {
    boost::filesystem::path root(titleIdPath);
    boost::filesystem::path filepath = root / "sce_sys" / "keystone";

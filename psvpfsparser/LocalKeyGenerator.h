@@ -39,4 +39,4 @@ typedef struct keystone_t
 
 int get_sealedkey(boost::filesystem::path titleIdPath, unsigned char* dec_key);
 
-int get_keystone(boost::filesystem::path titleIdPath, unsigned char* dec_key, char* passcode = 0);
+int get_keystone(boost::filesystem::path titleIdPath, char* passcode = 0);
