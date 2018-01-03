@@ -343,17 +343,7 @@ int AESCMACWithKeygen_base_2(const unsigned char* cmac_key, unsigned char* iv, s
    return 0;
 }
 
-//#### GROUP 3 (sw dec/enc) ####
-
-// this is most likely SW version of CMAC. both dec and enc functions are implemented
-//https://crypto.stackexchange.com/questions/47223/xex-mode-how-to-perturb-the-tweak
-
-//this is more likely to be related to aes-ctx multiplication
-//because in cmac last byte of subkey is xored with 0x87, not first
-//CMAC
-//https://stackoverflow.com/questions/29163493/aes-cmac-calculation-c-sharp
-//XTS-AES
-//https://github.com/libtom/libtomcrypt/blob/c14bcf4d302f954979f0de43f7544cf30873f5a6/src/modes/xts/xts_mult_x.c#L31
+//base functions for xts-aes
 
 std::uint32_t adds(std::uint32_t left, std::uint32_t right, std::uint32_t* carry)
 {
@@ -366,7 +356,7 @@ std::uint32_t adds(std::uint32_t left, std::uint32_t right, std::uint32_t* carry
    else
       *carry = 0;
 
-   return res64;
+   return (std::uint32_t)res64;
 }
 
 std::uint32_t adcs(std::uint32_t left, std::uint32_t right, std::uint32_t* carry)
@@ -380,32 +370,39 @@ std::uint32_t adcs(std::uint32_t left, std::uint32_t right, std::uint32_t* carry
    else
       *carry = 0;
 
-   return res64;
+   return (std::uint32_t)res64;
 }
 
-int xor_1(std::uint32_t* src, std::uint32_t* iv, std::uint32_t* dst, std::uint32_t size)
+//this implementation is nearly identical to XTS-AES implementation here
+//the only difference is that this method not only calculates multiply 2 (LFSR shift)
+//but also xores source data with the LFSR register
+//multiplication by 2 is implemented through addition (x1 = x0 + x0)
+//https://github.com/libtom/libtomcrypt/blob/c14bcf4d302f954979f0de43f7544cf30873f5a6/src/modes/xts/xts_mult_x.c#L20
+//here is more info about tweak perturbation
+//https://crypto.stackexchange.com/questions/47223/xex-mode-how-to-perturb-the-tweak
+int xts_mult_x_xor_data(std::uint32_t* src, std::uint32_t* tweak_enc_value, std::uint32_t* dst, std::uint32_t size)
 {
-   std::uint32_t iv_cpy[4] = {0};
-   memcpy(iv_cpy, iv, 0x10);
+   std::uint32_t tweak_cpy[4] = {0};
+   memcpy(tweak_cpy, tweak_enc_value, 0x10);
 
    while(size != 0)
    {
-      dst[0] = src[0] ^ iv_cpy[0];
-      dst[1] = src[1] ^ iv_cpy[1];
-      dst[2] = src[2] ^ iv_cpy[2];
-      dst[3] = src[3] ^ iv_cpy[3];
+      dst[0] = src[0] ^ tweak_cpy[0];
+      dst[1] = src[1] ^ tweak_cpy[1];
+      dst[2] = src[2] ^ tweak_cpy[2];
+      dst[3] = src[3] ^ tweak_cpy[3];
 
       src += 4;
       dst += 4;
       
       std::uint32_t carry = 0;
-      iv_cpy[0] = adds(iv_cpy[0], iv_cpy[0], &carry);
-      iv_cpy[1] = adcs(iv_cpy[1], iv_cpy[1], &carry);
-      iv_cpy[2] = adcs(iv_cpy[2], iv_cpy[2], &carry);
-      iv_cpy[3] = adcs(iv_cpy[3], iv_cpy[3], &carry);
+      tweak_cpy[0] = adds(tweak_cpy[0], tweak_cpy[0], &carry);
+      tweak_cpy[1] = adcs(tweak_cpy[1], tweak_cpy[1], &carry);
+      tweak_cpy[2] = adcs(tweak_cpy[2], tweak_cpy[2], &carry);
+      tweak_cpy[3] = adcs(tweak_cpy[3], tweak_cpy[3], &carry);
 
       if(carry > 0)
-         iv_cpy[0] = iv_cpy[0] ^ 0x87;
+         tweak_cpy[0] = tweak_cpy[0] ^ 0x87;
       
       size = size - 0x10;
    }
@@ -413,7 +410,7 @@ int xor_1(std::uint32_t* src, std::uint32_t* iv, std::uint32_t* dst, std::uint32
    return 0;
 }
 
-//IV is a subkey base
+//#### GROUP 3 (sw dec/enc) ####
 
 //ok
 int AESCMACDecryptSw_base(const unsigned char* tweak, const unsigned char* dst_key, const unsigned char* tweak_enc_key, std::uint32_t key_size, std::uint32_t size, const unsigned char* src, unsigned char* dst)
@@ -426,11 +423,11 @@ int AESCMACDecryptSw_base(const unsigned char* tweak, const unsigned char* dst_k
 
    aes_crypt_ecb(&aes_ctx, AES_ENCRYPT, tweak, tweak_enc_value);
 
-   xor_1((std::uint32_t*)src, (std::uint32_t*)tweak_enc_value, (std::uint32_t*)dst, size);
+   xts_mult_x_xor_data((std::uint32_t*)src, (std::uint32_t*)tweak_enc_value, (std::uint32_t*)dst, size);
 
    int result0 = SceSblSsMgrForDriver_sceSblSsMgrAESECBDecryptForDriver(dst, dst, size, dst_key, key_size, 1);
    if(result0 == 0)
-      xor_1((std::uint32_t*)dst, (std::uint32_t*)tweak_enc_value, (std::uint32_t*)dst, size);
+      xts_mult_x_xor_data((std::uint32_t*)dst, (std::uint32_t*)tweak_enc_value, (std::uint32_t*)dst, size);
 
    return result0;
 }
@@ -446,11 +443,11 @@ int AESCMACEncryptSw_base(const unsigned char* tweak, const unsigned char* dst_k
 
    aes_crypt_ecb(&aes_ctx, AES_ENCRYPT, tweak, tweak_enc_value);
 
-   xor_1((std::uint32_t*)src, (std::uint32_t*)tweak_enc_value, (std::uint32_t*)dst, size);
+   xts_mult_x_xor_data((std::uint32_t*)src, (std::uint32_t*)tweak_enc_value, (std::uint32_t*)dst, size);
 
    int result0 = SceSblSsMgrForDriver_sceSblSsMgrAESECBEncryptForDriver(dst, dst, size, dst_key, key_size, 1);
    if(result0 == 0)
-      xor_1((std::uint32_t*)dst, (std::uint32_t*)tweak_enc_value, (std::uint32_t*)dst, size);
+      xts_mult_x_xor_data((std::uint32_t*)dst, (std::uint32_t*)tweak_enc_value, (std::uint32_t*)dst, size);
 
    return result0;
 }
@@ -458,36 +455,6 @@ int AESCMACEncryptSw_base(const unsigned char* tweak, const unsigned char* dst_k
 //#### GROUP 4 (sw cmac) ####
 
 // this is some CMAC variation but I am not sure ? both functions are similar but most likely ment to be dec / enc
-
-int xor_2(std::uint32_t* src, std::uint32_t* iv, std::uint32_t* dst, std::uint32_t size)
-{
-   std::uint32_t iv_cpy[4] = {0};
-   memcpy(iv_cpy, iv, 0x10);
-
-   while(size != 0)
-   {
-      dst[0] = src[0] ^ iv_cpy[0];
-      dst[1] = src[1] ^ iv_cpy[1];
-      dst[2] = src[2] ^ iv_cpy[2];
-      dst[3] = src[3] ^ iv_cpy[3];
-
-      src += 4;
-      dst += 4;
-      
-      std::uint32_t carry = 0;
-      iv_cpy[0] = adds(iv_cpy[0], iv_cpy[0], &carry);
-      iv_cpy[1] = adcs(iv_cpy[1], iv_cpy[1], &carry);
-      iv_cpy[2] = adcs(iv_cpy[2], iv_cpy[2], &carry);
-      iv_cpy[3] = adcs(iv_cpy[3], iv_cpy[3], &carry);
-
-      if(carry > 0)
-         iv_cpy[0] = iv_cpy[0] ^ 0x87;
-      
-      size = size - 0x10;
-   }
-
-   return 0;
-}
 
 int AESCMACSw_base_1(const unsigned char* subkey, const unsigned char* dst_key, const unsigned char* subkey_key, std::uint32_t keysize, std::uint32_t size, const unsigned char* src, unsigned char* dst)
 {
@@ -502,11 +469,11 @@ int AESCMACSw_base_1(const unsigned char* subkey, const unsigned char* dst_key, 
 
    aes_crypt_ecb(&aes_ctx, AES_ENCRYPT, subkey, drv_subkey);
 
-   xor_2((std::uint32_t*)src, (std::uint32_t*)drv_subkey, (std::uint32_t*)dst, size); // WHAT DOES THIS DO IF dst IS OVERWRITTEN BY NEXT CMAC CALL ANYWAY ?
+   xts_mult_x_xor_data((std::uint32_t*)src, (std::uint32_t*)drv_subkey, (std::uint32_t*)dst, size); // WHAT DOES THIS DO IF dst IS OVERWRITTEN BY NEXT CMAC CALL ANYWAY ?
 
    int result0 = SceSblSsMgrForDriver_sceSblSsMgrAESCMACForDriver(src, dst, size, dst_key, keysize, iv, 1, 0);
    if(result0 == 0)
-      xor_2((std::uint32_t*)dst, (std::uint32_t*)drv_subkey, (std::uint32_t*)dst, size);
+      xts_mult_x_xor_data((std::uint32_t*)dst, (std::uint32_t*)drv_subkey, (std::uint32_t*)dst, size);
 
    return result0;
 }
@@ -524,12 +491,12 @@ int AESCMACSw_base_2(const unsigned char* subkey, const unsigned char* dst_key, 
 
    aes_crypt_ecb(&aes_ctx, AES_ENCRYPT, subkey, drv_subkey);
 
-   xor_2((std::uint32_t*)src, (std::uint32_t*)drv_subkey, (std::uint32_t*)dst, size); // WHAT DOES THIS DO IF dst IS OVERWRITTEN BY NEXT CMAC CALL ANYWAY ?
+   xts_mult_x_xor_data((std::uint32_t*)src, (std::uint32_t*)drv_subkey, (std::uint32_t*)dst, size); // WHAT DOES THIS DO IF dst IS OVERWRITTEN BY NEXT CMAC CALL ANYWAY ?
 
    int result0 = SceSblSsMgrForDriver_sceSblSsMgrAESCMACForDriver(src, dst, size, dst_key, keysize, iv, 1, 0);
    
    if(result0 == 0)
-      xor_2((std::uint32_t*)dst, (std::uint32_t*)drv_subkey, (std::uint32_t*)dst, size);
+      xts_mult_x_xor_data((std::uint32_t*)dst, (std::uint32_t*)drv_subkey, (std::uint32_t*)dst, size);
 
    return result0;
 }
