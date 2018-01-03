@@ -13,6 +13,7 @@
 
 //encrypt / decrypt
 
+//ok
 int AESCBCEncrypt_base(const unsigned char* key, unsigned char* iv, std::uint32_t size, const unsigned char* src, unsigned char* dst)
 {
    int size_tail = size & 0xF;
@@ -48,6 +49,7 @@ int AESCBCEncrypt_base(const unsigned char* key, unsigned char* iv, std::uint32_
    return 0;
 }
 
+//ok
 int AESCBCDecrypt_base(const unsigned char* key, unsigned char* iv, std::uint32_t size, const unsigned char* src, unsigned char* dst)
 {
    int size_tail = size & 0xF; // get size of tail
@@ -87,6 +89,7 @@ int AESCBCDecrypt_base(const unsigned char* key, unsigned char* iv, std::uint32_
 
 //encrypt / decrypt with key_id
 
+//ok
 int AESCBCDecryptWithKeygen_base(const unsigned char* key, unsigned char* iv, std::uint32_t size, const unsigned char* src, unsigned char* dst, std::uint16_t key_id)
 {
    std::uint16_t kid = 0 - (key_id - 1) + (key_id - 1);
@@ -126,6 +129,7 @@ int AESCBCDecryptWithKeygen_base(const unsigned char* key, unsigned char* iv, st
    return 0;
 }
 
+//ok
 int AESCBCEncryptWithKeygen_base(const unsigned char* klicensee, unsigned char* iv, std::uint32_t size, const unsigned char* src, unsigned char* dst, std::uint16_t key_id)
 {
    std::uint16_t kid = 0 - (key_id - 1) + (key_id - 1); // ???
@@ -171,6 +175,8 @@ int AESCBCEncryptWithKeygen_base(const unsigned char* klicensee, unsigned char* 
 
 int AESCMAC_base_1(const unsigned char* cmac_key, unsigned char* iv, std::uint32_t size, const unsigned char* cmac_src, unsigned char* cmac_dst)
 {
+   throw std::runtime_error("Untested unknown behavior");
+
    int size_tail = size & 0xF;
    int size_block = size & (~0xF);
    
@@ -210,6 +216,8 @@ int AESCMAC_base_1(const unsigned char* cmac_key, unsigned char* iv, std::uint32
 
 int AESCMAC_base_2(const unsigned char* cmac_key, unsigned char* iv, std::uint32_t size, const unsigned char* cmac_src, unsigned char* cmac_dst)
 {
+   throw std::runtime_error("Untested unknown behavior");
+
    int size_tail = size & 0xF;
    int size_block = size & (~0xF);
 
@@ -251,6 +259,8 @@ int AESCMAC_base_2(const unsigned char* cmac_key, unsigned char* iv, std::uint32
 
 int AESCMACWithKeygen_base_1(const unsigned char* cmac_key, unsigned char* iv, std::uint32_t size, const unsigned char* cmac_src, unsigned char* cmac_dst, std::uint16_t key_id)
 {
+   throw std::runtime_error("Untested unknown behavior");
+
    std::uint16_t kid = 0 - (key_id - 1) + (key_id - 1);
 
    int size_tail = size & 0xF;
@@ -292,6 +302,8 @@ int AESCMACWithKeygen_base_1(const unsigned char* cmac_key, unsigned char* iv, s
 
 int AESCMACWithKeygen_base_2(const unsigned char* cmac_key, unsigned char* iv, std::uint32_t size, const unsigned char* cmac_src, unsigned char* cmac_dst, std::uint16_t key_id)
 {
+   throw std::runtime_error("Untested unknown behavior");
+
    std::uint16_t kid = 0 - (key_id - 1) + (key_id - 1);
 
    int size_tail = size & 0xF;
@@ -343,9 +355,37 @@ int AESCMACWithKeygen_base_2(const unsigned char* cmac_key, unsigned char* iv, s
 //XTS-AES
 //https://github.com/libtom/libtomcrypt/blob/c14bcf4d302f954979f0de43f7544cf30873f5a6/src/modes/xts/xts_mult_x.c#L31
 
-int xor_1(int* src, int* iv, int* dst, std::uint32_t size)
+std::uint32_t adds(std::uint32_t left, std::uint32_t right, std::uint32_t* carry)
 {
-   int iv_cpy[4] = {0};
+   std::uint64_t l64 = left;
+   std::uint64_t r64 = right;
+   std::uint64_t res64 = l64 + r64;
+
+   if((res64 & 0x0000000100000000) > 0)
+      *carry = 1;
+   else
+      *carry = 0;
+
+   return res64;
+}
+
+std::uint32_t adcs(std::uint32_t left, std::uint32_t right, std::uint32_t* carry)
+{
+   std::uint64_t l64 = left;
+   std::uint64_t r64 = right;
+   std::uint64_t res64 = l64 + r64 + *carry;
+
+   if((res64 & 0x0000000100000000) > 0)
+      *carry = 1;
+   else
+      *carry = 0;
+
+   return res64;
+}
+
+int xor_1(std::uint32_t* src, std::uint32_t* iv, std::uint32_t* dst, std::uint32_t size)
+{
+   std::uint32_t iv_cpy[4] = {0};
    memcpy(iv_cpy, iv, 0x10);
 
    while(size != 0)
@@ -358,13 +398,14 @@ int xor_1(int* src, int* iv, int* dst, std::uint32_t size)
       src += 4;
       dst += 4;
       
-      iv_cpy[0] += iv_cpy[0];
-      iv_cpy[1] += iv_cpy[1];
-      iv_cpy[2] += iv_cpy[2];
-      iv_cpy[3] += iv_cpy[3];
+      std::uint32_t carry = 0;
+      iv_cpy[0] = adds(iv_cpy[0], iv_cpy[0], &carry);
+      iv_cpy[1] = adcs(iv_cpy[1], iv_cpy[1], &carry);
+      iv_cpy[2] = adcs(iv_cpy[2], iv_cpy[2], &carry);
+      iv_cpy[3] = adcs(iv_cpy[3], iv_cpy[3], &carry);
 
-      if(true) // this condition should check carry bit after one of the 4 add operations
-         iv_cpy[0] = iv_cpy[0] + 0x87;
+      if(carry > 0)
+         iv_cpy[0] = iv_cpy[0] ^ 0x87;
       
       size = size - 0x10;
    }
@@ -374,38 +415,40 @@ int xor_1(int* src, int* iv, int* dst, std::uint32_t size)
 
 //IV is a subkey base
 
+//ok
 int AESCMACDecryptSw_base(const unsigned char* subkey, const unsigned char* dst_key, const unsigned char* subkey_key, std::uint32_t key_size, std::uint32_t size, const unsigned char* src, unsigned char* dst)
 {
-   char aes_ctx[0x1F0] = {0};
+   aes_context aes_ctx;
    unsigned char drv_subkey[0x10] = {0};
 
-   SceKernelUtilsForDriver_aes_init_2(aes_ctx, 0x80, key_size, subkey_key); //initialize aes ctx with iv_key
+   SceKernelUtilsForDriver_aes_init_2(&aes_ctx, 0x80, key_size, subkey_key); //initialize aes ctx with iv_key
 
-   SceKernelUtilsForDriver_aes_encrypt_2(aes_ctx, subkey, drv_subkey); //encrypt 0x10 bytes of subkey to derive drv_subkey
+   SceKernelUtilsForDriver_aes_encrypt_2(&aes_ctx, subkey, drv_subkey); //encrypt 0x10 bytes of subkey to derive drv_subkey
 
-   xor_1((int*)src, (int*)drv_subkey, (int*)dst, size); // xor src with drv_iv to get dst
+   xor_1((std::uint32_t*)src, (std::uint32_t*)drv_subkey, (std::uint32_t*)dst, size); // xor src with drv_iv to get dst
 
    int result0 = SceSblSsMgrForDriver_sceSblSsMgrAESECBDecryptForDriver(dst, dst, size, dst_key, key_size, 1); //decrypt dst data using dst_key key
    if(result0 == 0)
-      xor_1((int*)dst, (int*)drv_subkey, (int*)dst, size); //xor dst with drv_iv to get real dst
+      xor_1((std::uint32_t*)dst, (std::uint32_t*)drv_subkey, (std::uint32_t*)dst, size); //xor dst with drv_iv to get real dst
 
    return result0;
 }
 
+//ok
 int AESCMACEncryptSw_base(const unsigned char* subkey, const unsigned char* dst_key, const unsigned char* subkey_key, std::uint32_t key_size, std::uint32_t size, const unsigned char* src, unsigned char* dst)
 {
-   char aes_ctx[0x1F0] = {0};
+   aes_context aes_ctx;
    unsigned char drv_subkey[0x10] = {0};
 
-   SceKernelUtilsForDriver_aes_init_2(aes_ctx, 0x80, key_size, subkey_key);
+   SceKernelUtilsForDriver_aes_init_2(&aes_ctx, 0x80, key_size, subkey_key);
 
-   SceKernelUtilsForDriver_aes_encrypt_2(aes_ctx, subkey, drv_subkey);
+   SceKernelUtilsForDriver_aes_encrypt_2(&aes_ctx, subkey, drv_subkey);
 
-   xor_1((int*)src, (int*)drv_subkey, (int*)dst, size);
+   xor_1((std::uint32_t*)src, (std::uint32_t*)drv_subkey, (std::uint32_t*)dst, size);
 
    int result0 = SceSblSsMgrForDriver_sceSblSsMgrAESECBEncryptForDriver(dst, dst, size, dst_key, key_size, 1);
    if(result0 == 0)
-      xor_1((int*)dst, (int*)drv_subkey, (int*)dst, size);
+      xor_1((std::uint32_t*)dst, (std::uint32_t*)drv_subkey, (std::uint32_t*)dst, size);
 
    return result0;
 }
@@ -414,9 +457,9 @@ int AESCMACEncryptSw_base(const unsigned char* subkey, const unsigned char* dst_
 
 // this is some CMAC variation but I am not sure ? both functions are similar but most likely ment to be dec / enc
 
-int xor_2(int* src, int* iv, int* dst, std::uint32_t size)
+int xor_2(std::uint32_t* src, std::uint32_t* iv, std::uint32_t* dst, std::uint32_t size)
 {
-   int iv_cpy[4] = {0};
+   std::uint32_t iv_cpy[4] = {0};
    memcpy(iv_cpy, iv, 0x10);
 
    while(size != 0)
@@ -428,14 +471,15 @@ int xor_2(int* src, int* iv, int* dst, std::uint32_t size)
 
       src += 4;
       dst += 4;
+      
+      std::uint32_t carry = 0;
+      iv_cpy[0] = adds(iv_cpy[0], iv_cpy[0], &carry);
+      iv_cpy[1] = adcs(iv_cpy[1], iv_cpy[1], &carry);
+      iv_cpy[2] = adcs(iv_cpy[2], iv_cpy[2], &carry);
+      iv_cpy[3] = adcs(iv_cpy[3], iv_cpy[3], &carry);
 
-      iv_cpy[0] += iv_cpy[0];
-      iv_cpy[1] += iv_cpy[1];
-      iv_cpy[2] += iv_cpy[2];
-      iv_cpy[3] += iv_cpy[3];
-
-      if(true) // this condition should check carry bit after one of the 4 add operations
-         iv_cpy[0] = iv_cpy[0] + 0x87;
+      if(carry > 0)
+         iv_cpy[0] = iv_cpy[0] ^ 0x87;
       
       size = size - 0x10;
    }
@@ -445,39 +489,43 @@ int xor_2(int* src, int* iv, int* dst, std::uint32_t size)
 
 int AESCMACSw_base_1(const unsigned char* subkey, const unsigned char* dst_key, const unsigned char* subkey_key, std::uint32_t keysize, std::uint32_t size, const unsigned char* src, unsigned char* dst)
 {
-   char aes_ctx[0x1F0] = {0};
+   throw std::runtime_error("Untested unknown behavior");
+
+   aes_context aes_ctx;
    unsigned char drv_subkey[0x10] = {0};
-   unsigned char iv[0x10] = {0}; //HOW IV IS INITIALIZED ?
+   unsigned char iv[0x10] = {0}; //HOW IV IS INITIALIZED ? - it should not be initialized. sceSblSsMgrAESCMACForDriver only takes 0 as IV - look at wiki
    
-   SceKernelUtilsForDriver_aes_init_2(aes_ctx, 0x80, keysize, subkey_key);
+   SceKernelUtilsForDriver_aes_init_2(&aes_ctx, 0x80, keysize, subkey_key);
 
-   SceKernelUtilsForDriver_aes_encrypt_2(aes_ctx, subkey, drv_subkey);
+   SceKernelUtilsForDriver_aes_encrypt_2(&aes_ctx, subkey, drv_subkey);
 
-   xor_2((int*)src, (int*)drv_subkey, (int*)dst, size); // WHAT DOES THIS DO IF dst IS OVERWRITTEN BY NEXT CMAC CALL ANYWAY ?
+   xor_2((std::uint32_t*)src, (std::uint32_t*)drv_subkey, (std::uint32_t*)dst, size); // WHAT DOES THIS DO IF dst IS OVERWRITTEN BY NEXT CMAC CALL ANYWAY ?
 
    int result0 = SceSblSsMgrForDriver_sceSblSsMgrAESCMACForDriver(src, dst, size, dst_key, keysize, iv, 1, 0);
    if(result0 == 0)
-      xor_2((int*)dst, (int*)drv_subkey, (int*)dst, size);
+      xor_2((std::uint32_t*)dst, (std::uint32_t*)drv_subkey, (std::uint32_t*)dst, size);
 
    return result0;
 }
 
 int AESCMACSw_base_2(const unsigned char* subkey, const unsigned char* dst_key, const unsigned char* subkey_key, std::uint32_t keysize, std::uint32_t size, const unsigned char* src, unsigned char* dst)
 {
-   char aes_ctx[0x1F0] = {0};
+   throw std::runtime_error("Untested unknown behavior");
+
+   aes_context aes_ctx;
    unsigned char drv_subkey[0x10] = {0};
-   unsigned char iv[0x10] = {0}; //HOW IV IS INITIALIZED ?
+   unsigned char iv[0x10] = {0}; //HOW IV IS INITIALIZED ? - it should not be initialized. sceSblSsMgrAESCMACForDriver only takes 0 as IV - look at wiki
 
-   SceKernelUtilsForDriver_aes_init_2(aes_ctx, 0x80, keysize, subkey_key);
+   SceKernelUtilsForDriver_aes_init_2(&aes_ctx, 0x80, keysize, subkey_key);
 
-   SceKernelUtilsForDriver_aes_encrypt_2(aes_ctx, subkey, drv_subkey);
+   SceKernelUtilsForDriver_aes_encrypt_2(&aes_ctx, subkey, drv_subkey);
 
-   xor_2((int*)src, (int*)drv_subkey, (int*)dst, size); // WHAT DOES THIS DO IF dst IS OVERWRITTEN BY NEXT CMAC CALL ANYWAY ?
+   xor_2((std::uint32_t*)src, (std::uint32_t*)drv_subkey, (std::uint32_t*)dst, size); // WHAT DOES THIS DO IF dst IS OVERWRITTEN BY NEXT CMAC CALL ANYWAY ?
 
    int result0 = SceSblSsMgrForDriver_sceSblSsMgrAESCMACForDriver(src, dst, size, dst_key, keysize, iv, 1, 0);
    
    if(result0 == 0)
-      xor_2((int*)dst, (int*)drv_subkey, (int*)dst, size);
+      xor_2((std::uint32_t*)dst, (std::uint32_t*)drv_subkey, (std::uint32_t*)dst, size);
 
    return result0;
 }
