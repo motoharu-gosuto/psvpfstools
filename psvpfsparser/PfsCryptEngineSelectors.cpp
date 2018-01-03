@@ -207,7 +207,7 @@ int pfs_decrypt_sw(const unsigned char* key, const unsigned char* subkey_key, st
       if((flag & PFS_CRYPTO_USE_CMAC) != 0)
          result0 = AESCMACSw_base_2(iv, key, subkey_key, keysize, size_arg, src + offset, g_1771100);
       else
-         result0 = AESCMACDecryptSw_base(iv, key, subkey_key, keysize, size_arg, src + offset, dst + offset);
+         result0 = AESXTSDecryptSw_base(iv, key, subkey_key, keysize, size_arg, src + offset, dst + offset);
 
       if(result0 != 0)
          return result0;
@@ -263,7 +263,7 @@ int pfs_encrypt_sw(const unsigned char* key, const unsigned char* subkey_key, st
       if((flag & PFS_CRYPTO_USE_CMAC) != 0)
          result0 = AESCMACSw_base_1(iv, key, subkey_key, keysize, size_arg, src + offset, g_1771100);
       else
-         result0 = AESCMACEncryptSw_base(iv, key, subkey_key, keysize, size_arg, src + offset, dst + offset);
+         result0 = AESXTSEncryptSw_base(iv, key, subkey_key, keysize, size_arg, src + offset, dst + offset);
       
       if(result0 != 0)
          return result0;

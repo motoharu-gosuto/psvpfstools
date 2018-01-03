@@ -413,15 +413,19 @@ int xts_mult_x_xor_data(std::uint32_t* src, std::uint32_t* tweak_enc_value, std:
 //#### GROUP 3 (sw dec/enc) ####
 
 //ok
-int AESCMACDecryptSw_base(const unsigned char* tweak, const unsigned char* dst_key, const unsigned char* tweak_enc_key, std::uint32_t key_size, std::uint32_t size, const unsigned char* src, unsigned char* dst)
+int AESXTSDecryptSw_base(const unsigned char* tweak, const unsigned char* dst_key, const unsigned char* tweak_enc_key, std::uint32_t key_size, std::uint32_t size, const unsigned char* src, unsigned char* dst)
 {
    aes_context aes_ctx;
    unsigned char tweak_enc_value[0x10] = {0};
+
+   //encrypt tweak
 
    memset(&aes_ctx, 0, sizeof(aes_context));
    aes_setkey_enc(&aes_ctx, tweak_enc_key, key_size);
 
    aes_crypt_ecb(&aes_ctx, AES_ENCRYPT, tweak, tweak_enc_value);
+
+   //do tweak uncrypt
 
    xts_mult_x_xor_data((std::uint32_t*)src, (std::uint32_t*)tweak_enc_value, (std::uint32_t*)dst, size);
 
@@ -433,15 +437,19 @@ int AESCMACDecryptSw_base(const unsigned char* tweak, const unsigned char* dst_k
 }
 
 //ok
-int AESCMACEncryptSw_base(const unsigned char* tweak, const unsigned char* dst_key, const unsigned char* tweak_enc_key, std::uint32_t key_size, std::uint32_t size, const unsigned char* src, unsigned char* dst)
+int AESXTSEncryptSw_base(const unsigned char* tweak, const unsigned char* dst_key, const unsigned char* tweak_enc_key, std::uint32_t key_size, std::uint32_t size, const unsigned char* src, unsigned char* dst)
 {
    aes_context aes_ctx;
    unsigned char tweak_enc_value[0x10] = {0};
+
+   //encrypt tweak
 
    memset(&aes_ctx, 0, sizeof(aes_context));
    aes_setkey_enc(&aes_ctx, tweak_enc_key, key_size);
 
    aes_crypt_ecb(&aes_ctx, AES_ENCRYPT, tweak, tweak_enc_value);
+
+   //do tweak crypt
 
    xts_mult_x_xor_data((std::uint32_t*)src, (std::uint32_t*)tweak_enc_value, (std::uint32_t*)dst, size);
 
