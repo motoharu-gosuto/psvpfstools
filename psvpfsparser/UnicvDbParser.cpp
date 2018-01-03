@@ -13,8 +13,6 @@
 
 int parseUnicvDb(boost::filesystem::path titleIdPath, std::shared_ptr<sce_idb_base_t>& fdb)
 {
-   std::cout << "parsing  unicv.db..." << std::endl;
-
    boost::filesystem::path root(titleIdPath);
 
    boost::filesystem::path filepath = root / "sce_pfs" / "unicv.db";
@@ -29,6 +27,8 @@ int parseUnicvDb(boost::filesystem::path titleIdPath, std::shared_ptr<sce_idb_ba
       }
       else
       {
+         std::cout << "parsing  icv.db..." << std::endl;
+
          fdb = std::make_shared<sce_icvdb_t>();
          if(!fdb->read(filepath2))
             return -1;
@@ -38,6 +38,8 @@ int parseUnicvDb(boost::filesystem::path titleIdPath, std::shared_ptr<sce_idb_ba
    }
    else
    {
+      std::cout << "parsing  unicv.db..." << std::endl;
+
       fdb = std::make_shared<sce_irodb_t>();
       if(!fdb->read(filepath))
          return -1;
