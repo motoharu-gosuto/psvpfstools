@@ -13,8 +13,6 @@
 
 void verify_step(CryptEngineWorkCtx* crypt_ctx, int64_t tweak_key, int bitSize, int size, unsigned char* source)
 {
-   // variable mapping
-
    if((crypt_ctx->subctx->data->flag0 << 0x12) < 0)
       return; // this does not terminate crypto task (local exit)
    
@@ -26,8 +24,6 @@ void verify_step(CryptEngineWorkCtx* crypt_ctx, int64_t tweak_key, int bitSize, 
 
    if((bitSize > 0x1F) || ((0xC0000B03 & (1 << bitSize)) == 0))
    {
-      throw std::runtime_error("Untested decryption branch in verify_step");
-
       if((crypt_ctx->subctx->data->pmi_bcl_flag & 0x41) != 0x41)
       {
          if(crypt_ctx->subctx->nBlocks != 0)
@@ -154,9 +150,7 @@ void work_3_step0(CryptEngineWorkCtx* crypt_ctx, int64_t tweak_key, int bitSize,
    std::uint32_t counter = 0;
 
    if((bitSize > 0x1F) || ((0xC0000B03 & (1 << bitSize)) == 0))
-   {   
-      throw std::runtime_error("Untested decryption branch in work_3_step0");
-
+   {
       do
       {
          pfs_decrypt_sw(key, subkey_key, 0x80, tweak_key0 + offset, tweak_key1 + 0, crypt_ctx->subctx->data->block_size, crypt_ctx->subctx->data->block_size, buffer + offset, buffer + offset, crypt_ctx->subctx->data->pmi_bcl_flag);
