@@ -25,10 +25,9 @@ int gen_secrets_extern(unsigned char* dec_key, unsigned char* iv_key, const unsi
 }
 
 //similar to generate_secret in SecretGenerator
+//[TESTED]
 int generate_secrets(unsigned char* dec_key, unsigned char* iv_key, const unsigned char* klicensee, std::uint32_t unicv_page_salt)
 {
-   throw std::runtime_error("Untested generate_secrets");
-
    int saltin[2] = {0};
    unsigned char base0[0x14] = {0};
    unsigned char base1[0x14] = {0};
