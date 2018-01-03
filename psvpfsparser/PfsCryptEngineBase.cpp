@@ -416,39 +416,39 @@ int xor_1(std::uint32_t* src, std::uint32_t* iv, std::uint32_t* dst, std::uint32
 //IV is a subkey base
 
 //ok
-int AESCMACDecryptSw_base(const unsigned char* subkey, const unsigned char* dst_key, const unsigned char* subkey_key, std::uint32_t key_size, std::uint32_t size, const unsigned char* src, unsigned char* dst)
+int AESCMACDecryptSw_base(const unsigned char* tweak, const unsigned char* dst_key, const unsigned char* tweak_enc_key, std::uint32_t key_size, std::uint32_t size, const unsigned char* src, unsigned char* dst)
 {
    aes_context aes_ctx;
-   unsigned char drv_subkey[0x10] = {0};
+   unsigned char tweak_enc_value[0x10] = {0};
 
-   SceKernelUtilsForDriver_aes_init_2(&aes_ctx, 0x80, key_size, subkey_key); //initialize aes ctx with iv_key
+   SceKernelUtilsForDriver_aes_init_2(&aes_ctx, 0x80, key_size, tweak_enc_key);
 
-   SceKernelUtilsForDriver_aes_encrypt_2(&aes_ctx, subkey, drv_subkey); //encrypt 0x10 bytes of subkey to derive drv_subkey
+   SceKernelUtilsForDriver_aes_encrypt_2(&aes_ctx, tweak, tweak_enc_value);
 
-   xor_1((std::uint32_t*)src, (std::uint32_t*)drv_subkey, (std::uint32_t*)dst, size); // xor src with drv_iv to get dst
+   xor_1((std::uint32_t*)src, (std::uint32_t*)tweak_enc_value, (std::uint32_t*)dst, size);
 
-   int result0 = SceSblSsMgrForDriver_sceSblSsMgrAESECBDecryptForDriver(dst, dst, size, dst_key, key_size, 1); //decrypt dst data using dst_key key
+   int result0 = SceSblSsMgrForDriver_sceSblSsMgrAESECBDecryptForDriver(dst, dst, size, dst_key, key_size, 1);
    if(result0 == 0)
-      xor_1((std::uint32_t*)dst, (std::uint32_t*)drv_subkey, (std::uint32_t*)dst, size); //xor dst with drv_iv to get real dst
+      xor_1((std::uint32_t*)dst, (std::uint32_t*)tweak_enc_value, (std::uint32_t*)dst, size);
 
    return result0;
 }
 
 //ok
-int AESCMACEncryptSw_base(const unsigned char* subkey, const unsigned char* dst_key, const unsigned char* subkey_key, std::uint32_t key_size, std::uint32_t size, const unsigned char* src, unsigned char* dst)
+int AESCMACEncryptSw_base(const unsigned char* tweak, const unsigned char* dst_key, const unsigned char* tweak_enc_key, std::uint32_t key_size, std::uint32_t size, const unsigned char* src, unsigned char* dst)
 {
    aes_context aes_ctx;
-   unsigned char drv_subkey[0x10] = {0};
+   unsigned char tweak_enc_value[0x10] = {0};
 
-   SceKernelUtilsForDriver_aes_init_2(&aes_ctx, 0x80, key_size, subkey_key);
+   SceKernelUtilsForDriver_aes_init_2(&aes_ctx, 0x80, key_size, tweak_enc_key);
 
-   SceKernelUtilsForDriver_aes_encrypt_2(&aes_ctx, subkey, drv_subkey);
+   SceKernelUtilsForDriver_aes_encrypt_2(&aes_ctx, tweak, tweak_enc_value);
 
-   xor_1((std::uint32_t*)src, (std::uint32_t*)drv_subkey, (std::uint32_t*)dst, size);
+   xor_1((std::uint32_t*)src, (std::uint32_t*)tweak_enc_value, (std::uint32_t*)dst, size);
 
    int result0 = SceSblSsMgrForDriver_sceSblSsMgrAESECBEncryptForDriver(dst, dst, size, dst_key, key_size, 1);
    if(result0 == 0)
-      xor_1((std::uint32_t*)dst, (std::uint32_t*)drv_subkey, (std::uint32_t*)dst, size);
+      xor_1((std::uint32_t*)dst, (std::uint32_t*)tweak_enc_value, (std::uint32_t*)dst, size);
 
    return result0;
 }
