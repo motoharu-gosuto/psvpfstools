@@ -189,16 +189,8 @@ int pfs_decrypt_sw(const unsigned char* key, const unsigned char* subkey_key, st
 {
    unsigned char iv[0x10] = {0};
 
-   if(((block_size | size) << 0x1C) != 0)
+   if((block_size <= 0xF) || (size <= 0xF)) //block_size and size should be at least one block
       return 0x80140609;
-
-   if(size <= 0xF)
-      return 0x80140609;
- 
-   /*
-   if((((int)src | (int)dst) << 0x1E) != 0)
-      return 0x8014060E;
-   */
 
    int tk_tmp00 = tweak_key0;
    int tk_tmp10 = tweak_key1;
@@ -269,16 +261,8 @@ int pfs_encrypt_sw(const unsigned char* key, const unsigned char* subkey_key, st
 {
    unsigned char iv[0x10] = {0};
 
-   if(((block_size | size) << 0x1C) != 0)
+   if((block_size <= 0xF) || (size <= 0xF)) //block_size and size should be at least one block
       return 0x80140609;
-
-   if(size <= 0xF)
-      return 0x80140609;
-
-   /*
-   if((((int)src | (int)dst) << 0x1E) != 0)
-      return 0x8014060E;
-   */
 
    int tk_tmp00 = tweak_key0;
    int tk_tmp10 = tweak_key1;
