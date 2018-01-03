@@ -9,10 +9,10 @@
 
 //#### GROUP 1, GROUP 2 (hw dec/enc) ####
 
-int pfs_decrypt_hw(const unsigned char* key, const unsigned char* iv_xor_key, int tweak_key0, int tweak_key1, std::uint32_t size, std::uint32_t block_size, const unsigned char* src, unsigned char* dst, std::uint16_t flag, std::uint16_t key_id);
+int pfs_decrypt_hw(const unsigned char* key, const unsigned char* iv_xor_key, std::uint64_t tweak_key, std::uint32_t size, std::uint32_t block_size, const unsigned char* src, unsigned char* dst, std::uint16_t flag, std::uint16_t key_id);
 
-int pfs_encrypt_hw(const unsigned char* key, const unsigned char* iv_xor_key, int tweak_key0, int tweak_key1, std::uint32_t size, std::uint32_t block_size, const unsigned char* src, unsigned char* dst, std::uint16_t flag, std::uint16_t key_id);
+int pfs_encrypt_hw(const unsigned char* key, const unsigned char* iv_xor_key, std::uint64_t tweak_key, std::uint32_t size, std::uint32_t block_size, const unsigned char* src, unsigned char* dst, std::uint16_t flag, std::uint16_t key_id);
 
-int pfs_decrypt_sw(const unsigned char* key, const unsigned char* subkey_key, std::uint32_t keysize, int tweak_key0, int tweak_key1, std::uint32_t size, std::uint32_t block_size, const unsigned char* src, unsigned char* dst, std::uint16_t flag);
+int pfs_decrypt_sw(const unsigned char* key, const unsigned char* subkey_key, std::uint32_t keysize, std::uint64_t tweak_key, std::uint32_t size, std::uint32_t block_size, const unsigned char* src, unsigned char* dst, std::uint16_t flag);
 
-int pfs_encrypt_sw(const unsigned char* key, const unsigned char* subkey_key, std::uint32_t keysize, int tweak_key0, int tweak_key1, std::uint32_t size, std::uint32_t block_size, const unsigned char* src, unsigned char* dst, std::uint16_t flag);
+int pfs_encrypt_sw(const unsigned char* key, const unsigned char* subkey_key, std::uint32_t keysize, std::uint64_t tweak_key, std::uint32_t size, std::uint32_t block_size, const unsigned char* src, unsigned char* dst, std::uint16_t flag);

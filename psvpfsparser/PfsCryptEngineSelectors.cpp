@@ -6,29 +6,43 @@
 
 #include "PfsCryptEngineBase.h"
 
+//this macro unwraps 64 bit sector number into byte array
+#define UINT64_TO_BYTEARRAY(x, y)                                              \
+   { (y)[7] = (unsigned char)((x) >> 56); (y)[6] = (unsigned char)((x) >> 48); \
+     (y)[5] = (unsigned char)((x) >> 40); (y)[4] = (unsigned char)((x) >> 32); \
+     (y)[3] = (unsigned char)((x) >> 24); (y)[2] = (unsigned char)((x) >> 16); \
+     (y)[1] = (unsigned char)((x) >> 8) ; (y)[0] = (unsigned char)(x); }
+
+//this function increments byte array of size 0x10
+int UINT128_BYTEARRAY_INC(unsigned char iv[0x10])
+{
+   for(int i = 0; i < 0x10; i++)
+   {
+      if(iv[i] == 0xFF)
+      {
+         iv[i] = 0;
+      }
+      else
+      {
+         iv[i] = iv[i] + 1;
+         break;
+      }
+   }
+
+   return 0;
+}
+
 //############## LEVEL 2 - CRYPTO WRAPPER SELECTORS ###############
 
 //#### GROUP 1, GROUP 2 (hw dec/enc) ####
 
 unsigned char g_1771100[0x10] = {0};
 
-int pfs_decrypt_hw(const unsigned char* key, const unsigned char* iv_xor_key, int tweak_key0, int tweak_key1, std::uint32_t size, std::uint32_t block_size, const unsigned char* src, unsigned char* dst, std::uint16_t flag, std::uint16_t key_id)
+int pfs_decrypt_hw(const unsigned char* key, const unsigned char* iv_xor_key, std::uint64_t tweak_key, std::uint32_t size, std::uint32_t block_size, const unsigned char* src, unsigned char* dst, std::uint16_t flag, std::uint16_t key_id)
 {
    unsigned char iv[0x10] = {0};
 
-   //this piece of code unwraps 64 bit sector number into byte array
-   //like here https://github.com/libtom/libtomcrypt/blob/c14bcf4d302f954979f0de43f7544cf30873f5a6/src/headers/tomcrypt_macros.h#L23
-
-   int tk_tmp00 = tweak_key0; //sector_number_hi
-   int tk_tmp10 = tweak_key1; //sector_number_lo
-   
-   for(int i = 0; i < 8; i++)
-   {
-      iv[i] = tk_tmp00;
-
-      tk_tmp00 = (tk_tmp00 >> 8) | (tk_tmp10 << 24);
-      tk_tmp10 = tk_tmp10 >> 8;
-   }
+   UINT64_TO_BYTEARRAY(tweak_key, iv);
 
    memset(iv + 8, 0, 8);
 
@@ -42,16 +56,8 @@ int pfs_decrypt_hw(const unsigned char* key, const unsigned char* iv_xor_key, in
 
       do
       {
-         int tk_tmp01 = tweak_key0 + offset;
-         int tk_tmp11 = tweak_key1 + 0;
-         
-         for(int i = 0; i < 8; i++)
-         {
-            iv[i] = tk_tmp01;
-            
-            tk_tmp01 = (tk_tmp01 >> 8) | (tk_tmp11 << 24);
-            tk_tmp11 = tk_tmp11 >> 8;
-         }
+         std::uint64_t tweak_key_ofst = tweak_key + offset;
+         UINT64_TO_BYTEARRAY(tweak_key_ofst, iv);
 
          memset(iv + 8, 0, 8);
 
@@ -99,20 +105,11 @@ int pfs_decrypt_hw(const unsigned char* key, const unsigned char* iv_xor_key, in
    return 0;
 }
 
-int pfs_encrypt_hw(const unsigned char* key, const unsigned char* iv_xor_key, int tweak_key0, int tweak_key1, std::uint32_t size, std::uint32_t block_size, const unsigned char* src, unsigned char* dst, std::uint16_t flag, std::uint16_t key_id)
+int pfs_encrypt_hw(const unsigned char* key, const unsigned char* iv_xor_key, std::uint64_t tweak_key, std::uint32_t size, std::uint32_t block_size, const unsigned char* src, unsigned char* dst, std::uint16_t flag, std::uint16_t key_id)
 {
    unsigned char iv[0x10] = {0};
 
-   int tk_tmp00 = tweak_key0;
-   int tk_tmp10 = tweak_key1;
-
-   for(int i = 0; i < 8; i++)
-   {
-      iv[i] = tk_tmp00;
-
-      tk_tmp00 = (tk_tmp00 >> 8) | (tk_tmp10 << 24);
-      tk_tmp10 = tk_tmp10 >> 8;
-   }
+   UINT64_TO_BYTEARRAY(tweak_key, iv);
 
    memset(iv + 8, 0, 8);
 
@@ -126,16 +123,8 @@ int pfs_encrypt_hw(const unsigned char* key, const unsigned char* iv_xor_key, in
 
       do
       {         
-         int tk_tmp01 = tweak_key0 + offset;
-         int tk_tmp11 = tweak_key1 + 0;
-
-         for(int i = 0; i < 8; i++)
-         {
-            iv[i] = tk_tmp01;
-
-            tk_tmp01 = (tk_tmp01 >> 8) | (tk_tmp11 << 24);
-            tk_tmp11 = tk_tmp11 >> 8;
-         }
+         std::uint64_t tweak_key_ofst = tweak_key + offset;
+         UINT64_TO_BYTEARRAY(tweak_key_ofst, iv);
 
          memset(iv + 8, 0, 8);
 
@@ -185,23 +174,18 @@ int pfs_encrypt_hw(const unsigned char* key, const unsigned char* iv_xor_key, in
 
 //#### GROUP 3, GROUP 4 (sw dec/enc) ####
 
-int pfs_decrypt_sw(const unsigned char* key, const unsigned char* subkey_key, std::uint32_t keysize, int tweak_key0, int tweak_key1, std::uint32_t size, std::uint32_t block_size, const unsigned char* src, unsigned char* dst, std::uint16_t flag)
+//looks like this method can decrypt multiple blocks when size > block_size
+//assuming that it adds 1 to tweak_key when decrypting each next block
+//in practice though it looks like this method is only used to decrypt single block
+
+int pfs_decrypt_sw(const unsigned char* key, const unsigned char* subkey_key, std::uint32_t keysize, std::uint64_t tweak_key, std::uint32_t size, std::uint32_t block_size, const unsigned char* src, unsigned char* dst, std::uint16_t flag)
 {
    unsigned char iv[0x10] = {0};
 
    if((block_size <= 0xF) || (size <= 0xF)) //block_size and size should be at least one block
       return 0x80140609;
 
-   int tk_tmp00 = tweak_key0;
-   int tk_tmp10 = tweak_key1;
-
-   for(int i = 0; i < 8; i++)
-   {
-      iv[i] = tk_tmp00;
-
-      tk_tmp00 = (tk_tmp00 >> 8) | (tk_tmp10 << 24);
-      tk_tmp10 = tk_tmp10 >> 8;
-   }
+   UINT64_TO_BYTEARRAY(tweak_key, iv);
 
    memset(iv + 8, 0, 8);
 
@@ -228,18 +212,7 @@ int pfs_decrypt_sw(const unsigned char* key, const unsigned char* subkey_key, st
       if(result0 != 0)
          return result0;
 
-      for(int i = 0; i < 0x10; i++)
-      {
-         if(iv[i] == 0xFF)
-         {
-            iv[i] = 0;
-         }
-         else
-         {
-            iv[i] = iv[i] + 1;
-            break;
-         }
-      }
+      UINT128_BYTEARRAY_INC(iv);
 
       offset = offset + block_size;
       bytes_left = bytes_left - block_size;
@@ -257,23 +230,18 @@ int pfs_decrypt_sw(const unsigned char* key, const unsigned char* subkey_key, st
    return 0;
 }
 
-int pfs_encrypt_sw(const unsigned char* key, const unsigned char* subkey_key, std::uint32_t keysize, int tweak_key0, int tweak_key1, std::uint32_t size, std::uint32_t block_size, const unsigned char* src, unsigned char* dst, std::uint16_t flag)
+//looks like this method can encrypt multiple blocks when size > block_size
+//assuming that it adds 1 to tweak_key when encrypting each next block
+//in practice though it looks like this method is only used to decrypt single block
+
+int pfs_encrypt_sw(const unsigned char* key, const unsigned char* subkey_key, std::uint32_t keysize, std::uint64_t tweak_key, std::uint32_t size, std::uint32_t block_size, const unsigned char* src, unsigned char* dst, std::uint16_t flag)
 {
    unsigned char iv[0x10] = {0};
 
    if((block_size <= 0xF) || (size <= 0xF)) //block_size and size should be at least one block
       return 0x80140609;
 
-   int tk_tmp00 = tweak_key0;
-   int tk_tmp10 = tweak_key1;
-
-   for(int i = 0; i < 8; i++)
-   {
-      iv[i] = tk_tmp00;
-
-      tk_tmp00 = (tk_tmp00 >> 8) | (tk_tmp10 << 24);
-      tk_tmp10 = tk_tmp10 >> 8;
-   }
+   UINT64_TO_BYTEARRAY(tweak_key, iv);
 
    memset(iv + 8, 0, 8);
    
@@ -300,18 +268,7 @@ int pfs_encrypt_sw(const unsigned char* key, const unsigned char* subkey_key, st
       if(result0 != 0)
          return result0;
 
-      for(int i = 0; i < 0x10; i++)
-      {
-         if(iv[i] == 0xFF)
-         {
-            iv[i] = 0;
-         }
-         else
-         {
-            iv[i] = iv[i] + 1;
-            break;
-         }
-      }
+      UINT128_BYTEARRAY_INC(iv);
 
       offset = offset + block_size;
       bytes_left = bytes_left - block_size;
