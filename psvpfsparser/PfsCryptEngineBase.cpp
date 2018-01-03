@@ -413,7 +413,7 @@ int xts_mult_x_xor_data(std::uint32_t* src, std::uint32_t* tweak_enc_value, std:
 //#### GROUP 3 (sw dec/enc) ####
 
 //ok
-int AESXTSDecryptSw_base(const unsigned char* tweak, const unsigned char* dst_key, const unsigned char* tweak_enc_key, std::uint32_t key_size, std::uint32_t size, const unsigned char* src, unsigned char* dst)
+int XTSAESDecrypt_base(const unsigned char* tweak, const unsigned char* dst_key, const unsigned char* tweak_enc_key, std::uint32_t key_size, std::uint32_t size, const unsigned char* src, unsigned char* dst)
 {
    aes_context aes_ctx;
    unsigned char tweak_enc_value[0x10] = {0};
@@ -437,7 +437,7 @@ int AESXTSDecryptSw_base(const unsigned char* tweak, const unsigned char* dst_ke
 }
 
 //ok
-int AESXTSEncryptSw_base(const unsigned char* tweak, const unsigned char* dst_key, const unsigned char* tweak_enc_key, std::uint32_t key_size, std::uint32_t size, const unsigned char* src, unsigned char* dst)
+int XTSAESEncrypt_base(const unsigned char* tweak, const unsigned char* dst_key, const unsigned char* tweak_enc_key, std::uint32_t key_size, std::uint32_t size, const unsigned char* src, unsigned char* dst)
 {
    aes_context aes_ctx;
    unsigned char tweak_enc_value[0x10] = {0};
