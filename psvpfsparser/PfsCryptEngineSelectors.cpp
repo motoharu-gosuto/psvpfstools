@@ -32,11 +32,10 @@ int UINT128_BYTEARRAY_INC(unsigned char iv[0x10])
    return 0;
 }
 
-//############## LEVEL 2 - CRYPTO WRAPPER SELECTORS ###############
+//#### GROUP 1 (possible keygen aes-cbc-cts dec/aes-cbc-cts enc) ####
+//#### GROUP 2 (possible keygen aes-cmac-cts dec/aes-cmac-cts enc) (technically there is no dec/enc - this is pair of same functions since cmac) ####
 
-//#### GROUP 1, GROUP 2 (hw dec/enc) ####
-
-unsigned char g_1771100[0x10] = {0};
+unsigned char g_cmac_buffer[0x10] = {0};
 
 int pfs_decrypt_hw(const unsigned char* key, const unsigned char* iv_xor_key, std::uint64_t tweak_key, std::uint32_t size, std::uint32_t block_size, const unsigned char* src, unsigned char* dst, std::uint16_t flag, std::uint16_t key_id)
 {
@@ -76,14 +75,14 @@ int pfs_decrypt_hw(const unsigned char* key, const unsigned char* iv_xor_key, st
          if((flag & PFS_CRYPTO_USE_KEYGEN) != 0)
          {
             if((flag & PFS_CRYPTO_USE_CMAC) != 0)
-               AESCMACWithKeygen_base_2(key, iv, size_arg, src + offset, g_1771100, key_id);
+               AESCMACDecryptWithKeygen_base(key, iv, size_arg, src + offset, g_cmac_buffer, key_id);
             else
                AESCBCDecryptWithKeygen_base(key, iv, size_arg, src + offset, dst + offset, key_id);
          }
          else
          {
             if((flag & PFS_CRYPTO_USE_CMAC) != 0)
-               AESCMAC_base_1(key, iv, size_arg, src + offset, g_1771100);
+               AESCMACDecrypt_base(key, iv, size_arg, src + offset, g_cmac_buffer);
             else
                AESCBCDecrypt_base(key, iv, size_arg, src + offset, dst + offset);
          }
@@ -143,14 +142,14 @@ int pfs_encrypt_hw(const unsigned char* key, const unsigned char* iv_xor_key, st
          if((flag & PFS_CRYPTO_USE_KEYGEN) != 0)
          {
             if((flag & PFS_CRYPTO_USE_CMAC) != 0)
-               AESCMACWithKeygen_base_1(key, iv, size_arg, src + offset, g_1771100, key_id);
+               AESCMACEncryptWithKeygen_base(key, iv, size_arg, src + offset, g_cmac_buffer, key_id);
             else
                AESCBCEncryptWithKeygen_base(key, iv, size_arg, src + offset, dst + offset, key_id);
          }
          else
          {
             if((flag & PFS_CRYPTO_USE_CMAC) != 0)
-               AESCMAC_base_2(key, iv, size_arg, src + offset, g_1771100);
+               AESCMACEncrypt_base(key, iv, size_arg, src + offset, g_cmac_buffer);
             else
                AESCBCEncrypt_base(key, iv, size_arg, src + offset, dst + offset);
          }
@@ -172,7 +171,8 @@ int pfs_encrypt_hw(const unsigned char* key, const unsigned char* iv_xor_key, st
    return 0;
 }
 
-//#### GROUP 3, GROUP 4 (sw dec/enc) ####
+//#### GROUP 3 (no keygen xts-aes dec/xts-aes enc) ####
+//#### GROUP 4 (no keygen xts-cmac dec/xts-cmac enc) (technically there is no dec/enc - this is pair of same functions since cmac) ####
 
 //looks like this method can decrypt multiple blocks when size > block_size
 //assuming that it adds 1 to tweak_key when decrypting each next block
@@ -205,7 +205,7 @@ int pfs_decrypt_sw(const unsigned char* key, const unsigned char* subkey_key, st
 
       int result0 = 0;
       if((flag & PFS_CRYPTO_USE_CMAC) != 0)
-         result0 = AESCMACSw_base_2(iv, key, subkey_key, keysize, size_arg, src + offset, g_1771100);
+         result0 = XTSCMACDecrypt_base(iv, key, subkey_key, keysize, size_arg, src + offset, g_cmac_buffer);
       else
          result0 = XTSAESDecrypt_base(iv, key, subkey_key, keysize, size_arg, src + offset, dst + offset);
 
@@ -261,7 +261,7 @@ int pfs_encrypt_sw(const unsigned char* key, const unsigned char* subkey_key, st
 
       int result0 = 0;
       if((flag & PFS_CRYPTO_USE_CMAC) != 0)
-         result0 = AESCMACSw_base_1(iv, key, subkey_key, keysize, size_arg, src + offset, g_1771100);
+         result0 = XTSCMACEncrypt_base(iv, key, subkey_key, keysize, size_arg, src + offset, g_cmac_buffer);
       else
          result0 = XTSAESEncrypt_base(iv, key, subkey_key, keysize, size_arg, src + offset, dst + offset);
       
