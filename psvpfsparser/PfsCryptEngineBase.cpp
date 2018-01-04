@@ -380,7 +380,7 @@ std::uint32_t adcs(std::uint32_t left, std::uint32_t right, std::uint32_t* carry
 //https://github.com/libtom/libtomcrypt/blob/c14bcf4d302f954979f0de43f7544cf30873f5a6/src/modes/xts/xts_mult_x.c#L20
 //here is more info about tweak perturbation
 //https://crypto.stackexchange.com/questions/47223/xex-mode-how-to-perturb-the-tweak
-int xts_mult_x_xor_data(std::uint32_t* src, std::uint32_t* tweak_enc_value, std::uint32_t* dst, std::uint32_t size)
+int xts_mult_x_xor_data_xts(std::uint32_t* src, std::uint32_t* tweak_enc_value, std::uint32_t* dst, std::uint32_t size)
 {
    std::uint32_t tweak_cpy[4] = {0};
    memcpy(tweak_cpy, tweak_enc_value, 0x10);
@@ -410,7 +410,34 @@ int xts_mult_x_xor_data(std::uint32_t* src, std::uint32_t* tweak_enc_value, std:
    return 0;
 }
 
-//#### GROUP 3 (sw dec/enc) ####
+int xts_mult_x_xor_data_cmac(std::uint32_t* src, std::uint32_t* tweak_enc_value, std::uint32_t* dst, std::uint32_t size)
+{
+   std::uint32_t tweak_cpy[4] = {0};
+   memcpy(tweak_cpy, tweak_enc_value, 0x10);
+
+   while(size != 0)
+   {
+      dst[0] = src[0] ^ tweak_cpy[0];
+      dst[1] = src[1] ^ tweak_cpy[1];
+      dst[2] = src[2] ^ tweak_cpy[2];
+      dst[3] = src[3] ^ tweak_cpy[3];
+
+      std::uint32_t carry = 0;
+      tweak_cpy[0] = adds(tweak_cpy[0], tweak_cpy[0], &carry);
+      tweak_cpy[1] = adcs(tweak_cpy[1], tweak_cpy[1], &carry);
+      tweak_cpy[2] = adcs(tweak_cpy[2], tweak_cpy[2], &carry);
+      tweak_cpy[3] = adcs(tweak_cpy[3], tweak_cpy[3], &carry);
+
+      if(carry > 0)
+         tweak_cpy[0] = tweak_cpy[0] ^ 0x87;
+      
+      size = size - 0x10;
+   }
+
+   return 0;
+}
+
+//#### GROUP 3 (no keygen xts-aes dec/xts-aes enc) ####
 
 //ok
 int XTSAESDecrypt_base(const unsigned char* tweak, const unsigned char* dst_key, const unsigned char* tweak_enc_key, std::uint32_t key_size, std::uint32_t size, const unsigned char* src, unsigned char* dst)
@@ -427,11 +454,11 @@ int XTSAESDecrypt_base(const unsigned char* tweak, const unsigned char* dst_key,
 
    //do tweak uncrypt
 
-   xts_mult_x_xor_data((std::uint32_t*)src, (std::uint32_t*)tweak_enc_value, (std::uint32_t*)dst, size);
+   xts_mult_x_xor_data_xts((std::uint32_t*)src, (std::uint32_t*)tweak_enc_value, (std::uint32_t*)dst, size);
 
    int result0 = SceSblSsMgrForDriver_sceSblSsMgrAESECBDecryptForDriver(dst, dst, size, dst_key, key_size, 1);
    if(result0 == 0)
-      xts_mult_x_xor_data((std::uint32_t*)dst, (std::uint32_t*)tweak_enc_value, (std::uint32_t*)dst, size);
+      xts_mult_x_xor_data_xts((std::uint32_t*)dst, (std::uint32_t*)tweak_enc_value, (std::uint32_t*)dst, size);
 
    return result0;
 }
@@ -451,60 +478,59 @@ int XTSAESEncrypt_base(const unsigned char* tweak, const unsigned char* dst_key,
 
    //do tweak crypt
 
-   xts_mult_x_xor_data((std::uint32_t*)src, (std::uint32_t*)tweak_enc_value, (std::uint32_t*)dst, size);
+   xts_mult_x_xor_data_xts((std::uint32_t*)src, (std::uint32_t*)tweak_enc_value, (std::uint32_t*)dst, size);
 
    int result0 = SceSblSsMgrForDriver_sceSblSsMgrAESECBEncryptForDriver(dst, dst, size, dst_key, key_size, 1);
    if(result0 == 0)
-      xts_mult_x_xor_data((std::uint32_t*)dst, (std::uint32_t*)tweak_enc_value, (std::uint32_t*)dst, size);
+      xts_mult_x_xor_data_xts((std::uint32_t*)dst, (std::uint32_t*)tweak_enc_value, (std::uint32_t*)dst, size);
 
    return result0;
 }
 
-//#### GROUP 4 (sw cmac) ####
+//#### GROUP 4 (no keygen cmac/cmac) ####
 
-// this is some CMAC variation but I am not sure ? both functions are similar but most likely ment to be dec / enc
+// FUNCTIONS ARE SIMILAR
 
-int AESCMACSw_base_1(const unsigned char* tweak, const unsigned char* dst_key, const unsigned char* tweak_enc_key, std::uint32_t key_size, std::uint32_t size, const unsigned char* src, unsigned char* dst)
+int XTSCMACEncrypt_base(const unsigned char* tweak, const unsigned char* dst_key, const unsigned char* tweak_enc_key, std::uint32_t key_size, std::uint32_t size, const unsigned char* src, unsigned char* dst)
 {
-   throw std::runtime_error("Untested unknown behavior");
+   throw std::runtime_error("Untested function");
+
+   unsigned char tweak_enc_value[0x10] = {0};
 
    aes_context aes_ctx;
-   unsigned char tweak_enc_value[0x10] = {0};
-   unsigned char iv[0x10] = {0}; //HOW IV IS INITIALIZED ? - it should not be initialized. sceSblSsMgrAESCMACForDriver only takes 0 as IV - look at wiki
-   
    memset(&aes_ctx, 0, sizeof(aes_context));
    aes_setkey_enc(&aes_ctx, tweak_enc_key, key_size);
 
    aes_crypt_ecb(&aes_ctx, AES_ENCRYPT, tweak, tweak_enc_value);
 
-   xts_mult_x_xor_data((std::uint32_t*)src, (std::uint32_t*)tweak_enc_value, (std::uint32_t*)dst, size); // WHAT DOES THIS DO IF dst IS OVERWRITTEN BY NEXT CMAC CALL ANYWAY ?
+   //not sure why this call is needed since dst will be overwritten with next cmac call
+   xts_mult_x_xor_data_cmac((std::uint32_t*)src, (std::uint32_t*)tweak_enc_value, (std::uint32_t*)dst, size);
 
-   int result0 = SceSblSsMgrForDriver_sceSblSsMgrAESCMACForDriver(src, dst, size, dst_key, key_size, iv, 1, 0);
+   int result0 = SceSblSsMgrForDriver_sceSblSsMgrAESCMACForDriver(src, dst, size, dst_key, key_size, 0, 1, 0);
    if(result0 == 0)
-      xts_mult_x_xor_data((std::uint32_t*)dst, (std::uint32_t*)tweak_enc_value, (std::uint32_t*)dst, size);
+      xts_mult_x_xor_data_cmac((std::uint32_t*)dst, (std::uint32_t*)tweak_enc_value, (std::uint32_t*)dst, size);
 
    return result0;
 }
 
-int AESCMACSw_base_2(const unsigned char* tweak, const unsigned char* dst_key, const unsigned char* tweak_enc_key, std::uint32_t key_size, std::uint32_t size, const unsigned char* src, unsigned char* dst)
+int XTSCMACDecrypt_base(const unsigned char* tweak, const unsigned char* dst_key, const unsigned char* tweak_enc_key, std::uint32_t key_size, std::uint32_t size, const unsigned char* src, unsigned char* dst)
 {
-   throw std::runtime_error("Untested unknown behavior");
+   throw std::runtime_error("Untested function");
 
-   aes_context aes_ctx;
    unsigned char tweak_enc_value[0x10] = {0};
-   unsigned char iv[0x10] = {0}; //HOW IV IS INITIALIZED ? - it should not be initialized. sceSblSsMgrAESCMACForDriver only takes 0 as IV - look at wiki
-
+   
+   aes_context aes_ctx;
    memset(&aes_ctx, 0, sizeof(aes_context));
    aes_setkey_enc(&aes_ctx, tweak_enc_key, key_size);
 
    aes_crypt_ecb(&aes_ctx, AES_ENCRYPT, tweak, tweak_enc_value);
 
-   xts_mult_x_xor_data((std::uint32_t*)src, (std::uint32_t*)tweak_enc_value, (std::uint32_t*)dst, size); // WHAT DOES THIS DO IF dst IS OVERWRITTEN BY NEXT CMAC CALL ANYWAY ?
+   //not sure why this call is needed since dst will be overwritten with next cmac call
+   xts_mult_x_xor_data_cmac((std::uint32_t*)src, (std::uint32_t*)tweak_enc_value, (std::uint32_t*)dst, size);
 
-   int result0 = SceSblSsMgrForDriver_sceSblSsMgrAESCMACForDriver(src, dst, size, dst_key, key_size, iv, 1, 0);
-   
+   int result0 = SceSblSsMgrForDriver_sceSblSsMgrAESCMACForDriver(src, dst, size, dst_key, key_size, 0, 1, 0);
    if(result0 == 0)
-      xts_mult_x_xor_data((std::uint32_t*)dst, (std::uint32_t*)tweak_enc_value, (std::uint32_t*)dst, size);
+      xts_mult_x_xor_data_cmac((std::uint32_t*)dst, (std::uint32_t*)tweak_enc_value, (std::uint32_t*)dst, size);
 
    return result0;
 }
