@@ -9,10 +9,10 @@
 
 //#### FUNCTIONS OF GROUP 1/2 are used to encrypt/decrypt unicv.db ####
 
-//#### GROUP 1 (possible keygen aes-cbc dec/aes-cbc enc) ####
+//#### GROUP 1 (possible keygen aes-cbc-cts dec/aes-cbc-cts enc) ####
 
 //ok
-int AESCBCEncrypt_base(const unsigned char* key, unsigned char* iv, std::uint32_t size, const unsigned char* src, unsigned char* dst)
+int AESCBCEncrypt_base(const unsigned char* key, unsigned char* tweak, std::uint32_t size, const unsigned char* src, unsigned char* dst)
 {
    int size_tail = size & 0xF;
    int size_block = size & (~0xF);
@@ -21,7 +21,7 @@ int AESCBCEncrypt_base(const unsigned char* key, unsigned char* iv, std::uint32_
    
    if(size_block != 0)
    {
-      int result0 = SceSblSsMgrForDriver_sceSblSsMgrAESCBCEncryptForDriver(src, dst, size_block, key, 0x80, iv, 1);
+      int result0 = SceSblSsMgrForDriver_sceSblSsMgrAESCBCEncryptForDriver(src, dst, size_block, key, 0x80, tweak, 1);
       if(result0 != 0)
          return result0;
    }
@@ -33,22 +33,22 @@ int AESCBCEncrypt_base(const unsigned char* key, unsigned char* iv, std::uint32_
 
    //align destination buffer
 
-   unsigned char iv_enc[0x10] = {0};
+   unsigned char tweak_enc[0x10] = {0};
 
    //encrypt iv using key
 
-   int result1 = SceSblSsMgrForDriver_sceSblSsMgrAESECBEncryptForDriver(iv, iv_enc, 0x10, key, 0x80, 1);
+   int result1 = SceSblSsMgrForDriver_sceSblSsMgrAESECBEncryptForDriver(tweak, tweak_enc, 0x10, key, 0x80, 1);
    if(result1 != 0)
       return result1;
 
    for(int i = 0; i < size_tail; i++)
-      dst[size_block + i] = src[size_block + i] ^ iv_enc[i]; 
+      dst[size_block + i] = src[size_block + i] ^ tweak_enc[i]; 
 
    return 0;
 }
 
 //ok
-int AESCBCDecrypt_base(const unsigned char* key, unsigned char* iv, std::uint32_t size, const unsigned char* src, unsigned char* dst)
+int AESCBCDecrypt_base(const unsigned char* key, unsigned char* tweak, std::uint32_t size, const unsigned char* src, unsigned char* dst)
 {
    int size_tail = size & 0xF; // get size of tail
    int size_block = size & (~0xF); // get block size aligned to 0x10 boundary
@@ -57,7 +57,7 @@ int AESCBCDecrypt_base(const unsigned char* key, unsigned char* iv, std::uint32_
 
    if(size_block != 0)
    {
-      int result0 = SceSblSsMgrForDriver_sceSblSsMgrAESCBCDecryptForDriver(src, dst, size_block, key, 0x80, iv, 1);
+      int result0 = SceSblSsMgrForDriver_sceSblSsMgrAESCBCDecryptForDriver(src, dst, size_block, key, 0x80, tweak, 1);
       if(result0 != 0)
          return result0;
    }
@@ -69,26 +69,26 @@ int AESCBCDecrypt_base(const unsigned char* key, unsigned char* iv, std::uint32_
 
    //align destination buffer
 
-   unsigned char iv_enc[0x10] = {0};
+   unsigned char tweak_enc[0x10] = {0};
    
    //encrypt iv using key
 
-   int result1 = SceSblSsMgrForDriver_sceSblSsMgrAESECBEncryptForDriver(iv, iv_enc, 0x10, key, 0x80, 1);
+   int result1 = SceSblSsMgrForDriver_sceSblSsMgrAESECBEncryptForDriver(tweak, tweak_enc, 0x10, key, 0x80, 1);
    if(result1 != 0)
       return result1;
 
    //produce destination tail by xoring source tail with encrypted iv
 
    for(int i = 0; i < size_tail; i++)
-      dst[size_block + i] = src[size_block + i] ^ iv_enc[i];
+      dst[size_block + i] = src[size_block + i] ^ tweak_enc[i];
 
    return 0;
 }
 
 //ok
-int AESCBCEncryptWithKeygen_base(const unsigned char* klicensee, unsigned char* iv, std::uint32_t size, const unsigned char* src, unsigned char* dst, std::uint16_t key_id)
+int AESCBCEncryptWithKeygen_base(const unsigned char* key, unsigned char* tweak, std::uint32_t size, const unsigned char* src, unsigned char* dst, std::uint16_t key_id)
 {
-   std::uint16_t kid = 0 - (key_id - 1) + (key_id - 1); // ???
+   std::uint16_t kid = 0; //key_id argument is ignored and is always 0
 
    int size_tail = size & 0xF; // get size of tail
    int size_block = size & (~0xF); // get block size aligned to 0x10 boundary
@@ -97,7 +97,7 @@ int AESCBCEncryptWithKeygen_base(const unsigned char* klicensee, unsigned char* 
 
    if(size_block != 0)
    {
-      int result0 = SceSblSsMgrForDriver_sceSblSsMgrAESCBCEncryptWithKeygenForDriver(src, dst, size_block, klicensee, 0x80, iv, kid, 1);
+      int result0 = SceSblSsMgrForDriver_sceSblSsMgrAESCBCEncryptWithKeygenForDriver(src, dst, size_block, key, 0x80, tweak, kid, 1);
       if(result0 != 0)
          return result0;  
    }
@@ -109,26 +109,26 @@ int AESCBCEncryptWithKeygen_base(const unsigned char* klicensee, unsigned char* 
 
    //align destination buffer
 
-   unsigned char iv_enc[0x10] = {0};
+   unsigned char tweak_enc[0x10] = {0};
 
    //encrypt iv using klicensee
      
-   int result1 = SceSblSsMgrForDriver_sceSblSsMgrAESECBEncryptWithKeygenForDriver(iv, iv_enc, 0x10, klicensee, 0x80, kid, 1);
+   int result1 = SceSblSsMgrForDriver_sceSblSsMgrAESECBEncryptWithKeygenForDriver(tweak, tweak_enc, 0x10, key, 0x80, kid, 1);
    if(result1 != 0)
       return result1;
 
    //produce destination tail by xoring source tail with encrypted iv
 
    for(int i = 0; i < size_tail; i++)
-      dst[size_block + i] = src[size_block + i] ^ iv_enc[i];
+      dst[size_block + i] = src[size_block + i] ^ tweak_enc[i];
 
    return 0;
 }
 
 //ok
-int AESCBCDecryptWithKeygen_base(const unsigned char* key, unsigned char* iv, std::uint32_t size, const unsigned char* src, unsigned char* dst, std::uint16_t key_id)
+int AESCBCDecryptWithKeygen_base(const unsigned char* key, unsigned char* tweak, std::uint32_t size, const unsigned char* src, unsigned char* dst, std::uint16_t key_id)
 {
-   std::uint16_t kid = 0 - (key_id - 1) + (key_id - 1);
+   std::uint16_t kid = 0; //key_id argument is ignored and is always 0
 
    int size_tail = size & 0xF;
    int size_block = size & (~0xF);
@@ -137,7 +137,7 @@ int AESCBCDecryptWithKeygen_base(const unsigned char* key, unsigned char* iv, st
 
    if(size_block != 0)
    {
-      int result0 = SceSblSsMgrForDriver_sceSblSsMgrAESCBCDecryptWithKeygenForDriver(src, dst, size_block, key, 0x80, iv, kid, 1);
+      int result0 = SceSblSsMgrForDriver_sceSblSsMgrAESCBCDecryptWithKeygenForDriver(src, dst, size_block, key, 0x80, tweak, kid, 1);
       if(result0 != 0)
          return result0;
    }
@@ -149,18 +149,18 @@ int AESCBCDecryptWithKeygen_base(const unsigned char* key, unsigned char* iv, st
 
    //align destination buffer
 
-   unsigned char iv_enc[0x10] = {0};
+   unsigned char tweak_enc[0x10] = {0};
 
    //encrypt iv using key
 
-   int result1 = SceSblSsMgrForDriver_sceSblSsMgrAESECBEncryptWithKeygenForDriver(iv, iv_enc, 0x10, key, 0x80, kid, 1);
+   int result1 = SceSblSsMgrForDriver_sceSblSsMgrAESECBEncryptWithKeygenForDriver(tweak, tweak_enc, 0x10, key, 0x80, kid, 1);
    if(result1 != 0)
       return result1;
 
    //produce destination tail by xoring source tail with encrypted iv
 
    for(int i = 0; i < size_tail; i++)
-      dst[size_block + i] = src[size_block + i] ^ iv_enc[i];
+      dst[size_block + i] = src[size_block + i] ^ tweak_enc[i];
 
    return 0;
 }

@@ -3,21 +3,22 @@
 #include <cstdint>
 
 //#### FUNCTIONS OF GROUP 1/2 are used to encrypt/decrypt unicv.db ####
-//group 1 is relevant - it is implementation of aes-cbc used to encrypt/ decrypt unicv.db
+//group 1 is relevant - it is implementation of aes-cbc-cts used to encrypt/ decrypt unicv.db
+//it is important that: tweak is used as iv and aes-cbc implements cts
 
 //group 2 is not relevant in particular since it is a cmac that outputs only 0x10 bytes
 //these functions operate with global g_cmac_buffer buffer and not with destination buffer
 //true purpose of cmac functions is still not known
 
-//#### GROUP 1 (possible keygen aes-cbc dec/aes-cbc enc) ####
+//#### GROUP 1 (possible keygen aes-cbc-cts dec/aes-cbc-cts enc) ####
 
-int AESCBCEncrypt_base(const unsigned char* key, unsigned char* iv, std::uint32_t size, const unsigned char* src, unsigned char* dst);
+int AESCBCEncrypt_base(const unsigned char* key, unsigned char* tweak, std::uint32_t size, const unsigned char* src, unsigned char* dst);
 
-int AESCBCDecrypt_base(const unsigned char* key, unsigned char* iv, std::uint32_t size, const unsigned char* src, unsigned char* dst);
+int AESCBCDecrypt_base(const unsigned char* key, unsigned char* tweak, std::uint32_t size, const unsigned char* src, unsigned char* dst);
 
-int AESCBCEncryptWithKeygen_base(const unsigned char* klicensee, unsigned char* iv, std::uint32_t size, const unsigned char* src, unsigned char* dst, std::uint16_t key_id);
+int AESCBCEncryptWithKeygen_base(const unsigned char* key, unsigned char* tweak, std::uint32_t size, const unsigned char* src, unsigned char* dst, std::uint16_t key_id);
 
-int AESCBCDecryptWithKeygen_base(const unsigned char* key, unsigned char* iv, std::uint32_t size, const unsigned char* src, unsigned char* dst, std::uint16_t key_id);
+int AESCBCDecryptWithKeygen_base(const unsigned char* key, unsigned char* tweak, std::uint32_t size, const unsigned char* src, unsigned char* dst, std::uint16_t key_id);
 
 //#### GROUP 2 (possible keygen aes-cmac dec/aes-cmac enc) (technically there is no dec/enc - this is pair of same functions since cmac) ####
 
