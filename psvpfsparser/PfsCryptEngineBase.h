@@ -2,7 +2,14 @@
 
 #include <cstdint>
 
-//#### GROUP 1 (hw dec/enc) ####
+//#### FUNCTIONS OF GROUP 1/2 are used to encrypt/decrypt unicv.db ####
+//group 1 is relevant - it is implementation of aes-cbc used to encrypt/ decrypt unicv.db
+
+//group 2 is not relevant in particular since it is a cmac that outputs only 0x10 bytes
+//these functions operate with global g_cmac_buffer buffer and not with destination buffer
+//true purpose of cmac functions is still not known
+
+//#### GROUP 1 (possible keygen aes-cbc dec/aes-cbc enc) ####
 
 int AESCBCEncrypt_base(const unsigned char* key, unsigned char* iv, std::uint32_t size, const unsigned char* src, unsigned char* dst);
 
@@ -12,19 +19,26 @@ int AESCBCEncryptWithKeygen_base(const unsigned char* klicensee, unsigned char* 
 
 int AESCBCDecryptWithKeygen_base(const unsigned char* key, unsigned char* iv, std::uint32_t size, const unsigned char* src, unsigned char* dst, std::uint16_t key_id);
 
-//#### GROUP 2 (hw cmac) ####
+//#### GROUP 2 (possible keygen aes-cmac dec/aes-cmac enc) (technically there is no dec/enc - this is pair of same functions since cmac) ####
 
-//uses global buffer
+//should use g_cmac_buffer global buffer
 int AESCMACEncrypt_base(const unsigned char* cmac_key, unsigned char* iv, std::uint32_t size, const unsigned char* cmac_src, unsigned char cmac_dst[0x10]);
 
-//uses global buffer
+//should use g_cmac_buffer global buffer
 int AESCMACDecrypt_base(const unsigned char* cmac_key, unsigned char* iv, std::uint32_t size, const unsigned char* cmac_src, unsigned char cmac_dst[0x10]);
 
-//uses global buffer
+//should use g_cmac_buffer global buffer
 int AESCMACEncryptWithKeygen_base(const unsigned char* cmac_key, unsigned char* iv, std::uint32_t size, const unsigned char* cmac_src, unsigned char cmac_dst[0x10], std::uint16_t key_id);
 
-//uses global buffer
+//should use g_cmac_buffer global buffer
 int AESCMACDecryptWithKeygen_base(const unsigned char* cmac_key, unsigned char* iv, std::uint32_t size, const unsigned char* cmac_src, unsigned char cmac_dst[0x10], std::uint16_t key_id);
+
+//#### FUNCTIONS OF GROUP 3/4 are used to encrypt/decrypt icv.db ####
+//group 3 is relevant - it is implementation of xts-aes used to encrypt/ decrypt icv.db
+
+//group 4 is not relevant in particular since it is a cmac that outputs only 0x10 bytes
+//these functions operate with global g_cmac_buffer buffer and not with destination buffer
+//true purpose of cmac functions is still not known
 
 //#### GROUP 3 (no keygen xts-aes dec/xts-aes enc) ####
 
@@ -34,8 +48,8 @@ int XTSAESDecrypt_base(const unsigned char* tweak, const unsigned char* dst_key,
 
 //#### GROUP 4 (no keygen xts-cmac dec/xts-cmac enc) (technically there is no dec/enc - this is pair of same functions since cmac) ####
 
-//uses global buffer
+//should use g_cmac_buffer global buffer
 int XTSCMACEncrypt_base(const unsigned char* tweak, const unsigned char* dst_key, const unsigned char* tweak_enc_key, std::uint32_t key_size, std::uint32_t size, const unsigned char* src, unsigned char dst[0x10]);
 
-//uses global buffer
+//should use g_cmac_buffer global buffer
 int XTSCMACDecrypt_base(const unsigned char* tweak, const unsigned char* dst_key, const unsigned char* tweak_enc_key, std::uint32_t key_size, std::uint32_t size, const unsigned char* src, unsigned char dst[0x10]);

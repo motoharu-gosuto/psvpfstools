@@ -7,11 +7,9 @@
 #include "SceSblSsMgrForDriver.h"
 #include "SceKernelUtilsForDriver.h"
 
-//############## CRYPTO BASE WRAPPERS ###############
+//#### FUNCTIONS OF GROUP 1/2 are used to encrypt/decrypt unicv.db ####
 
-//#### GROUP 1 (hw dec/enc) ####
-
-//encrypt / decrypt
+//#### GROUP 1 (possible keygen aes-cbc dec/aes-cbc enc) ####
 
 //ok
 int AESCBCEncrypt_base(const unsigned char* key, unsigned char* iv, std::uint32_t size, const unsigned char* src, unsigned char* dst)
@@ -86,8 +84,6 @@ int AESCBCDecrypt_base(const unsigned char* key, unsigned char* iv, std::uint32_
 
    return 0;
 }
-
-//encrypt / decrypt with key_id
 
 //ok
 int AESCBCEncryptWithKeygen_base(const unsigned char* klicensee, unsigned char* iv, std::uint32_t size, const unsigned char* src, unsigned char* dst, std::uint16_t key_id)
@@ -169,7 +165,7 @@ int AESCBCDecryptWithKeygen_base(const unsigned char* key, unsigned char* iv, st
    return 0;
 }
 
-//#### GROUP 2 (hw cmac) ####
+//#### GROUP 2 (possible keygen aes-cmac dec/aes-cmac enc) (technically there is no dec/enc - this is pair of same functions since cmac) ####
 
 // FUNCTIONS ARE SIMILAR
 
@@ -342,6 +338,8 @@ int AESCMACDecryptWithKeygen_base(const unsigned char* cmac_key, unsigned char* 
 
    return 0;
 }
+
+//#### FUNCTIONS OF GROUP 3/4 are used to encrypt/decrypt icv.db ####
 
 //base functions for xts-aes
 
