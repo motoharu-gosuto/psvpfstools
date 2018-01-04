@@ -134,10 +134,7 @@ int SceSblSsMgrForDriver_sceSblSsMgrAESCMACForDriver(const unsigned char* src, u
    memset(&aes_ctx, 0, sizeof(aes_ctx));
    aes_setkey_enc(&aes_ctx, key, key_size);
 
-   unsigned char* src_cpy = new unsigned char[size];
-   memcpy(src_cpy, src, size);
-   aes_cmac(&aes_ctx, size, src_cpy, dst);
-   delete [] src_cpy;
+   aes_cmac(&aes_ctx, size, src, dst);
 
    return 0;
 }
@@ -165,10 +162,7 @@ int SceSblSsMgrForDriver_sceSblSsMgrAESCMACWithKeygenForDriver(const unsigned ch
    memset(&aes_ctx, 0, sizeof(aes_ctx));
    aes_setkey_enc(&aes_ctx, drv_key, key_size);
 
-   unsigned char* src_cpy = new unsigned char[size];
-   memcpy(src_cpy, src, size);
-   aes_cmac(&aes_ctx, size, src_cpy, dst);
-   delete [] src_cpy;
+   aes_cmac(&aes_ctx, size, src, dst);
 
    return 0;
 }
