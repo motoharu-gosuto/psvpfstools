@@ -175,7 +175,7 @@ int AESCBCDecryptWithKeygen_base(const unsigned char* key, unsigned char* iv, st
 
 int AESCMACEncrypt_base(const unsigned char* cmac_key, unsigned char* iv, std::uint32_t size, const unsigned char* cmac_src, unsigned char cmac_dst[0x10])
 {
-   throw std::runtime_error("Untested unknown behavior");
+   throw std::runtime_error("Untested function");
 
    int size_tail = size & 0xF;
    int size_block = size & (~0xF);
@@ -216,7 +216,7 @@ int AESCMACEncrypt_base(const unsigned char* cmac_key, unsigned char* iv, std::u
 
 int AESCMACDecrypt_base(const unsigned char* cmac_key, unsigned char* iv, std::uint32_t size, const unsigned char* cmac_src, unsigned char cmac_dst[0x10])
 {
-   throw std::runtime_error("Untested unknown behavior");
+   throw std::runtime_error("Untested function");
 
    int size_tail = size & 0xF;
    int size_block = size & (~0xF);
@@ -259,7 +259,7 @@ int AESCMACDecrypt_base(const unsigned char* cmac_key, unsigned char* iv, std::u
 
 int AESCMACEncryptWithKeygen_base(const unsigned char* cmac_key, unsigned char* iv, std::uint32_t size, const unsigned char* cmac_src, unsigned char cmac_dst[0x10], std::uint16_t key_id)
 {
-   throw std::runtime_error("Untested unknown behavior");
+   throw std::runtime_error("Untested function");
 
    std::uint16_t kid = 0 - (key_id - 1) + (key_id - 1);
 
@@ -302,7 +302,7 @@ int AESCMACEncryptWithKeygen_base(const unsigned char* cmac_key, unsigned char* 
 
 int AESCMACDecryptWithKeygen_base(const unsigned char* cmac_key, unsigned char* iv, std::uint32_t size, const unsigned char* cmac_src, unsigned char cmac_dst[0x10], std::uint16_t key_id)
 {
-   throw std::runtime_error("Untested unknown behavior");
+   throw std::runtime_error("Untested function");
 
    std::uint16_t kid = 0 - (key_id - 1) + (key_id - 1);
 
