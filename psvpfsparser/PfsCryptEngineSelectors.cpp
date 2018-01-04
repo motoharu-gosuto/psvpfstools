@@ -37,16 +37,16 @@ int UINT128_BYTEARRAY_INC(unsigned char iv[0x10])
 
 unsigned char g_cmac_buffer[0x10] = {0};
 
-int pfs_decrypt_unicv(const unsigned char* key, const unsigned char* iv_xor_key, std::uint64_t tweak_key, std::uint32_t size, std::uint32_t block_size, const unsigned char* src, unsigned char* dst, std::uint16_t flag, std::uint16_t key_id)
+int pfs_decrypt_unicv(const unsigned char* key, const unsigned char* tweak_mask, std::uint64_t tweak_key, std::uint32_t size, std::uint32_t block_size, const unsigned char* src, unsigned char* dst, std::uint16_t flag, std::uint16_t key_id)
 {
-   unsigned char iv[0x10] = {0};
+   unsigned char tweak[0x10] = {0};
 
-   UINT64_TO_BYTEARRAY(tweak_key, iv);
+   UINT64_TO_BYTEARRAY(tweak_key, tweak); //convert std::uint64_t tweak to byte array
 
-   memset(iv + 8, 0, 8);
+   memset(tweak + 8, 0, 8); //set upper tweak to 0
 
    for(int i = 0; i < 0x10; i++)
-      iv[i] = iv[i] ^ iv_xor_key[i];
+      tweak[i] = tweak[i] ^ tweak_mask[i]; // xor tweak with mask (kinda mimic tweak_enc_value in xts-aes)
   
    if(size != 0)
    {
@@ -56,12 +56,12 @@ int pfs_decrypt_unicv(const unsigned char* key, const unsigned char* iv_xor_key,
       do
       {
          std::uint64_t tweak_key_ofst = tweak_key + offset;
-         UINT64_TO_BYTEARRAY(tweak_key_ofst, iv);
+         UINT64_TO_BYTEARRAY(tweak_key_ofst, tweak); // modify tweak (mimic xts-aes) by adding offset to the tweak
 
-         memset(iv + 8, 0, 8);
+         memset(tweak + 8, 0, 8); //set upper tweak to 0
 
          for(int i = 0; i < 0x10; i++)
-            iv[i] = iv[i] ^ iv_xor_key[i];
+            tweak[i] = tweak[i] ^ tweak_mask[i]; // xor tweak with mask (kinda mimic tweak_enc_value in xts-aes)
 
          // select block_size if we did not yet reach tail of the data. 
          // or select bytes_left which will be the size of the tail in the end
@@ -75,16 +75,16 @@ int pfs_decrypt_unicv(const unsigned char* key, const unsigned char* iv_xor_key,
          if((flag & PFS_CRYPTO_USE_KEYGEN) != 0)
          {
             if((flag & PFS_CRYPTO_USE_CMAC) != 0)
-               AESCMACDecryptWithKeygen_base(key, iv, size_arg, src + offset, g_cmac_buffer, key_id);
+               AESCMACDecryptWithKeygen_base(key, tweak, size_arg, src + offset, g_cmac_buffer, key_id);
             else
-               AESCBCDecryptWithKeygen_base(key, iv, size_arg, src + offset, dst + offset, key_id);
+               AESCBCDecryptWithKeygen_base(key, tweak, size_arg, src + offset, dst + offset, key_id); //cbc decrypt with tweak as iv
          }
          else
          {
             if((flag & PFS_CRYPTO_USE_CMAC) != 0)
-               AESCMACDecrypt_base(key, iv, size_arg, src + offset, g_cmac_buffer);
+               AESCMACDecrypt_base(key, tweak, size_arg, src + offset, g_cmac_buffer);
             else
-               AESCBCDecrypt_base(key, iv, size_arg, src + offset, dst + offset);
+               AESCBCDecrypt_base(key, tweak, size_arg, src + offset, dst + offset); //cbc decrypt with tweak as iv
          }
 
          offset = offset + block_size;
@@ -92,6 +92,8 @@ int pfs_decrypt_unicv(const unsigned char* key, const unsigned char* iv_xor_key,
       }
       while(size > offset);
    }
+
+   //copy result to dest buffer since cmac functions operate with global buffer
 
    if((flag & PFS_CRYPTO_USE_CMAC) != 0)
    {
@@ -104,16 +106,16 @@ int pfs_decrypt_unicv(const unsigned char* key, const unsigned char* iv_xor_key,
    return 0;
 }
 
-int pfs_encrypt_unicv(const unsigned char* key, const unsigned char* iv_xor_key, std::uint64_t tweak_key, std::uint32_t size, std::uint32_t block_size, const unsigned char* src, unsigned char* dst, std::uint16_t flag, std::uint16_t key_id)
+int pfs_encrypt_unicv(const unsigned char* key, const unsigned char* tweak_mask, std::uint64_t tweak_key, std::uint32_t size, std::uint32_t block_size, const unsigned char* src, unsigned char* dst, std::uint16_t flag, std::uint16_t key_id)
 {
-   unsigned char iv[0x10] = {0};
+   unsigned char tweak[0x10] = {0};
 
-   UINT64_TO_BYTEARRAY(tweak_key, iv);
+   UINT64_TO_BYTEARRAY(tweak_key, tweak); //convert std::uint64_t tweak to byte array
 
-   memset(iv + 8, 0, 8);
+   memset(tweak + 8, 0, 8); //set upper tweak to 0
 
    for(int i = 0; i < 0x10; i++)
-      iv[i] = iv[i] ^ iv_xor_key[i];
+      tweak[i] = tweak[i] ^ tweak_mask[i]; // xor tweak with mask (kinda mimic tweak_enc_value in xts-aes)
 
    if(size != 0)
    {
@@ -123,12 +125,12 @@ int pfs_encrypt_unicv(const unsigned char* key, const unsigned char* iv_xor_key,
       do
       {         
          std::uint64_t tweak_key_ofst = tweak_key + offset;
-         UINT64_TO_BYTEARRAY(tweak_key_ofst, iv);
+         UINT64_TO_BYTEARRAY(tweak_key_ofst, tweak); // modify tweak (mimic xts-aes) by adding offset to the tweak
 
-         memset(iv + 8, 0, 8);
+         memset(tweak + 8, 0, 8); //set upper tweak to 0
 
          for(int i = 0; i < 0x10; i++)
-            iv[i] = iv[i] ^ iv_xor_key[i];
+            tweak[i] = tweak[i] ^ tweak_mask[i]; // xor tweak with mask (kinda mimic tweak_enc_value in xts-aes)
 
          // select block_size if we did not yet reach tail of the data. 
          // or select bytes_left which will be the size of the tail in the end
@@ -142,16 +144,16 @@ int pfs_encrypt_unicv(const unsigned char* key, const unsigned char* iv_xor_key,
          if((flag & PFS_CRYPTO_USE_KEYGEN) != 0)
          {
             if((flag & PFS_CRYPTO_USE_CMAC) != 0)
-               AESCMACEncryptWithKeygen_base(key, iv, size_arg, src + offset, g_cmac_buffer, key_id);
+               AESCMACEncryptWithKeygen_base(key, tweak, size_arg, src + offset, g_cmac_buffer, key_id);
             else
-               AESCBCEncryptWithKeygen_base(key, iv, size_arg, src + offset, dst + offset, key_id);
+               AESCBCEncryptWithKeygen_base(key, tweak, size_arg, src + offset, dst + offset, key_id); //cbc encrypt with tweak as iv
          }
          else
          {
             if((flag & PFS_CRYPTO_USE_CMAC) != 0)
-               AESCMACEncrypt_base(key, iv, size_arg, src + offset, g_cmac_buffer);
+               AESCMACEncrypt_base(key, tweak, size_arg, src + offset, g_cmac_buffer);
             else
-               AESCBCEncrypt_base(key, iv, size_arg, src + offset, dst + offset);
+               AESCBCEncrypt_base(key, tweak, size_arg, src + offset, dst + offset); //cbc encrypt with tweak as iv
          }
 
          offset = offset + block_size;
@@ -159,6 +161,8 @@ int pfs_encrypt_unicv(const unsigned char* key, const unsigned char* iv_xor_key,
       }
       while(size > offset);
    }
+
+   //copy result to dest buffer since cmac functions operate with global buffer
 
    if((flag & PFS_CRYPTO_USE_CMAC) != 0)
    {
