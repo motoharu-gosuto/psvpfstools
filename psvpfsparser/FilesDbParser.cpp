@@ -26,7 +26,7 @@
 
 #include <libcrypto/sha1.h>
 
-bool verify_header(std::ifstream& inputStream, sce_ng_pfs_header_t& header, unsigned char* secret)
+bool verify_header_icv(std::ifstream& inputStream, sce_ng_pfs_header_t& header, unsigned char* secret)
 {
    std::cout << "verifying header..." << std::endl;
 
@@ -91,32 +91,8 @@ bool verify_header(std::ifstream& inputStream, sce_ng_pfs_header_t& header, unsi
    return true;
 }
 
-bool parseFilesDb(unsigned char* klicensee, std::ifstream& inputStream, sce_ng_pfs_header_t& header, std::vector<sce_ng_pfs_block_t>& blocks)
+bool validate_header(const sce_ng_pfs_header_t& header, int64_t dataSize)
 {
-   inputStream.read((char*)&header, sizeof(sce_ng_pfs_header_t));
-
-   if(std::string((char*)header.magic, 8) != MAGIC_WORD)
-   {
-      std::cout << "Magic word is incorrect" << std::endl;
-      return false;
-   }
-
-   //generate secret
-   unsigned char secret[0x14];
-   scePfsUtilGetSecret(secret, klicensee, header.files_salt, secret_type_to_flag(header), 0, 0);
-
-   //verify header
-   if(!verify_header(inputStream, header, secret))
-      return false;
-   
-   //save current position
-   int64_t chunksBeginPos = inputStream.tellg();
-
-   //calculate tail size
-   inputStream.seekg(0, std::ios_base::end);
-   int64_t cunksEndPos = inputStream.tellg();
-   int64_t dataSize = cunksEndPos - chunksBeginPos;
-
    //confirm tail size
    if(dataSize != header.tailSize)
    {
@@ -157,6 +133,39 @@ bool parseFilesDb(unsigned char* klicensee, std::ifstream& inputStream, sce_ng_p
       std::cout << "Unexpected data instead of padding" << std::endl;
       return false;
    }
+
+   return true;
+}
+
+bool parseFilesDb(unsigned char* klicensee, std::ifstream& inputStream, sce_ng_pfs_header_t& header, std::vector<sce_ng_pfs_block_t>& blocks)
+{
+   inputStream.read((char*)&header, sizeof(sce_ng_pfs_header_t));
+
+   if(std::string((char*)header.magic, 8) != MAGIC_WORD)
+   {
+      std::cout << "Magic word is incorrect" << std::endl;
+      return false;
+   }
+
+   //generate secret
+   unsigned char secret[0x14];
+   scePfsUtilGetSecret(secret, klicensee, header.files_salt, secret_type_to_flag(header), 0, 0);
+
+   //verify header
+   if(!verify_header_icv(inputStream, header, secret))
+      return false;
+   
+   //save current position
+   int64_t chunksBeginPos = inputStream.tellg();
+
+   //calculate tail size
+   inputStream.seekg(0, std::ios_base::end);
+   int64_t cunksEndPos = inputStream.tellg();
+   int64_t dataSize = cunksEndPos - chunksBeginPos;
+
+   //validate header
+   if(!validate_header(header, dataSize))
+      return false;
 
    //seek back to the beginning of tail
    inputStream.seekg(chunksBeginPos, std::ios_base::beg);
@@ -231,14 +240,14 @@ bool parseFilesDb(unsigned char* klicensee, std::ifstream& inputStream, sce_ng_p
          inputStream.read((char*)&fi, sizeof(sce_ng_pfs_file_info_t));
 
          //check file type
-         if(fi.type != unexisting && 
-            fi.type != normal_file && 
-            fi.type != normal_directory && 
-            fi.type != unencrypted_system_file && 
-            fi.type != encrypted_system_file && 
-            fi.type != unk_directory && 
-            fi.type != unk1 &&
-            fi.type != unk2)
+         if(fi.type != sce_ng_pfs_file_types::unexisting && 
+            fi.type != sce_ng_pfs_file_types::normal_file && 
+            fi.type != sce_ng_pfs_file_types::normal_directory && 
+            fi.type != sce_ng_pfs_file_types::unencrypted_system_file && 
+            fi.type != sce_ng_pfs_file_types::encrypted_system_file && 
+            fi.type != sce_ng_pfs_file_types::unk_directory && 
+            fi.type != sce_ng_pfs_file_types::unencrypted_unk1 &&
+            fi.type != sce_ng_pfs_file_types::encrypted_unk2)
          {
             std::cout << "Unexpected file type" << std::endl;
             return false;
@@ -315,7 +324,7 @@ bool constructDirmatrix(const std::vector<sce_ng_pfs_block_t>& blocks, std::map<
    {
       for(std::uint32_t i = 0; i < block.header.nFiles; i++)
       {
-         if(block.infos[i].type != normal_directory && block.infos[i].type != unk_directory)
+         if(block.infos[i].type != sce_ng_pfs_file_types::normal_directory && block.infos[i].type != sce_ng_pfs_file_types::unk_directory)
             continue;
 
          std::uint32_t child = block.infos[i].idx;
@@ -325,7 +334,7 @@ bool constructDirmatrix(const std::vector<sce_ng_pfs_block_t>& blocks, std::map<
 
          if(block.infos[i].size != 0)
          {
-            std::cout << "Directory " << fileName << " size is invalid" << std::endl;
+            std::cout << "[WARNING] Directory " << fileName << " size is invalid" << std::endl;
          }
 
          if(child == INVALID_FILE_INDEX)
@@ -348,7 +357,7 @@ bool constructDirmatrix(const std::vector<sce_ng_pfs_block_t>& blocks, std::map<
 }
 
 //build child index -> parent index relationship map
-bool constructFileMatrix(const std::vector<sce_ng_pfs_block_t>& blocks, std::map<std::uint32_t, std::uint32_t>& fileMatrix)
+bool constructFileMatrix(std::vector<sce_ng_pfs_block_t>& blocks, std::map<std::uint32_t, std::uint32_t>& fileMatrix)
 {
    std::cout << "Building file matrix..." << std::endl;
 
@@ -356,7 +365,7 @@ bool constructFileMatrix(const std::vector<sce_ng_pfs_block_t>& blocks, std::map
    {
       for(std::uint32_t i = 0; i < block.header.nFiles; i++)
       {
-         if(block.infos[i].type == normal_directory || block.infos[i].type == unk_directory)
+         if(block.infos[i].type == sce_ng_pfs_file_types::normal_directory || block.infos[i].type == sce_ng_pfs_file_types::unk_directory)
             continue;
 
          std::uint32_t child = block.infos[i].idx;
@@ -366,7 +375,7 @@ bool constructFileMatrix(const std::vector<sce_ng_pfs_block_t>& blocks, std::map
 
          if(block.infos[i].size == 0)
          {   
-            if(block.infos[i].type == unexisting)
+            if(block.infos[i].type == sce_ng_pfs_file_types::unexisting)
             {
                //std::cout << "[EMPTY] File " << fileName << " index " << child << std::endl;
                continue; // can not add unexisting files - they will conflict by index in the fileMatrix!
@@ -375,6 +384,19 @@ bool constructFileMatrix(const std::vector<sce_ng_pfs_block_t>& blocks, std::map
             {
                //empty files should be allowed!
                std::cout << "[EMPTY] File " << fileName << " index " << child << " of type " << std::hex << block.infos[i].type << std::endl;
+            }
+         }
+         else
+         {
+            if(block.infos[i].type == sce_ng_pfs_file_types::unexisting)
+            {
+               //for icv.db - files that are outside of sce_sys folder always dont have correct type
+               //it looks like sdslot.dat also does not have correct type
+               //we assume that all these files are encrypted
+               std::cout << "[WARNING] Invalid file type for file " << fileName << ". assuming file is encrypted" << std::endl;
+
+               //fixup the type so that it does not cause troubles later
+               block.infos[i].type = sce_ng_pfs_file_types::normal_file;
             }
          }
 
@@ -399,7 +421,7 @@ bool constructFileMatrix(const std::vector<sce_ng_pfs_block_t>& blocks, std::map
 
 //convert list of blocks to list of files
 //assign global index to files
-void flattenBlocks(const std::vector<sce_ng_pfs_block_t>& blocks, std::vector<sce_ng_pfs_flat_block_t>& flatBlocks)
+bool flattenBlocks(std::vector<sce_ng_pfs_block_t>& blocks, std::vector<sce_ng_pfs_flat_block_t>& flatBlocks)
 {
    std::cout << "Flattening file pages..." << std::endl;
 
@@ -408,9 +430,21 @@ void flattenBlocks(const std::vector<sce_ng_pfs_block_t>& blocks, std::vector<sc
       for(std::uint32_t i = 0; i < block.header.nFiles; i++)
       {
          //have to skip unexisting files
-         if(block.infos[i].size == 0 && block.infos[i].type == unexisting)
-            continue;
-
+         if(block.infos[i].type == sce_ng_pfs_file_types::unexisting)
+         {
+            //adding additional check here - only empty files may have unexisting types
+            if(block.infos[i].size == 0)
+            {
+               continue;
+            }
+            else
+            {
+               std::string fileName = std::string((const char*)block.files[i].fileName);
+               std::cout << "invalid file type for file " << fileName << std::endl;
+               return false;
+            }
+         }
+            
          flatBlocks.push_back(sce_ng_pfs_flat_block_t());
          sce_ng_pfs_flat_block_t& fb = flatBlocks.back();
 
@@ -420,6 +454,8 @@ void flattenBlocks(const std::vector<sce_ng_pfs_block_t>& blocks, std::vector<sc
          fb.hash = block.hashes[i];
       }
    }
+
+   return true;
 }
 
 //find directory flat block by index
@@ -428,8 +464,8 @@ const std::vector<sce_ng_pfs_flat_block_t>::const_iterator findFlatBlockDir(cons
    size_t i = 0;
    for(auto& block : flatBlocks)
    {
-      if((block.info.idx == index && block.info.type == normal_directory) ||
-         (block.info.idx == index && block.info.type == unk_directory))
+      if((block.info.idx == index && block.info.type == sce_ng_pfs_file_types::normal_directory) ||
+         (block.info.idx == index && block.info.type == sce_ng_pfs_file_types::unk_directory))
          return flatBlocks.begin() + i;
       i++;
    }
@@ -442,8 +478,8 @@ const std::vector<sce_ng_pfs_flat_block_t>::const_iterator findFlatBlockFile(con
    size_t i = 0;
    for(auto& block : flatBlocks)
    {
-      if((block.info.idx == index && block.info.type != normal_directory) &&
-         (block.info.idx == index && block.info.type != unk_directory))
+      if((block.info.idx == index && block.info.type != sce_ng_pfs_file_types::normal_directory) &&
+         (block.info.idx == index && block.info.type != sce_ng_pfs_file_types::unk_directory))
          return flatBlocks.begin() + i;
       i++;
    }
@@ -608,17 +644,17 @@ std::string fileTypeToString(sce_ng_pfs_file_types ft)
 {
    switch(ft)
    {
-   case unexisting:
+   case sce_ng_pfs_file_types::unexisting:
       return "unexisting";
-   case normal_file:
+   case sce_ng_pfs_file_types::normal_file:
       return "normal_file";
-   case normal_directory:
+   case sce_ng_pfs_file_types::normal_directory:
       return "normal_directory";
-   case unk_directory:
+   case sce_ng_pfs_file_types::unk_directory:
       return "unk_directory";
-   case unencrypted_system_file:
+   case sce_ng_pfs_file_types::unencrypted_system_file:
       return "unencrypted_system_file";
-   case encrypted_system_file:
+   case sce_ng_pfs_file_types::encrypted_system_file:
       return "encrypted_system_file";
    default:
       return "unknown";
@@ -798,7 +834,8 @@ int parseFilesDb(unsigned char* klicensee, boost::filesystem::path titleIdPath, 
    
    //convert list of blocks to list of files
    std::vector<sce_ng_pfs_flat_block_t> flatBlocks;
-   flattenBlocks(blocks, flatBlocks);
+   if(!flattenBlocks(blocks, flatBlocks))
+      return -1;
 
    //convert flat blocks to file paths (sometimes there are empty directories that have to be created)
    //in normal scenario without this call - they will be ignored

@@ -54,11 +54,11 @@ struct sce_ng_pfs_header_t
    std::uint8_t padding[0x1A0];
 };
 
-//still have to figure out
+//still have to figure out. not quite clear
 enum sce_ng_pfs_block_types : std::uint32_t
 {
    child = 0,
-   root = 1 // if page number is -1 then root. otherwise - unknown
+   root = 1 // if page number is -1 then this should be root. otherwise - unknown
 };
 
 struct sce_ng_pfs_block_header_t
@@ -106,8 +106,8 @@ enum sce_ng_pfs_file_types : std::uint16_t
    unencrypted_system_file = FILE_TYPE_FLAG_UNENCRYPTED | FILE_TYPE_FLAG_SYSTEM_FILE1 | FILE_TYPE_FLAG_SYSTEM_FILE2, //(0x4006)
    encrypted_system_file = FILE_TYPE_FLAG_SYSTEM_FILE1 | FILE_TYPE_FLAG_SYSTEM_FILE2, //(0x0006)
 
-   unk1 = FILE_TYPE_FLAG_UNENCRYPTED | FILE_TYPE_FLAG_SYSTEM_FILE1 | FILE_TYPE_FLAG_SYSTEM_FILE2 | FILE_TYPE_FLAG_NORMAL_FILE, //(0x4007)
-   unk2 = FILE_TYPE_FLAG_SYSTEM_FILE1 | FILE_TYPE_FLAG_SYSTEM_FILE2 | FILE_TYPE_FLAG_NORMAL_FILE //(0x0007)
+   unencrypted_unk1 = FILE_TYPE_FLAG_UNENCRYPTED | FILE_TYPE_FLAG_SYSTEM_FILE1 | FILE_TYPE_FLAG_SYSTEM_FILE2 | FILE_TYPE_FLAG_NORMAL_FILE, //(0x4007)
+   encrypted_unk2 = FILE_TYPE_FLAG_SYSTEM_FILE1 | FILE_TYPE_FLAG_SYSTEM_FILE2 | FILE_TYPE_FLAG_NORMAL_FILE //(0x0007)
 };
 
 #define INVALID_FILE_INDEX 0xFFFFFFFF
