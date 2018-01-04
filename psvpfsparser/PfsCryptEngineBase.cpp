@@ -165,11 +165,11 @@ int AESCBCDecryptWithKeygen_base(const unsigned char* key, unsigned char* tweak,
    return 0;
 }
 
-//#### GROUP 2 (possible keygen aes-cmac dec/aes-cmac enc) (technically there is no dec/enc - this is pair of same functions since cmac) ####
+//#### GROUP 2 (possible keygen aes-cmac-cts dec/aes-cmac-cts enc) (technically there is no dec/enc - this is pair of same functions since cmac) ####
 
 // FUNCTIONS ARE SIMILAR
 
-int AESCMACEncrypt_base(const unsigned char* cmac_key, unsigned char* iv, std::uint32_t size, const unsigned char* cmac_src, unsigned char cmac_dst[0x10])
+int AESCMACEncrypt_base(const unsigned char* key, unsigned char* tweak, std::uint32_t size, const unsigned char* src, unsigned char dst[0x10])
 {
    throw std::runtime_error("Untested function");
 
@@ -180,7 +180,7 @@ int AESCMACEncrypt_base(const unsigned char* cmac_key, unsigned char* iv, std::u
 
    if(size_block != 0)
    {
-      int result0 = SceSblSsMgrForDriver_sceSblSsMgrAESCMACForDriver(cmac_src, cmac_dst, size_block, cmac_key, 0x80, iv, 1, 0);
+      int result0 = SceSblSsMgrForDriver_sceSblSsMgrAESCMACForDriver(src, dst, size_block, key, 0x80, tweak, 1, 0);
       if(result0 != 0)
          return result0;
    }
@@ -192,11 +192,11 @@ int AESCMACEncrypt_base(const unsigned char* cmac_key, unsigned char* iv, std::u
 
    //align destination buffer
 
-   unsigned char iv_enc[0x10] = {0};
+   unsigned char tweak_enc[0x10] = {0};
 
    //encrypt iv using key
 
-   int result1 = SceSblSsMgrForDriver_sceSblSsMgrAESECBEncryptForDriver(iv, iv_enc, 0x10, cmac_key, 0x80, 1);
+   int result1 = SceSblSsMgrForDriver_sceSblSsMgrAESECBEncryptForDriver(tweak, tweak_enc, 0x10, key, 0x80, 1);
    if(result1 != 0)
       return result1;
 
@@ -205,12 +205,12 @@ int AESCMACEncrypt_base(const unsigned char* cmac_key, unsigned char* iv, std::u
    //CMAC result has constant size - that is why iv is xored with the beginning of dest buffer
 
    for(int i = 0; i < size_tail; i++)
-      cmac_dst[i] = cmac_src[size_block + i] ^ iv_enc[i];
+      dst[i] = src[size_block + i] ^ tweak_enc[i];
 
    return 0;
 }
 
-int AESCMACDecrypt_base(const unsigned char* cmac_key, unsigned char* iv, std::uint32_t size, const unsigned char* cmac_src, unsigned char cmac_dst[0x10])
+int AESCMACDecrypt_base(const unsigned char* key, unsigned char* tweak, std::uint32_t size, const unsigned char* src, unsigned char dst[0x10])
 {
    throw std::runtime_error("Untested function");
 
@@ -221,7 +221,7 @@ int AESCMACDecrypt_base(const unsigned char* cmac_key, unsigned char* iv, std::u
 
    if(size_block != 0)
    {
-      int result0 = SceSblSsMgrForDriver_sceSblSsMgrAESCMACForDriver(cmac_src, cmac_dst, size_block, cmac_key, 0x80, iv, 1, 0);
+      int result0 = SceSblSsMgrForDriver_sceSblSsMgrAESCMACForDriver(src, dst, size_block, key, 0x80, tweak, 1, 0);
       if(result0 != 0)
          return result0;
    }
@@ -233,11 +233,11 @@ int AESCMACDecrypt_base(const unsigned char* cmac_key, unsigned char* iv, std::u
 
    //align destination buffer
 
-   unsigned char iv_enc[0x10] = {0};
+   unsigned char tweak_enc[0x10] = {0};
 
    //encrypt iv using key
 
-   int result1 = SceSblSsMgrForDriver_sceSblSsMgrAESECBEncryptForDriver(iv, iv_enc, 0x10, cmac_key, 0x80, 1);
+   int result1 = SceSblSsMgrForDriver_sceSblSsMgrAESECBEncryptForDriver(tweak, tweak_enc, 0x10, key, 0x80, 1);
    if(result1 != 0)
       return result1;
 
@@ -246,18 +246,18 @@ int AESCMACDecrypt_base(const unsigned char* cmac_key, unsigned char* iv, std::u
    //CMAC result has constant size - that is why iv is xored with the beginning of dest buffer
 
    for(int i = 0; i < size_tail; i++)
-      cmac_dst[i] = cmac_src[size_block + i] ^ iv_enc[i];
+      dst[i] = src[size_block + i] ^ tweak_enc[i];
 
    return 0;
 }
 
 // FUNCTIONS ARE SIMILAR
 
-int AESCMACEncryptWithKeygen_base(const unsigned char* cmac_key, unsigned char* iv, std::uint32_t size, const unsigned char* cmac_src, unsigned char cmac_dst[0x10], std::uint16_t key_id)
+int AESCMACEncryptWithKeygen_base(const unsigned char* key, unsigned char* tweak, std::uint32_t size, const unsigned char* src, unsigned char dst[0x10], std::uint16_t key_id)
 {
    throw std::runtime_error("Untested function");
 
-   std::uint16_t kid = 0 - (key_id - 1) + (key_id - 1);
+   std::uint16_t kid = 0; //key_id argument is ignored and is always 0
 
    int size_tail = size & 0xF;
    int size_block = size & (~0xF);
@@ -266,7 +266,7 @@ int AESCMACEncryptWithKeygen_base(const unsigned char* cmac_key, unsigned char* 
 
    if(size_block != 0)
    {
-      int result0 = SceSblSsMgrForDriver_sceSblSsMgrAESCMACWithKeygenForDriver(cmac_src, cmac_dst, size_block, cmac_key, 0x80, iv, kid, 1, 0);
+      int result0 = SceSblSsMgrForDriver_sceSblSsMgrAESCMACWithKeygenForDriver(src, dst, size_block, key, 0x80, tweak, kid, 1, 0);
       if(result0 != 0)
          return result0;
    }
@@ -278,29 +278,29 @@ int AESCMACEncryptWithKeygen_base(const unsigned char* cmac_key, unsigned char* 
 
    //align destination buffer
 
-   unsigned char iv_enc[0x10] = {0};
+   unsigned char tweak_enc[0x10] = {0};
 
    //encrypt iv using key
 
-   int result1 = SceSblSsMgrForDriver_sceSblSsMgrAESECBEncryptWithKeygenForDriver(iv, iv_enc, 0x10, cmac_key, 0x80, kid, 1);
+   int result1 = SceSblSsMgrForDriver_sceSblSsMgrAESECBEncryptWithKeygenForDriver(tweak, tweak_enc, 0x10, key, 0x80, kid, 1);
    if(result1 != 0)
       return result1;
 
    //produce destination tail by xoring source tail with encrypted iv
 
-   //CMAC result has constant size - that is why iv is xored with the beginning of dest buffer
+   //CMAC result has constant size of 0x10 - that is why iv is xored with the beginning of dest buffer
 
    for(int i = 0; i < size_tail; i++)
-      cmac_dst[i] = cmac_src[size_block + i] ^ iv_enc[i];
+      dst[i] = src[size_block + i] ^ tweak_enc[i];
 
    return 0;
 }
 
-int AESCMACDecryptWithKeygen_base(const unsigned char* cmac_key, unsigned char* iv, std::uint32_t size, const unsigned char* cmac_src, unsigned char cmac_dst[0x10], std::uint16_t key_id)
+int AESCMACDecryptWithKeygen_base(const unsigned char* key, unsigned char* tweak, std::uint32_t size, const unsigned char* src, unsigned char dst[0x10], std::uint16_t key_id)
 {
    throw std::runtime_error("Untested function");
 
-   std::uint16_t kid = 0 - (key_id - 1) + (key_id - 1);
+   std::uint16_t kid = 0; //key_id argument is ignored and is always 0
 
    int size_tail = size & 0xF;
    int size_block = size & (~0xF);
@@ -309,7 +309,7 @@ int AESCMACDecryptWithKeygen_base(const unsigned char* cmac_key, unsigned char* 
 
    if(size_block != 0)
    {
-      int result0 = SceSblSsMgrForDriver_sceSblSsMgrAESCMACWithKeygenForDriver(cmac_src, cmac_dst, size_block, cmac_key, 0x80, iv, kid, 1, 0);
+      int result0 = SceSblSsMgrForDriver_sceSblSsMgrAESCMACWithKeygenForDriver(src, dst, size_block, key, 0x80, tweak, kid, 1, 0);
       if(result0 != 0)
          return result0;
    }
@@ -321,20 +321,20 @@ int AESCMACDecryptWithKeygen_base(const unsigned char* cmac_key, unsigned char* 
 
    //align destination buffer
 
-   unsigned char iv_enc[0x10] = {0};
+   unsigned char tweak_enc[0x10] = {0};
 
    //encrypt iv using key
    
-   int result1 = SceSblSsMgrForDriver_sceSblSsMgrAESECBEncryptWithKeygenForDriver(iv, iv_enc, 0x10, cmac_key, 0x80, kid, 1);
+   int result1 = SceSblSsMgrForDriver_sceSblSsMgrAESECBEncryptWithKeygenForDriver(tweak, tweak_enc, 0x10, key, 0x80, kid, 1);
    if(result1 != 0)
       return result1;
 
    //produce destination tail by xoring source tail with encrypted iv
 
-   //CMAC result has constant size - that is why iv is xored with the beginning of dest buffer
+   //CMAC result has constant size of 0x10 - that is why iv is xored with the beginning of dest buffer
 
    for(int i = 0; i < size_tail; i++)
-      cmac_dst[i] = cmac_src[size_block + i] ^ iv_enc[i];
+      dst[i] = src[size_block + i] ^ tweak_enc[i];
 
    return 0;
 }
@@ -408,6 +408,7 @@ int xts_mult_x_xor_data_xts(std::uint32_t* src, std::uint32_t* tweak_enc_value, 
    return 0;
 }
 
+//this implementation assumes that src and dst are 0x10 bytes long (used by cmac related functions)
 int xts_mult_x_xor_data_cmac(std::uint32_t* src, std::uint32_t* tweak_enc_value, std::uint32_t* dst, std::uint32_t size)
 {
    std::uint32_t tweak_cpy[4] = {0};
