@@ -182,16 +182,16 @@ int pfs_encrypt_unicv(const unsigned char* key, const unsigned char* tweak_mask,
 //assuming that it adds 1 to tweak_key when decrypting each next block
 //in practice though it looks like this method is only used to decrypt single block
 
-int pfs_decrypt_icv(const unsigned char* key, const unsigned char* subkey_key, std::uint32_t keysize, std::uint64_t tweak_key, std::uint32_t size, std::uint32_t block_size, const unsigned char* src, unsigned char* dst, std::uint16_t flag)
+int pfs_decrypt_icv(const unsigned char* key, const unsigned char* tweak_enc_key, std::uint32_t keysize, std::uint64_t tweak_key, std::uint32_t size, std::uint32_t block_size, const unsigned char* src, unsigned char* dst, std::uint16_t flag)
 {
-   unsigned char iv[0x10] = {0};
+   unsigned char tweak[0x10] = {0};
 
    if((block_size <= 0xF) || (size <= 0xF)) //block_size and size should be at least one block
       return 0x80140609;
 
-   UINT64_TO_BYTEARRAY(tweak_key, iv);
+   UINT64_TO_BYTEARRAY(tweak_key, tweak); //convert std::uint64_t tweak to byte array
 
-   memset(iv + 8, 0, 8);
+   memset(tweak + 8, 0, 8); //set upper tweak to 0
 
    std::uint32_t offset = 0;
    std::uint32_t bytes_left = size;
@@ -209,19 +209,21 @@ int pfs_decrypt_icv(const unsigned char* key, const unsigned char* subkey_key, s
 
       int result0 = 0;
       if((flag & PFS_CRYPTO_USE_CMAC) != 0)
-         result0 = XTSCMACDecrypt_base(iv, key, subkey_key, keysize, size_arg, src + offset, g_cmac_buffer);
+         result0 = XTSCMACDecrypt_base(tweak, key, tweak_enc_key, keysize, size_arg, src + offset, g_cmac_buffer);
       else
-         result0 = XTSAESDecrypt_base(iv, key, subkey_key, keysize, size_arg, src + offset, dst + offset);
+         result0 = XTSAESDecrypt_base(tweak, key, tweak_enc_key, keysize, size_arg, src + offset, dst + offset); //xts-aes decrypt
 
       if(result0 != 0)
          return result0;
 
-      UINT128_BYTEARRAY_INC(iv);
+      UINT128_BYTEARRAY_INC(tweak); // increment tweak by 1 (not relevant ? since this function is only used to decrypt single block of data)
 
       offset = offset + block_size;
       bytes_left = bytes_left - block_size;
    }
    while(size > offset);
+
+   //copy result to dest buffer since cmac functions operate with global buffer
 
    if((flag & PFS_CRYPTO_USE_CMAC) != 0)
    {
@@ -238,16 +240,16 @@ int pfs_decrypt_icv(const unsigned char* key, const unsigned char* subkey_key, s
 //assuming that it adds 1 to tweak_key when encrypting each next block
 //in practice though it looks like this method is only used to decrypt single block
 
-int pfs_encrypt_icv(const unsigned char* key, const unsigned char* subkey_key, std::uint32_t keysize, std::uint64_t tweak_key, std::uint32_t size, std::uint32_t block_size, const unsigned char* src, unsigned char* dst, std::uint16_t flag)
+int pfs_encrypt_icv(const unsigned char* key, const unsigned char* tweak_enc_key, std::uint32_t keysize, std::uint64_t tweak_key, std::uint32_t size, std::uint32_t block_size, const unsigned char* src, unsigned char* dst, std::uint16_t flag)
 {
-   unsigned char iv[0x10] = {0};
+   unsigned char tweak[0x10] = {0};
 
    if((block_size <= 0xF) || (size <= 0xF)) //block_size and size should be at least one block
       return 0x80140609;
 
-   UINT64_TO_BYTEARRAY(tweak_key, iv);
+   UINT64_TO_BYTEARRAY(tweak_key, tweak); //block_size and size should be at least one block
 
-   memset(iv + 8, 0, 8);
+   memset(tweak + 8, 0, 8); //set upper tweak to 0
    
    std::uint32_t offset = 0;
    std::uint32_t bytes_left = size;
@@ -265,19 +267,21 @@ int pfs_encrypt_icv(const unsigned char* key, const unsigned char* subkey_key, s
 
       int result0 = 0;
       if((flag & PFS_CRYPTO_USE_CMAC) != 0)
-         result0 = XTSCMACEncrypt_base(iv, key, subkey_key, keysize, size_arg, src + offset, g_cmac_buffer);
+         result0 = XTSCMACEncrypt_base(tweak, key, tweak_enc_key, keysize, size_arg, src + offset, g_cmac_buffer);
       else
-         result0 = XTSAESEncrypt_base(iv, key, subkey_key, keysize, size_arg, src + offset, dst + offset);
+         result0 = XTSAESEncrypt_base(tweak, key, tweak_enc_key, keysize, size_arg, src + offset, dst + offset); //xts-aes encrypt
       
       if(result0 != 0)
          return result0;
 
-      UINT128_BYTEARRAY_INC(iv);
+      UINT128_BYTEARRAY_INC(tweak); // increment tweak by 1 (not relevant ? since this function is only used to decrypt single block of data)
 
       offset = offset + block_size;
       bytes_left = bytes_left - block_size;
    }
    while(size > offset);
+
+   //copy result to dest buffer since cmac functions operate with global buffer
 
    if((flag & PFS_CRYPTO_USE_CMAC) != 0)
    {
