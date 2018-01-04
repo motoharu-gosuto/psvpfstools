@@ -37,7 +37,7 @@ int UINT128_BYTEARRAY_INC(unsigned char iv[0x10])
 
 unsigned char g_cmac_buffer[0x10] = {0};
 
-int pfs_decrypt_hw(const unsigned char* key, const unsigned char* iv_xor_key, std::uint64_t tweak_key, std::uint32_t size, std::uint32_t block_size, const unsigned char* src, unsigned char* dst, std::uint16_t flag, std::uint16_t key_id)
+int pfs_decrypt_unicv(const unsigned char* key, const unsigned char* iv_xor_key, std::uint64_t tweak_key, std::uint32_t size, std::uint32_t block_size, const unsigned char* src, unsigned char* dst, std::uint16_t flag, std::uint16_t key_id)
 {
    unsigned char iv[0x10] = {0};
 
@@ -104,7 +104,7 @@ int pfs_decrypt_hw(const unsigned char* key, const unsigned char* iv_xor_key, st
    return 0;
 }
 
-int pfs_encrypt_hw(const unsigned char* key, const unsigned char* iv_xor_key, std::uint64_t tweak_key, std::uint32_t size, std::uint32_t block_size, const unsigned char* src, unsigned char* dst, std::uint16_t flag, std::uint16_t key_id)
+int pfs_encrypt_unicv(const unsigned char* key, const unsigned char* iv_xor_key, std::uint64_t tweak_key, std::uint32_t size, std::uint32_t block_size, const unsigned char* src, unsigned char* dst, std::uint16_t flag, std::uint16_t key_id)
 {
    unsigned char iv[0x10] = {0};
 
@@ -178,7 +178,7 @@ int pfs_encrypt_hw(const unsigned char* key, const unsigned char* iv_xor_key, st
 //assuming that it adds 1 to tweak_key when decrypting each next block
 //in practice though it looks like this method is only used to decrypt single block
 
-int pfs_decrypt_sw(const unsigned char* key, const unsigned char* subkey_key, std::uint32_t keysize, std::uint64_t tweak_key, std::uint32_t size, std::uint32_t block_size, const unsigned char* src, unsigned char* dst, std::uint16_t flag)
+int pfs_decrypt_icv(const unsigned char* key, const unsigned char* subkey_key, std::uint32_t keysize, std::uint64_t tweak_key, std::uint32_t size, std::uint32_t block_size, const unsigned char* src, unsigned char* dst, std::uint16_t flag)
 {
    unsigned char iv[0x10] = {0};
 
@@ -234,7 +234,7 @@ int pfs_decrypt_sw(const unsigned char* key, const unsigned char* subkey_key, st
 //assuming that it adds 1 to tweak_key when encrypting each next block
 //in practice though it looks like this method is only used to decrypt single block
 
-int pfs_encrypt_sw(const unsigned char* key, const unsigned char* subkey_key, std::uint32_t keysize, std::uint64_t tweak_key, std::uint32_t size, std::uint32_t block_size, const unsigned char* src, unsigned char* dst, std::uint16_t flag)
+int pfs_encrypt_icv(const unsigned char* key, const unsigned char* subkey_key, std::uint32_t keysize, std::uint64_t tweak_key, std::uint32_t size, std::uint32_t block_size, const unsigned char* src, unsigned char* dst, std::uint16_t flag)
 {
    unsigned char iv[0x10] = {0};
 
