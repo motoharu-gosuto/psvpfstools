@@ -232,7 +232,10 @@ int validate_merkle_trees(unsigned char* klicensee, sce_ng_pfs_header_t& ngpfs, 
 
 int bruteforce_map(boost::filesystem::path titleIdPath, unsigned char* klicensee, sce_ng_pfs_header_t& ngpfs, std::shared_ptr<sce_idb_base_t> fdb, std::map<std::uint32_t, sce_junction>& pageMap, std::set<sce_junction>& emptyFiles, bool isUnicv)
 {
-   std::cout << "Building unicv.db -> files.db relation..." << std::endl;
+   if(isUnicv)
+      std::cout << "Building unicv.db -> files.db relation..." << std::endl;
+   else
+      std::cout << "Building icv.db -> files.db relation..." << std::endl;
 
    boost::filesystem::path root(titleIdPath);
 
@@ -348,12 +351,12 @@ int bruteforce_map(boost::filesystem::path titleIdPath, unsigned char* klicensee
 
          if(found_path)
          {
-            std::cout << "Match found: " << t->get_icv_salt() << " " << *found_path << std::endl;
+            std::cout << "Match found: " << std::hex << t->get_icv_salt() << " " << *found_path << std::endl;
             pageMap.insert(std::make_pair(t->get_icv_salt(), *found_path));
          }
          else
          {
-            std::cout << "Match not found: " << t->get_icv_salt() << std::endl;
+            std::cout << "Match not found: " << std::hex << t->get_icv_salt() << std::endl;
             return -1;
          }
       }
@@ -433,10 +436,44 @@ int init_crypt_ctx(CryptEngineWorkCtx* work_ctx, unsigned char* klicensee, sce_n
    g_data.klicensee = klicensee;
    g_data.files_salt = ngpfs.files_salt;
    g_data.unicv_page = table->get_icv_salt();
-   g_data.type = 2; // unknown how to set
-   g_data.pmi_bcl_flag = secret_type_to_flag(ngpfs); //not sure
+
+
+   if(isUnicv)
+   {
+      g_data.type = 2; // unknown how to set
+   }
+   else
+   {
+      g_data.type = 5; // unknown how to set
+   }
+
+   if(isUnicv)
+   {
+      //this is used in key derrivation (for example when calling scePfsUtilGetSecret)
+      //but how important is it to other places ?
+      g_data.pmi_bcl_flag = secret_type_to_flag(ngpfs); //not sure
+   }
+   else
+   {
+      //leads to call of scePfsUtilGetSecret in scePfsUtilGetSecret which is only applicable case for ICV.cb
+      //also leads to call of generate_secrets in DerivePfsKeys which I guess is only applicable case because of 0xC0000B03 check
+      //since only 0xC0000B03 branch in decryption routine matches correct hash validation step that is used for ICV.cb hashes
+      //this flag also affects which function will be selected in pfs_decrypt_sw (i guess need to select AESCMACDecryptSw_base)
+      //maybe use PFS_CRYPTO_USE_KEYGEN and PFS_CRYPTO_USE_CMAC to init where required?
+      g_data.pmi_bcl_flag = 8;
+   }
+
    g_data.key_id = 0;
-   g_data.flag0 = 6; // unknown how to set
+
+   if(isUnicv)
+   {
+      g_data.flag0 = 6; // unknown how to set
+   }
+   else
+   {
+      g_data.flag0 = 0; // unknown how to set
+   }
+
    g_data.block_size = table->get_header()->get_fileSectorSize();
 
    //--------------------------------
@@ -466,7 +503,16 @@ int init_crypt_ctx(CryptEngineWorkCtx* work_ctx, unsigned char* klicensee, sce_n
    g_sub_ctx.unk_10 = (unsigned char*)0;
    g_sub_ctx.unk_18 = 0;
    g_sub_ctx.nBlocksTail = 0;
-   g_sub_ctx.nBlocks = block.get_header()->get_nSignatures();
+
+   if(isUnicv)
+   {
+      g_sub_ctx.nBlocks = block.get_header()->get_nSignatures();
+   }
+   else
+   {
+      g_sub_ctx.nBlocks = table->get_header()->get_numSectors();
+   }
+
    g_sub_ctx.sector_base = sector_base;
    g_sub_ctx.dest_offset = 0;
    g_sub_ctx.tail_size = tail_size;
