@@ -218,7 +218,7 @@ int validate_merkle_trees(unsigned char* klicensee, sce_ng_pfs_header_t& ngpfs, 
             return -1;
          }
 
-         std::cout << std::hex << table->get_icv_salt() << " OK" << std::endl;
+         std::cout << "File: " << std::hex << table->get_icv_salt() << " [OK]" << std::endl;
       }
       catch(std::runtime_error& e)
       {
@@ -874,11 +874,11 @@ int decrypt_files(boost::filesystem::path titleIdPath, boost::filesystem::path d
       if(t->get_header()->get_numSectors() == 0)
          continue;
 
-      //find filepath by unicv.db page
+      //find filepath by salt (filename for icv.db or page for unicv.db)
       auto map_entry = pageMap.find(t->get_icv_salt());
       if(map_entry == pageMap.end())
       {
-         std::cout << "failed to find page " << t->get_page() << " in map" << std::endl;
+         std::cout << "failed to find page " << t->get_icv_salt() << " in map" << std::endl;
          return -1;
       }
 
@@ -900,7 +900,8 @@ int decrypt_files(boost::filesystem::path titleIdPath, boost::filesystem::path d
          return -1;
       }
       //copy unencrypted files
-      else if(file->file.info.type == sce_ng_pfs_file_types::unencrypted_system_file)
+      else if(file->file.info.type == sce_ng_pfs_file_types::unencrypted_system_file ||
+              file->file.info.type == sce_ng_pfs_file_types::unencrypted_unk1)
       {
          if(!filepath.copy_existing_file(titleIdPath, destTitleIdPath))
          {
@@ -912,8 +913,10 @@ int decrypt_files(boost::filesystem::path titleIdPath, boost::filesystem::path d
             std::cout << "Copied: " << filepath << std::endl;
          }
       }
-      //decrypt unencrypted files
-      else
+      //decrypt encrypted files
+      else if(file->file.info.type == sce_ng_pfs_file_types::encrypted_system_file ||
+              file->file.info.type == sce_ng_pfs_file_types::encrypted_unk2 || 
+              file->file.info.type == sce_ng_pfs_file_types::normal_file)
       {
          if(decrypt_file(titleIdPath, destTitleIdPath, *file, filepath, klicensee, ngpfs, t, fdb->isUnicv()) < 0)
          {
@@ -924,6 +927,11 @@ int decrypt_files(boost::filesystem::path titleIdPath, boost::filesystem::path d
          {
             std::cout << "Decrypted: " << filepath << std::endl;
          }
+      }
+      else
+      {
+         std::cout << "Unexpected file type" << std::endl;
+         return -1;
       }
    }   
 
