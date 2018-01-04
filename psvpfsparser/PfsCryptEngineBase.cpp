@@ -90,46 +90,6 @@ int AESCBCDecrypt_base(const unsigned char* key, unsigned char* iv, std::uint32_
 //encrypt / decrypt with key_id
 
 //ok
-int AESCBCDecryptWithKeygen_base(const unsigned char* key, unsigned char* iv, std::uint32_t size, const unsigned char* src, unsigned char* dst, std::uint16_t key_id)
-{
-   std::uint16_t kid = 0 - (key_id - 1) + (key_id - 1);
-
-   int size_tail = size & 0xF;
-   int size_block = size & (~0xF);
-   
-   //decrypt N blocks of source data with key and iv
-
-   if(size_block != 0)
-   {
-      int result0 = SceSblSsMgrForDriver_sceSblSsMgrAESCBCDecryptWithKeygenForDriver(src, dst, size_block, key, 0x80, iv, kid, 1);
-      if(result0 != 0)
-         return result0;
-   }
-
-   //handle tail section - do a Cipher Text Stealing
-
-   if(size_tail == 0)
-      return 0;
-
-   //align destination buffer
-
-   unsigned char iv_enc[0x10] = {0};
-
-   //encrypt iv using key
-
-   int result1 = SceSblSsMgrForDriver_sceSblSsMgrAESECBEncryptWithKeygenForDriver(iv, iv_enc, 0x10, key, 0x80, kid, 1);
-   if(result1 != 0)
-      return result1;
-
-   //produce destination tail by xoring source tail with encrypted iv
-
-   for(int i = 0; i < size_tail; i++)
-      dst[size_block + i] = src[size_block + i] ^ iv_enc[i];
-
-   return 0;
-}
-
-//ok
 int AESCBCEncryptWithKeygen_base(const unsigned char* klicensee, unsigned char* iv, std::uint32_t size, const unsigned char* src, unsigned char* dst, std::uint16_t key_id)
 {
    std::uint16_t kid = 0 - (key_id - 1) + (key_id - 1); // ???
@@ -169,17 +129,57 @@ int AESCBCEncryptWithKeygen_base(const unsigned char* klicensee, unsigned char* 
    return 0;
 }
 
+//ok
+int AESCBCDecryptWithKeygen_base(const unsigned char* key, unsigned char* iv, std::uint32_t size, const unsigned char* src, unsigned char* dst, std::uint16_t key_id)
+{
+   std::uint16_t kid = 0 - (key_id - 1) + (key_id - 1);
+
+   int size_tail = size & 0xF;
+   int size_block = size & (~0xF);
+   
+   //decrypt N blocks of source data with key and iv
+
+   if(size_block != 0)
+   {
+      int result0 = SceSblSsMgrForDriver_sceSblSsMgrAESCBCDecryptWithKeygenForDriver(src, dst, size_block, key, 0x80, iv, kid, 1);
+      if(result0 != 0)
+         return result0;
+   }
+
+   //handle tail section - do a Cipher Text Stealing
+
+   if(size_tail == 0)
+      return 0;
+
+   //align destination buffer
+
+   unsigned char iv_enc[0x10] = {0};
+
+   //encrypt iv using key
+
+   int result1 = SceSblSsMgrForDriver_sceSblSsMgrAESECBEncryptWithKeygenForDriver(iv, iv_enc, 0x10, key, 0x80, kid, 1);
+   if(result1 != 0)
+      return result1;
+
+   //produce destination tail by xoring source tail with encrypted iv
+
+   for(int i = 0; i < size_tail; i++)
+      dst[size_block + i] = src[size_block + i] ^ iv_enc[i];
+
+   return 0;
+}
+
 //#### GROUP 2 (hw cmac) ####
 
 // FUNCTIONS ARE SIMILAR
 
-int AESCMACDecrypt_base(const unsigned char* cmac_key, unsigned char* iv, std::uint32_t size, const unsigned char* cmac_src, unsigned char* cmac_dst)
+int AESCMACEncrypt_base(const unsigned char* cmac_key, unsigned char* iv, std::uint32_t size, const unsigned char* cmac_src, unsigned char* cmac_dst)
 {
    throw std::runtime_error("Untested unknown behavior");
 
    int size_tail = size & 0xF;
    int size_block = size & (~0xF);
-   
+
    //cmac N blocks of source data with klicensee and iv
 
    if(size_block != 0)
@@ -214,13 +214,13 @@ int AESCMACDecrypt_base(const unsigned char* cmac_key, unsigned char* iv, std::u
    return 0;
 }
 
-int AESCMACEncrypt_base(const unsigned char* cmac_key, unsigned char* iv, std::uint32_t size, const unsigned char* cmac_src, unsigned char* cmac_dst)
+int AESCMACDecrypt_base(const unsigned char* cmac_key, unsigned char* iv, std::uint32_t size, const unsigned char* cmac_src, unsigned char* cmac_dst)
 {
    throw std::runtime_error("Untested unknown behavior");
 
    int size_tail = size & 0xF;
    int size_block = size & (~0xF);
-
+   
    //cmac N blocks of source data with klicensee and iv
 
    if(size_block != 0)
@@ -440,30 +440,6 @@ int xts_mult_x_xor_data_cmac(std::uint32_t* src, std::uint32_t* tweak_enc_value,
 //#### GROUP 3 (no keygen xts-aes dec/xts-aes enc) ####
 
 //ok
-int XTSAESDecrypt_base(const unsigned char* tweak, const unsigned char* dst_key, const unsigned char* tweak_enc_key, std::uint32_t key_size, std::uint32_t size, const unsigned char* src, unsigned char* dst)
-{
-   aes_context aes_ctx;
-   unsigned char tweak_enc_value[0x10] = {0};
-
-   //encrypt tweak
-
-   memset(&aes_ctx, 0, sizeof(aes_context));
-   aes_setkey_enc(&aes_ctx, tweak_enc_key, key_size);
-
-   aes_crypt_ecb(&aes_ctx, AES_ENCRYPT, tweak, tweak_enc_value);
-
-   //do tweak uncrypt
-
-   xts_mult_x_xor_data_xts((std::uint32_t*)src, (std::uint32_t*)tweak_enc_value, (std::uint32_t*)dst, size);
-
-   int result0 = SceSblSsMgrForDriver_sceSblSsMgrAESECBDecryptForDriver(dst, dst, size, dst_key, key_size, 1);
-   if(result0 == 0)
-      xts_mult_x_xor_data_xts((std::uint32_t*)dst, (std::uint32_t*)tweak_enc_value, (std::uint32_t*)dst, size);
-
-   return result0;
-}
-
-//ok
 int XTSAESEncrypt_base(const unsigned char* tweak, const unsigned char* dst_key, const unsigned char* tweak_enc_key, std::uint32_t key_size, std::uint32_t size, const unsigned char* src, unsigned char* dst)
 {
    aes_context aes_ctx;
@@ -481,6 +457,30 @@ int XTSAESEncrypt_base(const unsigned char* tweak, const unsigned char* dst_key,
    xts_mult_x_xor_data_xts((std::uint32_t*)src, (std::uint32_t*)tweak_enc_value, (std::uint32_t*)dst, size);
 
    int result0 = SceSblSsMgrForDriver_sceSblSsMgrAESECBEncryptForDriver(dst, dst, size, dst_key, key_size, 1);
+   if(result0 == 0)
+      xts_mult_x_xor_data_xts((std::uint32_t*)dst, (std::uint32_t*)tweak_enc_value, (std::uint32_t*)dst, size);
+
+   return result0;
+}
+
+//ok
+int XTSAESDecrypt_base(const unsigned char* tweak, const unsigned char* dst_key, const unsigned char* tweak_enc_key, std::uint32_t key_size, std::uint32_t size, const unsigned char* src, unsigned char* dst)
+{
+   aes_context aes_ctx;
+   unsigned char tweak_enc_value[0x10] = {0};
+
+   //encrypt tweak
+
+   memset(&aes_ctx, 0, sizeof(aes_context));
+   aes_setkey_enc(&aes_ctx, tweak_enc_key, key_size);
+
+   aes_crypt_ecb(&aes_ctx, AES_ENCRYPT, tweak, tweak_enc_value);
+
+   //do tweak uncrypt
+
+   xts_mult_x_xor_data_xts((std::uint32_t*)src, (std::uint32_t*)tweak_enc_value, (std::uint32_t*)dst, size);
+
+   int result0 = SceSblSsMgrForDriver_sceSblSsMgrAESECBDecryptForDriver(dst, dst, size, dst_key, key_size, 1);
    if(result0 == 0)
       xts_mult_x_xor_data_xts((std::uint32_t*)dst, (std::uint32_t*)tweak_enc_value, (std::uint32_t*)dst, size);
 
