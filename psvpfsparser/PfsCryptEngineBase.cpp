@@ -173,7 +173,7 @@ int AESCBCEncryptWithKeygen_base(const unsigned char* klicensee, unsigned char* 
 
 // FUNCTIONS ARE SIMILAR
 
-int AESCMAC_base_1(const unsigned char* cmac_key, unsigned char* iv, std::uint32_t size, const unsigned char* cmac_src, unsigned char* cmac_dst)
+int AESCMACDecrypt_base(const unsigned char* cmac_key, unsigned char* iv, std::uint32_t size, const unsigned char* cmac_src, unsigned char* cmac_dst)
 {
    throw std::runtime_error("Untested unknown behavior");
 
@@ -214,7 +214,7 @@ int AESCMAC_base_1(const unsigned char* cmac_key, unsigned char* iv, std::uint32
    return 0;
 }
 
-int AESCMAC_base_2(const unsigned char* cmac_key, unsigned char* iv, std::uint32_t size, const unsigned char* cmac_src, unsigned char* cmac_dst)
+int AESCMACEncrypt_base(const unsigned char* cmac_key, unsigned char* iv, std::uint32_t size, const unsigned char* cmac_src, unsigned char* cmac_dst)
 {
    throw std::runtime_error("Untested unknown behavior");
 
@@ -257,7 +257,7 @@ int AESCMAC_base_2(const unsigned char* cmac_key, unsigned char* iv, std::uint32
 
 // FUNCTIONS ARE SIMILAR
 
-int AESCMACWithKeygen_base_1(const unsigned char* cmac_key, unsigned char* iv, std::uint32_t size, const unsigned char* cmac_src, unsigned char* cmac_dst, std::uint16_t key_id)
+int AESCMACEncryptWithKeygen_base(const unsigned char* cmac_key, unsigned char* iv, std::uint32_t size, const unsigned char* cmac_src, unsigned char* cmac_dst, std::uint16_t key_id)
 {
    throw std::runtime_error("Untested unknown behavior");
 
@@ -300,7 +300,7 @@ int AESCMACWithKeygen_base_1(const unsigned char* cmac_key, unsigned char* iv, s
    return 0;
 }
 
-int AESCMACWithKeygen_base_2(const unsigned char* cmac_key, unsigned char* iv, std::uint32_t size, const unsigned char* cmac_src, unsigned char* cmac_dst, std::uint16_t key_id)
+int AESCMACDecryptWithKeygen_base(const unsigned char* cmac_key, unsigned char* iv, std::uint32_t size, const unsigned char* cmac_src, unsigned char* cmac_dst, std::uint16_t key_id)
 {
    throw std::runtime_error("Untested unknown behavior");
 
@@ -487,7 +487,7 @@ int XTSAESEncrypt_base(const unsigned char* tweak, const unsigned char* dst_key,
    return result0;
 }
 
-//#### GROUP 4 (no keygen cmac/cmac) ####
+//#### GROUP 4 (no keygen xts-cmac dec/xts-cmac enc) (technically there is no dec/enc - this is pair of same functions since cmac) ####
 
 // FUNCTIONS ARE SIMILAR
 
