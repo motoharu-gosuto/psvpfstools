@@ -435,7 +435,7 @@ int init_crypt_ctx(CryptEngineWorkCtx* work_ctx, unsigned char* klicensee, sce_n
    memset(&g_data, 0, sizeof(CryptEngineData));
    g_data.klicensee = klicensee;
    g_data.files_salt = ngpfs.files_salt;
-   g_data.unicv_page = table->get_icv_salt();
+   g_data.icv_salt = table->get_icv_salt();
 
 
    if(isUnicv)

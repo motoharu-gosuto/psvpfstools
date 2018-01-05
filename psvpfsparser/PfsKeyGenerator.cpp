@@ -10,7 +10,7 @@
 #include "SecretGenerator.h"
 
 //[TESTED]
-int generate_enckeys(unsigned char* dec_key, unsigned char* tweak_enc_key, const unsigned char* klicensee, std::uint32_t unicv_page_salt)
+int generate_enckeys(unsigned char* dec_key, unsigned char* tweak_enc_key, const unsigned char* klicensee, std::uint32_t icv_salt)
 {
    int saltin[2] = {0};
    unsigned char base0[0x14] = {0};
@@ -20,7 +20,7 @@ int generate_enckeys(unsigned char* dec_key, unsigned char* tweak_enc_key, const
 
    icv_set_sw(base0, klicensee, 0x10); //calculate hash of klicensee
 
-   saltin[0] = unicv_page_salt;
+   saltin[0] = icv_salt;
 
    // derive key 0
 
@@ -46,14 +46,14 @@ int generate_enckeys(unsigned char* dec_key, unsigned char* tweak_enc_key, const
 }
 
 //[TESTED]
-int gen_iv(unsigned char* tweak_enc_key, std::uint32_t files_salt, std::uint32_t unicv_page_salt)
+int gen_iv(unsigned char* tweak_enc_key, std::uint32_t files_salt, std::uint32_t icv_salt)
 {
    unsigned char drvkey[0x14] = {0};
 
    if(files_salt == 0)
    {
       int saltin0[1] = {0};
-      saltin0[0] = unicv_page_salt;
+      saltin0[0] = icv_salt;
 
       icv_set_hmac_sw(drvkey, hmac_key0, (unsigned char*)saltin0, 4); // derive key with one salt
    }
@@ -61,7 +61,7 @@ int gen_iv(unsigned char* tweak_enc_key, std::uint32_t files_salt, std::uint32_t
    {
       int saltin1[2] = {0};
       saltin1[0] = files_salt;
-      saltin1[1] = unicv_page_salt;
+      saltin1[1] = icv_salt;
       
       icv_set_hmac_sw(drvkey, hmac_key0, (unsigned char*)saltin1, 8); // derive key with two salts
    }
@@ -74,24 +74,24 @@ int gen_iv(unsigned char* tweak_enc_key, std::uint32_t files_salt, std::uint32_t
 //---------------------
 
 //[TESTED]
-int scePfsUtilGetSDKeys(unsigned char* dec_key, unsigned char* tweak_enc_key, const unsigned char* klicensee, std::uint32_t files_salt, std::uint32_t unicv_page_salt)
+int scePfsUtilGetSDKeys(unsigned char* dec_key, unsigned char* tweak_enc_key, const unsigned char* klicensee, std::uint32_t files_salt, std::uint32_t icv_salt)
 {
   //files_salt is ignored
-  return generate_enckeys(dec_key, tweak_enc_key, klicensee, unicv_page_salt);
+  return generate_enckeys(dec_key, tweak_enc_key, klicensee, icv_salt);
 }
 
 //[TESTED]
-int scePfsUtilGetGDKeys(unsigned char* dec_key, unsigned char* tweak_enc_key, const unsigned char* klicensee, std::uint32_t files_salt, std::uint16_t flag, std::uint32_t unicv_page_salt)
+int scePfsUtilGetGDKeys(unsigned char* dec_key, unsigned char* tweak_enc_key, const unsigned char* klicensee, std::uint32_t files_salt, std::uint16_t flag, std::uint32_t icv_salt)
 {
    if((flag & 2) > 0)
    {
       memcpy(dec_key, klicensee, 0x10);
 
-      return gen_iv(tweak_enc_key, files_salt, unicv_page_salt);
+      return gen_iv(tweak_enc_key, files_salt, icv_salt);
    }
    else
    {
-      return generate_enckeys(dec_key, tweak_enc_key, klicensee, unicv_page_salt);
+      return generate_enckeys(dec_key, tweak_enc_key, klicensee, icv_salt);
    }
 }
 
@@ -116,13 +116,13 @@ int setup_crypt_packet_keys(CryptEngineData* data, const derive_keys_ctx* drv_ct
 
    if((some_flag_base > 0x1F) || (some_flag == 0))
    {
-      scePfsUtilGetSDKeys(data->dec_key, data->tweak_enc_key, data->klicensee, data->files_salt, data->unicv_page);
+      scePfsUtilGetSDKeys(data->dec_key, data->tweak_enc_key, data->klicensee, data->files_salt, data->icv_salt);
    }
    else
    {
       if((drv_ctx->unk_40 != 0 && drv_ctx->unk_40 != 3) || (drv_ctx->sceiftbl_version <= 1))
       {  
-         scePfsUtilGetGDKeys(data->dec_key, data->tweak_enc_key, data->klicensee, data->files_salt, data->pmi_bcl_flag, data->unicv_page);
+         scePfsUtilGetGDKeys(data->dec_key, data->tweak_enc_key, data->klicensee, data->files_salt, data->pmi_bcl_flag, data->icv_salt);
       }
       else
       {
@@ -137,5 +137,5 @@ int setup_crypt_packet_keys(CryptEngineData* data, const derive_keys_ctx* drv_ct
       }
    }
 
-   return scePfsUtilGetSecret(data->secret, data->klicensee, data->files_salt, data->pmi_bcl_flag, data->unicv_page, data->key_id);
+   return scePfsUtilGetSecret(data->secret, data->klicensee, data->files_salt, data->pmi_bcl_flag, data->icv_salt, data->key_id);
 }
