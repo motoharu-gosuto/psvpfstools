@@ -15,9 +15,9 @@ typedef struct CryptEngineData
    std::uint16_t flag0;
    std::uint32_t block_size; // file sector size specified in unicv.db
 
-   unsigned char dec_key[0x10]; // decryption key. usually klicensee, but not always
-   unsigned char iv_key[0x10]; // iv derrivation key used for decryption
-   unsigned char secret[0x14]; // main secret derived from klicensee and used for checking hashes or deriving keys
+   unsigned char dec_key[0x10]; // decryption key. derived from klicensee or sealedkey
+   unsigned char tweak_enc_key[0x10]; // tweak encryption key. used to encrypt tweak iv vectors
+   unsigned char secret[0x14]; // secret key derived from klicensee or sealedkey. used for checking hashes or deriving other keys
 
 }CryptEngineData;
 

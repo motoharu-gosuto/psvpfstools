@@ -26,7 +26,7 @@ int gen_secrets_extern(unsigned char* dec_key, unsigned char* iv_key, const unsi
 
 //similar to generate_secret in SecretGenerator
 //[TESTED]
-int generate_secrets(unsigned char* dec_key, unsigned char* iv_key, const unsigned char* klicensee, std::uint32_t unicv_page_salt)
+int generate_enckeys(unsigned char* dec_key, unsigned char* tweak_enc_key, const unsigned char* klicensee, std::uint32_t unicv_page_salt)
 {
    int saltin[2] = {0};
    unsigned char base0[0x14] = {0};
@@ -62,7 +62,7 @@ int generate_secrets(unsigned char* dec_key, unsigned char* iv_key, const unsign
 
    SceKernelUtilsForDriver_sceSha1DigestForDriver(combo, 0x28, drvkey); //calculate hash from combination of salt 1 hash and klicensee hash
 
-   memcpy(iv_key, drvkey, 0x10); //copy derived key
+   memcpy(tweak_enc_key, drvkey, 0x10); //copy derived key
 
    return 0;
 }
@@ -101,7 +101,7 @@ int DerivePfsKeys(CryptEngineData* data, const derive_keys_ctx* drv_ctx)
 
    if((some_flag_base > 0x1F) || (some_flag == 0))
    {
-      generate_secrets(data->dec_key, data->iv_key, data->klicensee, data->unicv_page);
+      generate_enckeys(data->dec_key, data->tweak_enc_key, data->klicensee, data->unicv_page);
       return scePfsUtilGetSecret(data->secret, data->klicensee, data->files_salt, data->pmi_bcl_flag, data->unicv_page, data->key_id);
    }
    else
@@ -109,9 +109,9 @@ int DerivePfsKeys(CryptEngineData* data, const derive_keys_ctx* drv_ctx)
       if((drv_ctx->unk_40 != 0 && drv_ctx->unk_40 != 3) || (drv_ctx->sceiftbl_version <= 1))
       {  
          if((data->pmi_bcl_flag & 2) > 0)
-            gen_secrets(data->dec_key, data->iv_key, data->klicensee, data->files_salt, data->unicv_page);
+            gen_secrets(data->dec_key, data->tweak_enc_key, data->klicensee, data->files_salt, data->unicv_page);
          else
-            generate_secrets(data->dec_key, data->iv_key, data->klicensee, data->unicv_page);
+            generate_enckeys(data->dec_key, data->tweak_enc_key, data->klicensee, data->unicv_page);
 
          return scePfsUtilGetSecret(data->secret, data->klicensee, data->files_salt, data->pmi_bcl_flag, data->unicv_page, data->key_id);
       }
@@ -119,7 +119,7 @@ int DerivePfsKeys(CryptEngineData* data, const derive_keys_ctx* drv_ctx)
       {
          if(drv_ctx->unk_40 == 0 || drv_ctx->unk_40 == 3)
          {
-            gen_secrets_extern(data->dec_key, data->iv_key, data->klicensee, data->pmi_bcl_flag, data->key_id, drv_ctx->base_key, 0x14);
+            gen_secrets_extern(data->dec_key, data->tweak_enc_key, data->klicensee, data->pmi_bcl_flag, data->key_id, drv_ctx->base_key, 0x14);
             return scePfsUtilGetSecret(data->secret, data->klicensee, data->files_salt, data->pmi_bcl_flag, data->unicv_page, data->key_id);
          }
          else
