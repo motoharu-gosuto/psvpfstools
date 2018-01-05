@@ -111,77 +111,26 @@ int scePfsUtilGetGDKeys2(unsigned char* dec_key, unsigned char* tweak_enc_key, c
 
 //---------------------
 
-int is_gamedata(std::uint16_t flag)
-{
-   unsigned int some_flag_base = (std::uint32_t)(flag - 2); // 2 because 2 is a minimal index that should give 1 as result
-   unsigned int some_flag = 0xC0000B03 & (1 << some_flag_base);
-
-   //0x1F + 2 = 0x21 - everything that is greater than 0x21 should give 0
-   //negative numbers 0 - 2, 1 - 2 will give 0 as well by first condition
-   bool is_savedata = (some_flag_base > 0x1F) || (some_flag == 0);
-
-   return !is_savedata;
-}
-
-bool is_gamedata2(std::uint16_t flag)
+bool is_gamedata(std::uint16_t flag)
 {
    int index = flag & 0xFFFF;
    
    if(index > 0x21)
+      return false;
+   
+   switch(index)
    {
-      return 0;
-   }
-   else
-   {
-      switch(index)
-      {
-         case 0x00: //000000
-         case 0x01: //000001
+      case 0x02:
+      case 0x03:
+      case 0x0A:
+      case 0x0B:
+      case 0x0D:
+      case 0x20:
+      case 0x21:
+         return true;
 
-         case 0x0D: //001101
-         case 0x0E: //001110
-         case 0x0F: //001111
-
-         case 0x10:
-         case 0x11:
-         case 0x12:
-         case 0x13:
-         case 0x14:
-         case 0x15:
-         case 0x16:
-         case 0x17:
-         case 0x18:
-         case 0x19:
-         case 0x1A:
-         case 0x1B:
-         case 0x1C:
-         case 0x1D:
-         case 0x1E:
-         case 0x1F:
-            return 0;
-
-         case 0x04: //000100
-         case 0x05: //000101
-         case 0x06: //000110
-         case 0x07: //000111
-         case 0x08: //001000
-         case 0x09: //001001
-
-         case 0x0C: //001100
-            return 0;
-         
-         case 0x02: //000010
-         case 0x03: //000011 
-
-         case 0x0A: //001010
-         case 0x0B: //001011
-
-         case 0x20: //100000
-         case 0x21: //100001
-            return 1;
-      }
-
-      return 0;
+      default:
+         return false;
    }
 }
 
