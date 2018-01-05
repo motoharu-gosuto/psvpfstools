@@ -59,7 +59,7 @@ typedef struct derive_keys_ctx
 {
    std::uint32_t unk_40; // unknown
    std::uint32_t sceiftbl_version; // version of unicv
-   unsigned char base_key[0x14];
+   unsigned char dbseed_0[0x14];
 
 }derive_keys_ctx;
 

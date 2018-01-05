@@ -96,11 +96,11 @@ int scePfsUtilGetGDKeys(unsigned char* dec_key, unsigned char* tweak_enc_key, co
 }
 
 //[TESTED]
-int scePfsUtilGetGDKeys2(unsigned char* dec_key, unsigned char* tweak_enc_key, const unsigned char* klicensee, std::uint16_t ignored_flag, std::uint16_t ignored_key_id, const unsigned char* base_key, std::uint32_t base_key_len)
+int scePfsUtilGetGDKeys2(unsigned char* dec_key, unsigned char* tweak_enc_key, const unsigned char* klicensee, std::uint16_t ignored_flag, std::uint16_t ignored_key_id, const unsigned char* dbseed_0, std::uint32_t dbseed_0_len)
 {
    unsigned char drvkey[0x14] = {0};
 
-   icv_set_hmac_sw(drvkey, hmac_key0, base_key, base_key_len);
+   icv_set_hmac_sw(drvkey, hmac_key0, dbseed_0, dbseed_0_len);
 
    memcpy(dec_key, klicensee, 0x10);
 
@@ -109,32 +109,61 @@ int scePfsUtilGetGDKeys2(unsigned char* dec_key, unsigned char* tweak_enc_key, c
    return 0;
 }
 
-int setup_crypt_packet_keys(CryptEngineData* data, const derive_keys_ctx* drv_ctx)
+//---------------------
+
+bool is_gamedata(CryptEngineData* data)
 {
+   throw std::runtime_error("Not implemented");
+
+   /*
    int some_flag_base = (std::uint32_t)(data->pmi_bcl_flag - 2);
    int some_flag = 0xC0000B03 & (1 << some_flag_base);
 
-   if((some_flag_base > 0x1F) || (some_flag == 0))
+   bool is_savedata = (some_flag_base > 0x1F) || (some_flag == 0);
+
+   return !is_savedata;
+   */
+}
+
+bool condition0(const derive_keys_ctx* drv_ctx)
+{
+   throw std::runtime_error("Not implemented");
+
+   /*
+   return (drv_ctx->unk_40 == 0 || drv_ctx->unk_40 == 3);
+   */
+}
+
+const unsigned char* isec_dbseed_0(const derive_keys_ctx* drv_ctx)
+{
+   throw std::runtime_error("Not implemented");
+
+   /*
+   //bool res = (!condition0(drv_ctx)) || (drv_ctx->sceiftbl_version <= 1);
+   //return !res;
+
+   return drv_ctx->dbseed_0;
+   */
+}
+
+//---------------------
+
+int setup_crypt_packet_keys(CryptEngineData* data, const derive_keys_ctx* drv_ctx)
+{
+   if(is_gamedata(data))
    {
-      scePfsUtilGetSDKeys(data->dec_key, data->tweak_enc_key, data->klicensee, data->files_salt, data->icv_salt);
-   }
-   else
-   {
-      if((drv_ctx->unk_40 != 0 && drv_ctx->unk_40 != 3) || (drv_ctx->sceiftbl_version <= 1))
+      if(isec_dbseed_0(drv_ctx))
       {  
-         scePfsUtilGetGDKeys(data->dec_key, data->tweak_enc_key, data->klicensee, data->files_salt, data->pmi_bcl_flag, data->icv_salt);
+         scePfsUtilGetGDKeys2(data->dec_key, data->tweak_enc_key, data->klicensee, data->pmi_bcl_flag, data->key_id, isec_dbseed_0(drv_ctx), 0x14);  
       }
       else
       {
-         if(drv_ctx->unk_40 == 0 || drv_ctx->unk_40 == 3)
-         {
-            scePfsUtilGetGDKeys2(data->dec_key, data->tweak_enc_key, data->klicensee, data->pmi_bcl_flag, data->key_id, drv_ctx->base_key, 0x14);
-         }
-         else
-         {
-            throw std::runtime_error("Invalid set of flags in DerivePfsKeys");
-         }
+         scePfsUtilGetGDKeys(data->dec_key, data->tweak_enc_key, data->klicensee, data->files_salt, data->pmi_bcl_flag, data->icv_salt);
       }
+   }
+   else
+   {
+      scePfsUtilGetSDKeys(data->dec_key, data->tweak_enc_key, data->klicensee, data->files_salt, data->icv_salt);
    }
 
    return scePfsUtilGetSecret(data->secret, data->klicensee, data->files_salt, data->pmi_bcl_flag, data->icv_salt, data->key_id);

@@ -247,7 +247,7 @@ public:
 
    virtual std::uint32_t get_fileSectorSize() const = 0;
 
-   virtual const std::uint8_t* get_base_key() const = 0;
+   virtual const std::uint8_t* get_dbseed_0() const = 0;
 
    virtual std::uint32_t get_binTreeNumMaxAvail() const = 0;
 
@@ -286,7 +286,7 @@ public:
       return m_header.fileSectorSize;
    }
 
-   const std::uint8_t* get_base_key() const override
+   const std::uint8_t* get_dbseed_0() const override
    {
       return m_header.base_key;
    }
@@ -345,8 +345,8 @@ public:
    {
       return m_header.fileSectorSize;
    }
-
-   const std::uint8_t* get_base_key() const override
+   
+   const std::uint8_t* get_dbseed_0() const override
    {
       throw std::runtime_error("not implemented");
    }
@@ -409,7 +409,7 @@ public:
       return 0;
    }
 
-   const std::uint8_t* get_base_key() const override
+   const std::uint8_t* get_dbseed_0() const override
    {
       throw std::runtime_error("not implemented");
    }
