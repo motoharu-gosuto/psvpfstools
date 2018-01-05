@@ -13,7 +13,7 @@
 #include "FilesDbParser.h"
 
 //[TESTED both branches]
-int gen_secret(unsigned char* combo_aligned, std::uint32_t files_salt, std::uint32_t unicv_page_salt)
+int gen_secret(unsigned char* combo, std::uint32_t files_salt, std::uint32_t unicv_page_salt)
 {
    unsigned char base[0x14] = {0};
 
@@ -31,7 +31,7 @@ int gen_secret(unsigned char* combo_aligned, std::uint32_t files_salt, std::uint
       icv_set_hmac_sw(base, hmac_key1, (unsigned char*)saltin1, 8); // derive base with two salts
    }
 
-   memcpy(combo_aligned, base, 0x14); // calculated digest will be src data
+   memcpy(combo, base, 0x14); // calculated digest will be src data
 
    return 0;
 }
