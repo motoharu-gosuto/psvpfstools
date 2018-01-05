@@ -96,11 +96,11 @@ int scePfsUtilGetGDKeys(unsigned char* dec_key, unsigned char* tweak_enc_key, co
 }
 
 //[TESTED]
-int scePfsUtilGetGDKeys2(unsigned char* dec_key, unsigned char* tweak_enc_key, const unsigned char* klicensee, std::uint16_t ignored_flag, std::uint16_t ignored_key_id, const unsigned char* dbseed_0, std::uint32_t dbseed_0_len)
+int scePfsUtilGetGDKeys2(unsigned char* dec_key, unsigned char* tweak_enc_key, const unsigned char* klicensee, std::uint16_t ignored_flag, std::uint16_t ignored_key_id, const unsigned char* dbseed, std::uint32_t dbseed_len)
 {
    unsigned char drvkey[0x14] = {0};
 
-   icv_set_hmac_sw(drvkey, hmac_key0, dbseed_0, dbseed_0_len);
+   icv_set_hmac_sw(drvkey, hmac_key0, dbseed, dbseed_len);
 
    memcpy(dec_key, klicensee, 0x10);
 
@@ -134,7 +134,7 @@ bool condition0(const derive_keys_ctx* drv_ctx)
    */
 }
 
-const unsigned char* isec_dbseed_0(const derive_keys_ctx* drv_ctx)
+const unsigned char* isec_dbseed(const derive_keys_ctx* drv_ctx)
 {
    throw std::runtime_error("Not implemented");
 
@@ -142,7 +142,7 @@ const unsigned char* isec_dbseed_0(const derive_keys_ctx* drv_ctx)
    //bool res = (!condition0(drv_ctx)) || (drv_ctx->sceiftbl_version <= 1);
    //return !res;
 
-   return drv_ctx->dbseed_0;
+   return drv_ctx->dbseed;
    */
 }
 
@@ -152,9 +152,9 @@ int setup_crypt_packet_keys(CryptEngineData* data, const derive_keys_ctx* drv_ct
 {
    if(is_gamedata(data))
    {
-      if(isec_dbseed_0(drv_ctx))
+      if(isec_dbseed(drv_ctx))
       {  
-         scePfsUtilGetGDKeys2(data->dec_key, data->tweak_enc_key, data->klicensee, data->pmi_bcl_flag, data->key_id, isec_dbseed_0(drv_ctx), 0x14);  
+         scePfsUtilGetGDKeys2(data->dec_key, data->tweak_enc_key, data->klicensee, data->pmi_bcl_flag, data->key_id, isec_dbseed(drv_ctx), 0x14);  
       }
       else
       {

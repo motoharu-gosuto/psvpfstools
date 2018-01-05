@@ -100,7 +100,7 @@ struct sce_iftbl_header_t
 
    //these records are empty if sce_iftbl_header_t corresponds to directory
    std::uint8_t data1[20];
-   std::uint8_t base_key[20]; // this is a base_key that is used to derive iv_xor_key - one of the keys required for decryption
+   std::uint8_t dbseed[20]; // this is a base key that is used to derive tweak_enc_key - one of the keys required for decryption
 };
 
 struct sce_icvdb_header_t
@@ -247,7 +247,7 @@ public:
 
    virtual std::uint32_t get_fileSectorSize() const = 0;
 
-   virtual const std::uint8_t* get_dbseed_0() const = 0;
+   virtual const std::uint8_t* get_dbseed() const = 0;
 
    virtual std::uint32_t get_binTreeNumMaxAvail() const = 0;
 
@@ -286,9 +286,9 @@ public:
       return m_header.fileSectorSize;
    }
 
-   const std::uint8_t* get_dbseed_0() const override
+   const std::uint8_t* get_dbseed() const override
    {
-      return m_header.base_key;
+      return m_header.dbseed;
    }
 
    std::uint32_t get_binTreeNumMaxAvail() const override
@@ -346,7 +346,7 @@ public:
       return m_header.fileSectorSize;
    }
    
-   const std::uint8_t* get_dbseed_0() const override
+   const std::uint8_t* get_dbseed() const override
    {
       throw std::runtime_error("not implemented");
    }
@@ -409,7 +409,7 @@ public:
       return 0;
    }
 
-   const std::uint8_t* get_dbseed_0() const override
+   const std::uint8_t* get_dbseed() const override
    {
       throw std::runtime_error("not implemented");
    }

@@ -486,11 +486,11 @@ int init_crypt_ctx(CryptEngineWorkCtx* work_ctx, unsigned char* klicensee, sce_n
 
    if(isUnicv)
    {
-      memcpy(drv_ctx.dbseed_0, table->get_header()->get_dbseed_0(), 0x14);
+      memcpy(drv_ctx.dbseed, table->get_header()->get_dbseed(), 0x14);
    }
    else
    {
-      memset(drv_ctx.dbseed_0, 0, 0x14);
+      memset(drv_ctx.dbseed, 0, 0x14);
    }
 
    setup_crypt_packet_keys(&g_data, &drv_ctx); //derive dec_key, iv_key, secret
