@@ -493,7 +493,7 @@ int init_crypt_ctx(CryptEngineWorkCtx* work_ctx, unsigned char* klicensee, sce_n
       memset(drv_ctx.base_key, 0, 0x14);
    }
 
-   DerivePfsKeys(&g_data, &drv_ctx); //derive dec_key, iv_key, secret
+   setup_crypt_packet_keys(&g_data, &drv_ctx); //derive dec_key, iv_key, secret
 
    //--------------------------------
    

@@ -109,34 +109,26 @@ int scePfsUtilGetGDKeys2(unsigned char* dec_key, unsigned char* tweak_enc_key, c
    return 0;
 }
 
-int DerivePfsKeys(CryptEngineData* data, const derive_keys_ctx* drv_ctx)
+int setup_crypt_packet_keys(CryptEngineData* data, const derive_keys_ctx* drv_ctx)
 {
-   /*
    int some_flag_base = (std::uint32_t)(data->pmi_bcl_flag - 2);
    int some_flag = 0xC0000B03 & (1 << some_flag_base);
 
    if((some_flag_base > 0x1F) || (some_flag == 0))
    {
-      generate_enckeys(data->dec_key, data->tweak_enc_key, data->klicensee, data->unicv_page);
-      return scePfsUtilGetSecret(data->secret, data->klicensee, data->files_salt, data->pmi_bcl_flag, data->unicv_page, data->key_id);
+      scePfsUtilGetSDKeys(data->dec_key, data->tweak_enc_key, data->klicensee, data->files_salt, data->unicv_page);
    }
    else
    {
       if((drv_ctx->unk_40 != 0 && drv_ctx->unk_40 != 3) || (drv_ctx->sceiftbl_version <= 1))
       {  
-         if((data->pmi_bcl_flag & 2) > 0)
-            gen_iv(data->dec_key, data->tweak_enc_key, data->klicensee, data->files_salt, data->unicv_page);
-         else
-            generate_enckeys(data->dec_key, data->tweak_enc_key, data->klicensee, data->unicv_page);
-
-         return scePfsUtilGetSecret(data->secret, data->klicensee, data->files_salt, data->pmi_bcl_flag, data->unicv_page, data->key_id);
+         scePfsUtilGetGDKeys(data->dec_key, data->tweak_enc_key, data->klicensee, data->files_salt, data->pmi_bcl_flag, data->unicv_page);
       }
       else
       {
          if(drv_ctx->unk_40 == 0 || drv_ctx->unk_40 == 3)
          {
             scePfsUtilGetGDKeys2(data->dec_key, data->tweak_enc_key, data->klicensee, data->pmi_bcl_flag, data->key_id, drv_ctx->base_key, 0x14);
-            return scePfsUtilGetSecret(data->secret, data->klicensee, data->files_salt, data->pmi_bcl_flag, data->unicv_page, data->key_id);
          }
          else
          {
@@ -144,7 +136,6 @@ int DerivePfsKeys(CryptEngineData* data, const derive_keys_ctx* drv_ctx)
          }
       }
    }
-   */
 
-   throw std::runtime_error("Not implemented");
+   return scePfsUtilGetSecret(data->secret, data->klicensee, data->files_salt, data->pmi_bcl_flag, data->unicv_page, data->key_id);
 }
