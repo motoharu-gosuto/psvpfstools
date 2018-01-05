@@ -14,17 +14,17 @@
 //[TESTED both branches]
 int gen_secret(unsigned char* combo_aligned, std::uint32_t files_salt, std::uint32_t unicv_page_salt)
 {
-   int saltin0[1] = {0};
-   int saltin1[2] = {0};
    unsigned char base[0x14] = {0};
 
    if(files_salt == 0)
    {
+      int saltin0[1] = {0};
       saltin0[0] = unicv_page_salt;
       SceKernelUtilsForDriver_sceHmacSha1DigestForDriver(hmac_key1, 0x14, (unsigned char*)saltin0, 4, base); // derive base with one salt
    }
    else
    {
+      int saltin1[2] = {0};
       saltin1[0] = files_salt;
       saltin1[1] = unicv_page_salt;
       SceKernelUtilsForDriver_sceHmacSha1DigestForDriver(hmac_key1, 0x14, (unsigned char*)saltin1, 8, base); // derive base with two salts
