@@ -23,7 +23,8 @@ FILE (GLOB HEADER_FILES "../F00DKeyEncryptor.h"
                         "../PsvPfsParserConfig.h"
                         "../LocalKeyGenerator.h"
                         "../LocalKeys.h"
-                        "../MerkleTree.hpp")
+                        "../MerkleTree.hpp"
+                        "../IcvPrimitives.h")
 source_group ("Header Files" FILES ${HEADER_FILES})
 
 FILE (GLOB SOURCE_FILES "../F00DKeyEncryptor.cpp"
@@ -46,7 +47,8 @@ FILE (GLOB SOURCE_FILES "../F00DKeyEncryptor.cpp"
                         "../Utils.cpp"
                         "../PsvPfsParserConfig.cpp"
                         "../LocalKeyGenerator.cpp"
-                        "../LocalKeys.cpp")
+                        "../LocalKeys.cpp"
+                        "../IcvPrimitives.cpp")
 source_group ("Source Files" FILES ${SOURCE_FILES})
 
 add_executable (${PROJECT} ${HEADER_FILES} ${SOURCE_FILES})
