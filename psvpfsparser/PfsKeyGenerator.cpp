@@ -134,25 +134,15 @@ bool is_gamedata(std::uint16_t flag)
    }
 }
 
-bool condition0(const derive_keys_ctx* drv_ctx)
-{
-   throw std::runtime_error("Not implemented");
-
-   /*
-   return (drv_ctx->unk_40 == 0 || drv_ctx->unk_40 == 3);
-   */
-}
-
 const unsigned char* isec_dbseed(const derive_keys_ctx* drv_ctx)
 {
-   throw std::runtime_error("Not implemented");
+   //unk_40 must be equal to 0 or 3 AND 
+   //version should be > 1 showing that ricv seed is supported
 
-   /*
-   //bool res = (!condition0(drv_ctx)) || (drv_ctx->sceiftbl_version <= 1);
-   //return !res;
-
-   return drv_ctx->dbseed;
-   */
+   if((drv_ctx->unk_40 != 0 && drv_ctx->unk_40 != 3) || drv_ctx->icv_version <= 1)
+      return 0;
+   else
+      return drv_ctx->dbseed;
 }
 
 //---------------------

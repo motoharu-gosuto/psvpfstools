@@ -482,7 +482,7 @@ int init_crypt_ctx(CryptEngineWorkCtx* work_ctx, unsigned char* klicensee, sce_n
    memset(&drv_ctx, 0, sizeof(derive_keys_ctx));
 
    drv_ctx.unk_40 = 0; // unknown how to set
-   drv_ctx.sceiftbl_version = table->get_header()->get_version(); // is that correct in generic way? for both games and saves/trophies?
+   drv_ctx.icv_version = table->get_header()->get_version(); // is that correct in generic way? for both games and saves/trophies?
 
    if(isUnicv)
    {

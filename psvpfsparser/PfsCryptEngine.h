@@ -58,7 +58,7 @@ typedef struct CryptEngineWorkCtx
 typedef struct derive_keys_ctx
 {
    std::uint32_t unk_40; // unknown
-   std::uint32_t sceiftbl_version; // version of unicv
+   std::uint32_t icv_version; // version of icv/unicv
    unsigned char dbseed[0x14];
 
 }derive_keys_ctx;
