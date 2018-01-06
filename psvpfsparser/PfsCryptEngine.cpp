@@ -337,7 +337,7 @@ void work_3_step1(CryptEngineWorkCtx* crypt_ctx, int bitSize, unsigned char* buf
 
 void crypt_engine_work_3(CryptEngineWorkCtx* crypt_ctx)
 {
-   int bitSize = (int)crypt_ctx->subctx->data->type - 2; // this does not correlate with derive_keys_from_klicensee_219B4A0
+   int bitSize = (int)crypt_ctx->subctx->data->mode_index - 2; // this does not correlate with derive_keys_from_klicensee_219B4A0
    int total_size = (crypt_ctx->subctx->data->block_size) * ((crypt_ctx->subctx->nBlocks) - 1) + (crypt_ctx->subctx->tail_size);
 
    unsigned char* work_buffer;

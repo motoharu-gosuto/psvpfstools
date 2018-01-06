@@ -9,7 +9,7 @@ typedef struct CryptEngineData
    unsigned const char* klicensee;
    std::uint32_t files_salt; // salt from files.db is used to derive keys
    std::uint32_t icv_salt; // unicv page or icv filename is used as salt to derive keys
-   std::uint16_t type;
+   std::uint16_t mode_index;
    std::uint16_t pmi_bcl_flag;
    std::uint16_t key_id; // used for WithKeygen F00D functions. always 0.
    std::uint16_t flag0;

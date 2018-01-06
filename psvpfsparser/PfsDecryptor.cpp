@@ -440,11 +440,11 @@ int init_crypt_ctx(CryptEngineWorkCtx* work_ctx, unsigned char* klicensee, sce_n
 
    if(isUnicv)
    {
-      g_data.type = 2; // unknown how to set
+      g_data.mode_index = 2; // unknown how to set
    }
    else
    {
-      g_data.type = 5; // unknown how to set
+      g_data.mode_index = 5; // unknown how to set
    }
 
    if(isUnicv)
