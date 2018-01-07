@@ -36,3 +36,15 @@ struct pfs_mode_settings
 };
 
 pfs_mode_settings* scePfsGetModeSetting(std::uint16_t mode_index);
+
+//----------------------
+
+enum pfs_image_types : std::uint16_t
+{
+   gamedata = 0,
+   savedata = 1,
+   ac_root = 2,
+   acid_dir = 3
+};
+
+int img_type_to_mode_flag(pfs_image_types img_type, std::uint16_t* mode_index, std::uint16_t* pmi_bcl_flag);

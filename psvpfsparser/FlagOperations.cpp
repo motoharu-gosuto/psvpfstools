@@ -170,3 +170,44 @@ pfs_mode_settings* scePfsGetModeSetting(std::uint16_t mode_index)
          throw std::runtime_error("Invalid index");
    }
 }
+
+//----------------------
+
+//this function derives mode_index and pmi_bcl_flag from image_type
+
+int img_type_to_mode_flag(pfs_image_types img_type, std::uint16_t* mode_index, std::uint16_t* pmi_bcl_flag)
+{
+   switch(img_type)
+   {
+   case gamedata:
+      {
+         *mode_index = 0x0A; // gPackSetting - ro image - (image spec 1)
+         *pmi_bcl_flag = 1;
+         *pmi_bcl_flag |= 2;
+      }
+      break;
+   case savedata:
+      {
+         *mode_index = 0x05; // gSdSetting - rw image - (image spec 2)
+         *pmi_bcl_flag = 1;
+      }
+      break;
+   case ac_root:
+      {
+         *mode_index = 0x04; // gAcSetting - rw image - (image spec 3)
+         *pmi_bcl_flag = 1;
+      }
+      break;
+   case acid_dir:
+      {
+         *mode_index = 0x0B; // gPackSetting - ro image - (image spec 4)
+         *pmi_bcl_flag = 1;
+         *pmi_bcl_flag |= 2;
+      }
+      break;
+   default:
+      throw std::runtime_error("Invalid index");
+   }
+
+   return 0;
+}
