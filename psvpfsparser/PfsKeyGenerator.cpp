@@ -205,7 +205,7 @@ pfs_mode_settings gAcSetting =         { 0x00000000, 0x00000001, 0x00000001, 0x0
 pfs_mode_settings gSdSetting =         { 0x00000000, 0x00000001, 0x00000001, 0x00000102, 0x00000102, 0x00000180, 0x000001C0, 0x00000000, 0x00000000, 0x00000000, 
                                          0x90909090, 0x90909090, 0x90909090, 0x90909090, 0x90909090, 0x90909090};
 
-//0A, 0B (?)
+//0A, 0B (in terms of pfs - pack means unicv.db - pack of icv files)
 pfs_mode_settings gPackSetting =       { 0x00000001, 0x00000000, 0x00000001, 0x00000102, 0x00000102, 0x00000180, 0x000001C0, 0x00000000, 0x00000000, 0x00000001, 
                                          0x90909090, 0x90909090, 0x90909090, 0x90909090, 0x90909090, 0x90909090};
 
@@ -388,7 +388,7 @@ bool scePfsIsRoImage(std::uint16_t image_spec)
   return image_spec == 1 || image_spec == 4;
 }
 
-int scePfsGetImageSpec(std::uint16_t mode_index)
+std::uint16_t scePfsGetImageSpec(std::uint16_t mode_index)
 {
    int index = mode_index & 0xFFFF;
 
@@ -428,6 +428,13 @@ int scePfsGetImageSpec(std::uint16_t mode_index)
       default: 
          return 0xFFFF;
    }
+}
+
+int scePfsCheckImage(std::uint16_t mode_index, std::uint16_t image_spec)
+{
+  if(scePfsGetImageSpec(mode_index) != image_spec)
+     return -1;
+  return 0;
 }
 
 //---------------------
@@ -474,6 +481,79 @@ int scePfsGetImageSpec(std::uint16_t mode_index)
 
 //---------------------
 
+//mode_index and pmi_bcl_flag are set in pfspack_init4
+//it is called either from main
+//or from pfspack_init3
+//   from pfspack_init2 - which is not referenced
+
+//flag0 is initialized in:
+//pfsfile_open 
+//pfsfile_mkdir
+
+//also check get_file_mode
+
+//looks like with scePfsACSetFSAttrByMode
+
+//---------------------
+
+//here is derivation of mode_index and pmi_bcl_flag from _main function
+//everything starts with -s option
+//that goes to base_flags
+// 0:gamedata
+// 1:savedata
+// 2:AC ROOT 
+// 3:ACID DIR
+
+//mode_index_pmi_bcl_flag then goes to pfspack_init4
+
+enum pfs_image_types : std::uint16_t
+{
+   gamedata = 0,
+   savedata = 1,
+   ac_root = 2,
+   acid_dir = 3
+};
+
+int main_flags(pfs_image_types img_type, std::uint16_t* mode_index, std::uint16_t* pmi_bcl_flag)
+{
+   switch(img_type)
+   {
+   case gamedata:
+      {
+         *mode_index = 0x0A; // gPackSetting - ro image
+         *pmi_bcl_flag = 1;
+         *pmi_bcl_flag |= 2;
+      }
+      break;
+   case savedata:
+      {
+         *mode_index = 0x05; // gSdSetting - rw image
+         *pmi_bcl_flag = 1;
+      }
+      break;
+   case ac_root:
+      {
+         *mode_index = 0x04; // gAcSetting - rw image
+         *pmi_bcl_flag = 1;
+      }
+      break;
+   case acid_dir:
+      {
+         *mode_index = 0x0B; // gPackSetting - ro image
+         *pmi_bcl_flag = 1;
+         *pmi_bcl_flag |= 2;
+      }
+      break;
+   default:
+      throw std::runtime_error("Invalid index");
+   }
+
+   return 0;
+}
+
+
+//---------------------
+
 //flag map - derrivation up to this point
 
 //setup_icvdb
@@ -517,6 +597,7 @@ std::uint32_t translate_setting_restart(pfsfile_t* pfsf, filesdb_t* fl)
   return some_pfs_setting;
 }
 
+//this sets dctx->unk_40 field that can be used in isec_dbseed
 void set_drv_ctx(derive_keys_ctx* dctx, pfsfile_t* pfsf, filesdb_t* fl)
 {
    dctx->unk_40 = translate_setting_restart(pfsf, fl);
