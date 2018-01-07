@@ -48,3 +48,15 @@ enum pfs_image_types : std::uint16_t
 };
 
 int img_type_to_mode_flag(pfs_image_types img_type, std::uint16_t* mode_index, std::uint16_t* pmi_bcl_flag);
+
+//----------------------
+
+enum db_types : std::uint32_t
+{
+   SCEIFTBL_RO = 0,      // isec_restart_ro
+   SCEICVDB_RW = 1,      // isec_restart_rw
+   SCEINULL_NULL_RW = 2, // isec_restart_null
+   SCEIFTBL_NULL_RO = 3, // isec_restart_nullro
+};
+
+db_types unk_40_to_db_type(std::uint32_t unk_40);

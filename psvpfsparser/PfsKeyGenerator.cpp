@@ -149,83 +149,6 @@ const unsigned char* isec_dbseed(const derive_keys_ctx* drv_ctx)
 }
 
 //---------------------
-
-struct filesdb_t
-{
-   std::uint16_t pmi_bcl_flag;
-   std::uint16_t mode_index;
-};
-
-struct pfsfile_t
-{
-   std::uint16_t flag0;
-};
-
-//--------------------
-//pseudo impl of start and restart that shows relation between translated setting and db type
-//this allows us to derive the map:
-
-//0 - SCEIFTBL
-//1 - SCEICVDB
-//2 - SCEINULL
-//3 - SCEIFTBL
-
-//which correlates exactly to isec->unk40 and isec_dbseed
-//only mode 0 and 3 allows to select seed (icv does not support seeds)
-
-void isec_restart(unsigned int some_pfs_setting)
-{
-  if (some_pfs_setting == 0)
-  {
-    //isec_restart_ro(isec, &files->ro, fa->nid, secret, size);// SCEIFTBL
-  }
-  else if (some_pfs_setting == 1)
-  {
-    //rw_icv_db_version = scePfsRwicvDbVersion(files->version_index);
-    //isec_restart_rw(isec, &files->lm2, fa, secret, size, rw_icv_db_version);// SCEICVDB
-  }
-  else if (some_pfs_setting == 2)
-  {
-    //null_icv_db_version = scePfsNullicvDbVersion(files->version_index);
-    //isec_restart_null(isec, fa, secret, size, null_icv_db_version);// SCEINULL
-  }
-  else if (some_pfs_setting == 3)
-  {
-    //isec_restart_nullro(isec, &files->ro, fa->nid, size);// SCEIFTBL
-  }
-  else
-  {
-    //0x80142009;
-  }
-}
-
-void isec_start(unsigned int some_pfs_setting)
-{
-  if (some_pfs_setting == 0)
-  {
-    //isec_start_ro(isec, arg4 + 112, *(_DWORD *)(a3 + 20), a2, Src);// SCEIFTBL
-  }
-  else if (some_pfs_setting == 1)
-  {
-    //rw_icv_db_version = scePfsRwicvDbVersion(*(_DWORD *)(arg4 + 2244));
-    //isec_start_rw(isec, arg4 + 56, a3, a2, Src, rw_icv_db_version);// SCEICVDB
-  }
-  else if (some_pfs_setting == 2)
-  {
-    //null_icv_db_version = scePfsNullicvDbVersion(*(_DWORD *)(arg4 + 2244));
-    //isec_start_null(isec, a3, a2, Src, null_icv_db_version);// SCEINULL
-  }
-  else if (some_pfs_setting == 3)
-  {
-    //isec_start_nullro(isec, arg4 + 112, *(_DWORD *)(a3 + 20), a2);// SCEIFTBL
-  }
-  else
-  {
-    //0x80142009;
-  }
-}
-
-//---------------------
 //scePfsGetModeSetting selects setting instance from global array of settings using filesdb_t* fl->mode_index
 //we can then select settings->unk_4
 //settings->unk_4 is transformed to some_pfs_setting
@@ -284,58 +207,83 @@ void isec_start(unsigned int some_pfs_setting)
 
 //---------------------
 
-
-
-
-//---------------------
-
 //flag map - derrivation up to this point
 
-//setup_icvdb
-//isec_start
-
-//this sets derive_keys_ctx.unk_40
-
-//flag0 comes from pfsf->flag0
-//v13 = setup_icvdb(pfsf->files, pfsf->unicv_page_salt, pfsf->flag0, pfsf->unk24, (int)&v9);
-std::uint32_t translate_setting_start(pfsfile_t* pfsf, filesdb_t* fl)
+struct filesdb_t
 {
-  pfs_mode_settings* settings = scePfsGetModeSetting(fl->mode_index);
+   std::uint16_t pmi_bcl_flag;
+   std::uint16_t mode_index;
+};
 
-  std::uint32_t some_pfs_setting = settings->unk_4;
- 
-  if(settings->unk_4 == 1 && (pfsf->flag0 & 0x2000 || pfsf->flag0 & 0x8000))
-    some_pfs_setting = 2;
+struct pfsfile_t
+{
+   std::uint16_t flag0;
+};
 
-  return some_pfs_setting;
-}
-
-//init_icvobj
-//isec_restart
-
-//this sets derive_keys_ctx.unk_40
-
-//flag0 comes from pfsf->flag0
-//v13 = init_icvobj(&pfsf->isec, pfsf->files, &pfsf->files->fa2, pfsf->unicv_page_salt, pfsf->flag0, pfsf->size);
-std::uint32_t translate_setting_restart(pfsfile_t* pfsf, filesdb_t* fl)
+std::uint32_t flags_to_unk_40(pfsfile_t* pfsf, filesdb_t* fl, bool restart)
 {
    pfs_mode_settings* settings = scePfsGetModeSetting(fl->mode_index);
 
-   std::uint32_t some_pfs_setting = settings->unk_4;
+   std::uint32_t unk40 = settings->unk_4;
 
    if(settings->unk_4 == 1 && (pfsf->flag0 & 0x2000 || pfsf->flag0 & 0x8000))
-      some_pfs_setting = 2;
+      unk40 = 2;
 
-   if(settings->unk_4 == 0 && pfsf->flag0 & 0x400 )
-      some_pfs_setting = 3;
-  
-  return some_pfs_setting;
+   if(restart)
+   {
+      if(settings->unk_4 == 0 && pfsf->flag0 & 0x400 )
+         unk40 = 3;
+   }
+
+  return unk40;
 }
 
-//this sets dctx->unk_40 field that can be used in isec_dbseed
-void set_drv_ctx(derive_keys_ctx* dctx, pfsfile_t* pfsf, filesdb_t* fl)
+int set_flag0(pfsfile_t* pfsf)
 {
-   dctx->unk_40 = translate_setting_restart(pfsf, fl);
+   throw std::runtime_error("not implemented");
+}
+
+//pfspack_init4
+// pfsp->files.mode_index = mode_index_var;
+// pfsp->files.pmi_bcl_flag = pmi_bcl_flag_var;
+
+//pfsfile_init
+// pfsf->files = &pfsp->files;
+
+//this sets dctx->unk_40 field that can be used in isec_dbseed
+void set_drv_ctx(derive_keys_ctx* dctx, pfs_image_types img_type, char* klicensee)
+{
+   std::uint16_t mode_index;
+   std::uint16_t pmi_bcl_flag;
+
+   //convert image type to mode_index and pmi_bcl_flag
+   img_type_to_mode_flag(img_type, &mode_index, &pmi_bcl_flag); 
+
+   //adjust flags to klicensee - whats the point? it always has 1 anyway
+   if (klicensee == 0)
+      pmi_bcl_flag |= 1;
+
+   filesdb_t fl;
+   fl.mode_index = mode_index;
+   fl.pmi_bcl_flag = pmi_bcl_flag;
+   
+   //WHAT ABOUT FLAG0 ? still have to figure that out
+   pfsfile_t pfsf;
+   set_flag0(&pfsf);
+
+   //need flag0 and mode_index
+   //convert flags to unk40
+   //like in:
+   //main
+   // pfspack_addfile3
+   //  pfsfile_open
+   //   setup_icvdb
+   //    isec_start
+   //or
+   //   init_icvobj
+   //    isec_restart
+   dctx->unk_40 = flags_to_unk_40(&pfsf, &fl, false);
+
 }
 
 //---------------------

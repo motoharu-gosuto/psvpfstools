@@ -211,3 +211,27 @@ int img_type_to_mode_flag(pfs_image_types img_type, std::uint16_t* mode_index, s
 
    return 0;
 }
+
+//pseudo implementation based on isec_restart and isec_start
+//converts unk_40 from derive_keys_ctx to db_types
+
+//remember that unk_40 is used to select dbseed
+//this map function correlates with dbseed rule
+//since only mode 0 and 3 allows to select seed (icv does not support seeds)
+
+db_types unk_40_to_db_type(std::uint32_t unk_40)
+{
+   switch(unk_40)
+   {
+   case 0:
+      return SCEIFTBL_RO;
+   case 1:
+      return SCEICVDB_RW;
+   case 2:
+      return SCEINULL_NULL_RW;
+   case 3:
+      return SCEIFTBL_NULL_RO;
+   default:
+      throw std::runtime_error("Invalid index");
+   }
+}
