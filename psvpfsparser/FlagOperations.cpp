@@ -8,7 +8,7 @@
 //only these indexes should correspond to game data : 0x02, 0x03, 0x0A, 0x0B, 0x0D, 0x20, 0x21
 //also comparing switch statement with scePfsIsRoImage - these indexes map exactly to 1 or 4 which is RO data (game data)
 
-//WARNING: 0xD index case may not correlate with 3.60 (applies to 3.55)
+//WARNING: 0xD index case may not correlate with 3.60 (not present on 3.55)
 
 bool scePfsIsRoImage(std::uint16_t image_spec)
 {
@@ -67,4 +67,106 @@ int scePfsCheckImage(std::uint16_t mode_index, std::uint16_t expected_image_spec
   if(scePfsGetImageSpec(mode_index) != expected_image_spec)
      return -1;
   return 0;
+}
+
+//----------------------
+
+//00 - fake
+pfs_mode_settings gFakeSetting =       { 0x00000002, 0x00000002, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 
+                                         0x90909090, 0x90909090, 0x90909090, 0x90909090, 0x90909090, 0x90909090};
+
+//02 - GD (Game Data)
+pfs_mode_settings gGdgpSetting =       { 0x00000001, 0x00000000, 0x00000001, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000001, 0x00000001, 0x00000001, 
+                                         0x90909090, 0x90909090, 0x90909090, 0x90909090, 0x90909090, 0x90909090};
+
+//03 - GD (?)
+pfs_mode_settings gGpwrSetting =       { 0x00000001, 0x00000000, 0x00000001, 0x00000000, 0x00000000, 0x00000180, 0x000001C0, 0x00000001, 0x00000000, 0x00000001, 
+                                         0x90909090, 0x90909090, 0x90909090, 0x90909090, 0x90909090, 0x90909090};
+
+//04, 08 - AC (AC Pseudo Drive)
+pfs_mode_settings gAcSetting =         { 0x00000000, 0x00000001, 0x00000001, 0x00000102, 0x00000102, 0x00000180, 0x000001C0, 0x00000000, 0x00000000, 0x00000000, 
+                                         0x90909090, 0x90909090, 0x90909090, 0x90909090, 0x90909090, 0x90909090};
+
+//05, 06, 07, 09 (Save Data)
+pfs_mode_settings gSdSetting =         { 0x00000000, 0x00000001, 0x00000001, 0x00000102, 0x00000102, 0x00000180, 0x000001C0, 0x00000000, 0x00000000, 0x00000000, 
+                                         0x90909090, 0x90909090, 0x90909090, 0x90909090, 0x90909090, 0x90909090};
+
+//0A, 0B (in terms of pfs - pack means unicv.db - pack of icv files)
+pfs_mode_settings gPackSetting =       { 0x00000001, 0x00000000, 0x00000001, 0x00000102, 0x00000102, 0x00000180, 0x000001C0, 0x00000000, 0x00000000, 0x00000001, 
+                                         0x90909090, 0x90909090, 0x90909090, 0x90909090, 0x90909090, 0x90909090};
+
+//0C - AC (AC Pseudo Drive)
+pfs_mode_settings gAcroSetting =       { 0x00000000, 0x00000001, 0x00000001, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000001, 0x00000001, 0x00000000, 
+                                         0x90909090, 0x90909090, 0x90909090, 0x90909090, 0x90909090, 0x90909090};
+
+//14 - REDIRECT (Redirect Pseudo Drive)
+pfs_mode_settings gRedirectRoSetting = { 0x00000002, 0x00000002, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000001, 0x00000001, 0x00000000, 
+                                         0x90909090, 0x90909090, 0x90909090, 0x90909090, 0x90909090, 0x90909090};
+
+//15, 16, 17 - REDIRECT (Redirect Pseudo Drive)
+pfs_mode_settings gRedirectSetting =   { 0x00000002, 0x00000002, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 
+                                         0x90909090, 0x90909090, 0x90909090, 0x90909090, 0x90909090, 0x90909090};
+
+//20, 21 - AC (AC Pseudo Drive)
+pfs_mode_settings gAcContSetting =     { 0x00000001, 0x00000000, 0x00000001, 0x00000000, 0x00000000, 0x00000000, 0x00000000, 0x00000001, 0x00000001, 0x00000001, 
+                                         0x90909090, 0x90909090, 0x90909090, 0x90909090, 0x90909090, 0x90909090};
+
+//settings correlate with is_gamedata
+//only 0x02, 0x03, 0x0A, 0x0B, 0x0D, 0x20, 0x21 - have unk_4 == 0 (except from 0xD which does not correlate with 3.60)
+//unk_4 affects the condition that selects if data has dbseed or not
+//so it probably means that 0 is gamedata
+//names of settings also kinda correlate (GD, SD, AC, REDIRECT etc)
+
+//WARNING: 0xD index case may not correlate with 3.60 (not present on 3.55)
+
+pfs_mode_settings* scePfsGetModeSetting(std::uint16_t mode_index)
+{
+   std::uint16_t index = mode_index & 0xFFFF;
+   
+   if(index > 0x21)
+      throw std::runtime_error("Invalid index");
+   
+   switch(index)
+   {
+      case 0x00: 
+         return &gFakeSetting;       // unk_4 = 0x00000002
+
+      case 0x02: 
+         return &gGdgpSetting;       // unk_4 = 0x00000000 - GAME
+
+      case 0x03: 
+         return &gGpwrSetting;       // unk_4 = 0x00000000 - GAME
+
+      case 0x04:
+      case 0x08: 
+         return &gAcSetting;         // unk_4 = 0x00000001
+
+      case 0x05:
+      case 0x06:
+      case 0x07:
+      case 0x09:
+         return &gSdSetting;         // unk_4 = 0x00000001
+
+      case 0x0A:
+      case 0x0B:
+         return &gPackSetting;       // unk_4 = 0x00000000 - GAME
+
+      case 0x0C: 
+         return &gAcroSetting;       // unk_4 = 0x00000001
+
+      case 0x14: 
+         return &gRedirectRoSetting; // unk_4 = 0x00000002
+
+      case 0x15:
+      case 0x16:
+      case 0x17:
+         return &gRedirectSetting;   // unk_4 = 0x00000002
+
+      case 0x20: 
+      case 0x21: 
+         return &gAcContSetting;     // unk_4 = 0x00000000 - GAME
+
+      default:
+         throw std::runtime_error("Invalid index");
+   }
 }
