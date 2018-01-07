@@ -23,6 +23,7 @@
 #include "SecretGenerator.h"
 #include "NodeIcvCalculator.h"
 #include "HashTree.h"
+#include "FlagOperations.h"
 
 #include <libcrypto/sha1.h>
 
@@ -36,13 +37,13 @@ bool verify_header_icv(std::ifstream& inputStream, sce_ng_pfs_header_t& header, 
    char icv_hmac_sig_copy[0x14];
    
    memcpy(rsa_sig0_copy, header.rsa_sig0, 0x100);
-   memcpy(icv_hmac_sig_copy, header.header_sig, 0x14);
-   memset(header.header_sig, 0, 0x14);
+   memcpy(icv_hmac_sig_copy, header.header_icv, 0x14);
+   memset(header.header_icv, 0, 0x14);
    memset(header.rsa_sig0, 0, 0x100);
 
-   sha1_hmac(secret, 0x14, header.magic, 0x160, header.header_sig);
+   sha1_hmac(secret, 0x14, header.magic, 0x160, header.header_icv);
 
-   if(memcmp(header.header_sig, icv_hmac_sig_copy, 0x14) != 0)
+   if(memcmp(header.header_icv, icv_hmac_sig_copy, 0x14) != 0)
    {
       std::cout << "header signature is invalid" << std::endl;
       return false;
@@ -107,8 +108,29 @@ bool validate_header(const sce_ng_pfs_header_t& header, int64_t dataSize)
       return false;
    }
 
-   //flags are important for key derrivation (most likely this is flag field) - better check to know if there are any unexpected values
-   if(header.flags != 0xA)
+   //check image spec
+   if(scePfsCheckImage(0, header.image_spec) < 0)
+   {
+      std::cout << "Invalid image spec" << std::endl;
+      return false;
+   }
+   
+   //check key_id - should be 0 - we do not expect any other values or the code has to be changed
+   if(header.key_id != 0)
+   {
+      std::cout << "Unexpected key_id" << std::endl;
+      return false;
+   }
+
+   //check that order of a tree is correct
+   if(header.bt_order != order_max_avail(header.pageSize))
+   {
+      std::cout << "Unexpected flags value" << std::endl;
+      return false;
+   }
+
+   //check that order of a tree has expected value
+   if(header.bt_order != 0xA)
    {
       std::cout << "Unexpected flags value" << std::endl;
       return false;
