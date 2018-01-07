@@ -234,7 +234,7 @@ pfs_mode_settings gAcContSetting =     { 0x00000001, 0x00000000, 0x00000001, 0x0
 
 pfs_mode_settings* scePfsGetModeSetting(std::uint16_t mode_index)
 {
-   int index = mode_index & 0xFFFF;
+   std::uint16_t index = mode_index & 0xFFFF;
    
    if(index > 0x21)
       throw std::runtime_error("Invalid index");
@@ -346,95 +346,6 @@ void isec_start(unsigned int some_pfs_setting)
   {
     //0x80142009;
   }
-}
-
-//--------------------
-
-//there is another function that uses mode_index as scePfsGetModeSetting
-//it is scePfsGetImageSpec
-//here is example in pfspack_init4:
-//v18 = scePfsGetModeSetting(a5);
-//v17 = scePfsGetImageSpec(a5);
-//can then be used to check type of image:
-//scePfsIsRoImage(v17)
-
-//this is particulary interesting piece of code in _main function
-
-/*
-char v44[4];
-
-*(_DWORD *)v44 = 0;
-
-v39 = scePfsGetImageSpec(HIWORD(v40));
-if ( !*(_DWORD *)v44 )
-{
-   if ( scePfsIsRoImage(v39) )
-   *(_DWORD *)v44 = scePfsRodbVersionUpper();
-   else
-   *(_DWORD *)v44 = scePfsRwdbVersionUpper();
-}
-*/
-
-//this shows that we can distinguish between ro and rw db by checking image spec
-
-//does this correlate with scePfsGetModeSetting? Yes 
-//only these indexes should correspond to game data : 0x02, 0x03, 0x0A, 0x0B, 0x0D, 0x20, 0x21
-//if we compare switch with scePfsIsRoImage - these indexes map exactly to 1 or 4 which is RO data (game data)
-
-//0xD does not correlate with 3.60
-
-bool scePfsIsRoImage(std::uint16_t image_spec)
-{
-  return image_spec == 1 || image_spec == 4;
-}
-
-std::uint16_t scePfsGetImageSpec(std::uint16_t mode_index)
-{
-   int index = mode_index & 0xFFFF;
-
-   if(index > 0x21)
-      return 0xFFFF;
-   
-   switch(index)
-   {
-      case 0x00: 
-      case 0x14: 
-      case 0x15: 
-      case 0x16: 
-      case 0x17: 
-         return 0 & 0xFFFF;
-
-      case 0x02: 
-      case 0x03: 
-      case 0x0A: 
-         return 1 & 0xFFFF; // IsRoImage - GAME
-
-      case 0x04: 
-      case 0x08: 
-      case 0x0C: 
-         return 3 & 0xFFFF;
-
-      case 0x05:
-      case 0x06:
-      case 0x07:
-      case 0x09: 
-         return 2 & 0xFFFF;
-      
-      case 0x0B:
-      case 0x20:
-      case 0x21: 
-         return 4 & 0xFFFF; // IsRoImage - GAME
-
-      default: 
-         return 0xFFFF;
-   }
-}
-
-int scePfsCheckImage(std::uint16_t mode_index, std::uint16_t image_spec)
-{
-  if(scePfsGetImageSpec(mode_index) != image_spec)
-     return -1;
-  return 0;
 }
 
 //---------------------
