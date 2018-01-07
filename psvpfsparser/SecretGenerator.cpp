@@ -98,11 +98,11 @@ int scePfsUtilGetSecret(unsigned char* secret, const unsigned char* klicensee, s
 //convert pfs type flag to the flags for key derivation
 int secret_type_to_flag(sce_ng_pfs_header_t& header)
 {
-   if(header.type == FILES_GAME_TYPE)
+   if(header.image_spec == FILES_GAME_TYPE)
    {
       return 2;  
    }
-   else if(header.type == FILES_TROPHY_SAVE_TYPE)
+   else if(header.image_spec == FILES_TROPHY_SAVE_TYPE)
    {
       return 0;
    }
