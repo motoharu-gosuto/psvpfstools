@@ -36,19 +36,17 @@ struct sce_ng_pfs_header_t
 {
    std::uint8_t magic[8];
    std::uint32_t version;
-   std::uint16_t type; // 0x1 for games, 0x2 for trophy or savedata. probably type ?
-   std::uint16_t unk21;
+   std::uint16_t image_spec; // 0x1 for games, 0x2 for trophy or savedata. probably type ?
+   std::uint16_t key_id;
    std::uint32_t pageSize;
-   std::uint32_t flags; // not sure but probably matches order value of the tree in btree_init
-   std::uint32_t root_icv_page_number; // derived from off2pgn
+   std::uint32_t bt_order; // order value of the binary tree - derived from btree_order
+   std::uint32_t root_icv_page_number; // derived from off2pgn or btree_top
    std::uint32_t files_salt; // first salt value used for key derrivation
-   std::uint64_t unk6;
-   std::uint32_t tailSize; // size of data after this header
-   std::uint32_t unk7;
-   std::uint32_t unk8;
-   std::uint32_t unk9;
+   std::uint64_t unk6; // is 0xFFFFFFFFFFFFFFFF
+   std::uint64_t tailSize; // size of data after this header
+   std::uint64_t total_sz; // is 0
    std::uint8_t root_icv[0x14]; // 0x38 hmac-sha1 of (pageSize - 4) of page (pointed by root_icv_page_number) with secret derived from klicensee
-   std::uint8_t header_sig[0x14]; // 0x4C hmac-sha1 of 0x16 bytes of header with secret derived from klicensee
+   std::uint8_t header_icv[0x14]; // 0x4C hmac-sha1 of 0x16 bytes of header with secret derived from klicensee
    std::uint8_t rsa_sig0[0x100];
    std::uint8_t rsa_sig1[0x100];
    std::uint8_t padding[0x1A0];
