@@ -112,7 +112,7 @@ int scePfsUtilGetGDKeys2(unsigned char* dec_key, unsigned char* tweak_enc_key, c
 
 //---------------------
 
-//0xD appeared on 3.60
+//WARNING: 0xD index appeared on 3.60
 
 bool is_gamedata(std::uint16_t flag)
 {
@@ -139,8 +139,8 @@ bool is_gamedata(std::uint16_t flag)
 
 const unsigned char* isec_dbseed(const derive_keys_ctx* drv_ctx)
 {
-   //unk_40 must be equal to 0 or 3 AND 
-   //version should be > 1 showing that ricv seed is supported
+   //unk_40 must be equal to 0 or 3 (SCEIFTBL_RO or SCEIFTBL_NULL_RO) 
+   //AND version should be > 1 showing that ricv seed is supported
 
    if((drv_ctx->unk_40 != 0 && drv_ctx->unk_40 != 3) || drv_ctx->icv_version <= 1)
       return 0;
@@ -149,53 +149,13 @@ const unsigned char* isec_dbseed(const derive_keys_ctx* drv_ctx)
 }
 
 //---------------------
-//scePfsGetModeSetting selects setting instance from global array of settings using filesdb_t* fl->mode_index
-//we can then select settings->unk_4
-//settings->unk_4 is transformed to some_pfs_setting
-//using translate_setting_start or translate_setting_restart with flag0 which comes from pfsf->flag0
-//some_pfs_setting is assigned to isec
-//isec->unk40 = some_pfs_setting;
-//in
-//int __cdecl isec_start(isec_t *isec, int arg4, int a3, int a2, void *Src, unsigned int some_pfs_setting)
-//int __cdecl isec_restart(isec_t *isec, filesdb_t *files, file_acces_t *fa, char *secret, __int64 size, unsigned int some_pfs_setting)
-//isec->unk40 is later used in isec_dbseed
-//to select seed (v2 = isec->unk40)
-//looks like isec_t is the same type as derive_keys_ctx (type in my code)
 
-//---------------------
-//flag 0 comes to CryptEngineData from pfsfile_t *pfsf
+//what we still need to figure out 1 variable:
 
-//unsigned int __cdecl pfsfile_pwrite(pfsfile_t *pfsf, int pad_size_total, int a3, __int64 size)
-//int __cdecl secure_drive_pwrite(file_acces_t *fa, int unicv_page_salt, __int64 size0, __int16 flag0, filesdb_t *fl, isec_t *isec, int pad_size_total, int arg20, __int64 size, _DWORD *arg2C)
-//signed int __cdecl _secure_drive_pwrite(file_acces_t *fa, int unicv_page_salt, __int64 size0, __int16 flag0, filesdb_t *fl, isec_t *isec, int pad_size_total, int pad_size, __int64 size, int *pad_size_res)
-//int __cdecl setup_crypt_packet_keys(CryptEngineData *ctx, int unicv_page_salt, __int64 size, __int16 flag0, int mode_setting_unk0, isec_t *isec_ctx, filesdb_t *fl)
-//CryptEngineData *ctx
-//ctx->flag0 = flag0;
-
-//---------------------
-
-//in is_gamedata and in key derrivation - pmi_bcl_flag that is used comes from
-
-//CryptEngineData *ctx
-//ctx->pmi_bcl_flag
-//this flag is set in setup_crypt_packet_keys
-//ctx->pmi_bcl_flag = fl->pmi_bcl_flag;
-//where filesdb_t *fl
-
-//---------------------
-
-//what we still need to figure out 3 variables:
-//how filesdb_t* fl->pmi_bcl_flag is initialized - this affects CryptEngineData * ctx->pmi_bcl_flag
-//how filesdb_t* fl->mode_index is initialized - this affects ctx->mode_index and isect_t* isec->unk40
 //how pfsfile_t* pfsf->flag0 is initialized - this affects CryptEngineData* ctx->flag0
 //how pfsfile_t* pfsf->flag0 is initialized - this affects isect_t* isec->unk40
 
 //---------------------
-
-//mode_index and pmi_bcl_flag are set in pfspack_init4
-//it is called either from main
-//or from pfspack_init3
-//   from pfspack_init2 - which is not referenced
 
 //flag0 is initialized in:
 //pfsfile_open 
@@ -243,12 +203,7 @@ int set_flag0(pfsfile_t* pfsf)
    throw std::runtime_error("not implemented");
 }
 
-//pfspack_init4
-// pfsp->files.mode_index = mode_index_var;
-// pfsp->files.pmi_bcl_flag = pmi_bcl_flag_var;
-
-//pfsfile_init
-// pfsf->files = &pfsp->files;
+//isec_t is the same type as derive_keys_ctx
 
 //this sets dctx->unk_40 field that can be used in isec_dbseed
 void set_drv_ctx(derive_keys_ctx* dctx, pfs_image_types img_type, char* klicensee)
@@ -283,7 +238,13 @@ void set_drv_ctx(derive_keys_ctx* dctx, pfs_image_types img_type, char* klicense
    //   init_icvobj
    //    isec_restart
    dctx->unk_40 = flags_to_unk_40(&pfsf, &fl, false);
+   dctx->icv_version = 0; // set to proper version from header!
 
+   //then can use the flags
+
+   is_gamedata(fl.pmi_bcl_flag);
+
+   isec_dbseed(dctx);
 }
 
 //---------------------
