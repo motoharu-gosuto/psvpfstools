@@ -150,23 +150,6 @@ const unsigned char* isec_dbseed(const derive_keys_ctx* drv_ctx)
 
 //---------------------
 
-//what we still need to figure out 1 variable:
-
-//how pfsfile_t* pfsf->flag0 is initialized - this affects CryptEngineData* ctx->flag0
-//how pfsfile_t* pfsf->flag0 is initialized - this affects isect_t* isec->unk40
-
-//---------------------
-
-//flag0 is initialized in:
-//pfsfile_open 
-//pfsfile_mkdir
-
-//also check get_file_mode
-
-//looks like with scePfsACSetFSAttrByMode
-
-//---------------------
-
 //does this encode sce_ng_pfs_file_types ?
 
 struct mode_to_attr_entry_t
@@ -230,13 +213,13 @@ int scePfsACSetFSAttrByMode(std::uint32_t mode, std::uint16_t* flag0)
   return 0;
 }
 
-int pfsfile_open(std::uint32_t mode)
+std::uint16_t pfsfile_open(std::uint32_t mode)
 {
    std::uint16_t flag0;
 
    scePfsACSetFSAttrByMode(mode, &flag0);
 
-   return 0;
+   return flag0;
 }
 
 //flag0 0x1000 is assigned only when mode has flag 0x1000 and modeindex == ac_root and nid == 0
@@ -244,7 +227,7 @@ int pfsfile_open(std::uint32_t mode)
 // if ( mode & 0x1000 && (pfsf->files->mode_index != 4 || nid > 1) )
 //    return 0x8014601C;
 
-int pfsfile_mkdir(std::uint32_t mode)
+std::uint16_t pfsfile_mkdir(std::uint32_t mode)
 {
    std::uint16_t flag0;
 
@@ -255,7 +238,7 @@ int pfsfile_mkdir(std::uint32_t mode)
    if(mode & 0x1000)
       flag0 |= 0x1000;
 
-   return 0;
+   return flag0;
 }
 
 int is_dir(char* string_id)
@@ -272,7 +255,7 @@ int is_dir(char* string_id)
 #define MODE_NENC    0x100000
 #define MODE_NICV    0x200000
 
-int get_file_mode(int *mode, char *type_string, char *string_id)
+int get_file_mode(std::uint32_t* mode, char* type_string, char* string_id)
 {
    *mode = 0;
    if(!strcmp(type_string, "") || !strcmp(type_string, "rw"))
@@ -360,11 +343,6 @@ std::uint32_t flags_to_unk_40(pfsfile_t* pfsf, filesdb_t* fl, bool restart)
   return unk40;
 }
 
-int set_flag0(pfsfile_t* pfsf)
-{
-   throw std::runtime_error("not implemented");
-}
-
 //pfsfile_open
 //if ( pfsf->flag0 & 0x4000 || pfsf->flag0 & 0x8000 )
 //  fa.pmi_bcl_flag |= 1u;
@@ -372,52 +350,50 @@ int set_flag0(pfsfile_t* pfsf)
 //isec_t is the same type as derive_keys_ctx
 
 //this sets dctx->unk_40 field that can be used in isec_dbseed
-void set_drv_ctx(derive_keys_ctx* dctx, pfs_image_types img_type, char* klicensee)
+void set_drv_ctx(derive_keys_ctx* dctx, pfs_image_types img_type, char* klicensee, char* type_string, char* string_id, std::uint32_t icv_version, bool restart)
 {
    std::uint16_t mode_index;
    std::uint16_t pmi_bcl_flag;
 
    //convert image type to mode_index and pmi_bcl_flag
+
    img_type_to_mode_flag(img_type, &mode_index, &pmi_bcl_flag); 
 
    //adjust flags to klicensee - whats the point? it always has 1 anyway
+
    if (klicensee == 0)
       pmi_bcl_flag |= 1;
+
+   //copy mode_index and pmi_bcl_flag
 
    filesdb_t fl;
    fl.mode_index = mode_index;
    fl.pmi_bcl_flag = pmi_bcl_flag;
-   
 
-   //pfsfile_open
+   //get mode of a file
 
+   std::uint32_t mode;
+   get_file_mode(&mode, type_string, string_id);
 
+   //convert mode to flag0
 
-   //WHAT ABOUT FLAG0 ? still have to figure that out
    pfsfile_t pfsf;
-   set_flag0(&pfsf);
 
+   if(is_dir(string_id))
+   {
+      pfsf.flag0 = pfsfile_mkdir(mode);
+   }
+   else
+   {
+      pfsf.flag0 = pfsfile_open(mode);
+   }
 
+   //use flag0 and mode_index to convert to unk40
 
+   dctx->unk_40 = flags_to_unk_40(&pfsf, &fl, restart);
+   dctx->icv_version = icv_version;
 
-   //setup_icvdb
-
-
-   //need flag0 and mode_index
-   //convert flags to unk40
-   //like in:
-   //main
-   // pfspack_addfile3
-   //  pfsfile_open
-   //   setup_icvdb
-   //    isec_start
-   //or
-   //   init_icvobj
-   //    isec_restart
-   dctx->unk_40 = flags_to_unk_40(&pfsf, &fl, false);
-   dctx->icv_version = 0; // set to proper version from header!
-
-   //then can use the flags
+   //then can use all the flags
 
    is_gamedata(fl.pmi_bcl_flag);
 
