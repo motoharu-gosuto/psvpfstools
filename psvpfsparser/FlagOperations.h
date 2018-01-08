@@ -117,4 +117,4 @@ enum db_types : std::uint32_t
    SCEIFTBL_NULL_RO = 3, // isec_restart_nullro
 };
 
-db_types unk_40_to_db_type(std::uint32_t unk_40);
+db_types db_type_value_to_db_type(std::uint32_t value);

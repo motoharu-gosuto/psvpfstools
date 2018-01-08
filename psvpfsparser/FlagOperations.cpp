@@ -343,15 +343,15 @@ int get_file_mode(std::uint32_t* mode, char* type_string, char* string_id)
 //----------------------
 
 //pseudo implementation based on isec_restart and isec_start
-//converts unk_40 from derive_keys_ctx to db_types
+//converts db_type value to db_type in derive_keys_ctx 
 
-//remember that unk_40 is used to select dbseed
+//remember that db_type is used to select dbseed
 //this map function correlates with dbseed rule
 //since only mode 0 and 3 allows to select seed (icv does not support seeds)
 
-db_types unk_40_to_db_type(std::uint32_t unk_40)
+db_types db_type_value_to_db_type(std::uint32_t value)
 {
-   switch(unk_40)
+   switch(value)
    {
    case 0:
       return SCEIFTBL_RO;

@@ -139,10 +139,10 @@ bool is_gamedata(std::uint16_t flag)
 
 const unsigned char* isec_dbseed(const derive_keys_ctx* drv_ctx)
 {
-   //unk_40 must be equal to 0 or 3 (SCEIFTBL_RO or SCEIFTBL_NULL_RO) 
+   //db_type must be equal to 0 or 3 (SCEIFTBL_RO or SCEIFTBL_NULL_RO) 
    //AND version should be > 1 showing that ricv seed is supported
 
-   if((drv_ctx->unk_40 != 0 && drv_ctx->unk_40 != 3) || drv_ctx->icv_version <= 1)
+   if((drv_ctx->db_type != db_types::SCEIFTBL_RO && drv_ctx->db_type != db_types::SCEIFTBL_NULL_RO) || drv_ctx->icv_version <= 1)
       return 0;
    else
       return drv_ctx->dbseed;
@@ -191,19 +191,19 @@ struct pfsfile_t
    std::uint16_t flag0;
 };
 
-db_types flags_to_unk_40(pfsfile_t* pfsf, filesdb_t* fl, bool restart)
+db_types flags_to_db_type(pfsfile_t* pfsf, filesdb_t* fl, bool restart)
 {
    pfs_mode_settings* settings = scePfsGetModeSetting(fl->mode_index);
 
-   db_types unk40;
+   db_types type;
 
    if(settings->db_type == 0)
    {
-      unk40 = db_types::SCEIFTBL_RO;
+      type = db_types::SCEIFTBL_RO;
    }
    else if(settings->db_type == 1)
    {
-      unk40 = db_types::SCEICVDB_RW;
+      type = db_types::SCEICVDB_RW;
    }
    else
    {
@@ -212,16 +212,16 @@ db_types flags_to_unk_40(pfsfile_t* pfsf, filesdb_t* fl, bool restart)
 
    //if format is icv.db and (not icv or dir)
    if(settings->db_type == 1 && (pfsf->flag0 & ATTR_NICV || pfsf->flag0 & ATTR_DIR))
-      unk40 = db_types::SCEINULL_NULL_RW;
+      type = db_types::SCEINULL_NULL_RW;
 
    if(restart)
    {
       //if format is unicv.db and 
       if(settings->db_type == 0 && pfsf->flag0 & ATTR_UNK3)
-         unk40 = db_types::SCEIFTBL_NULL_RO;
+         type = db_types::SCEIFTBL_NULL_RO;
    }
 
-  return unk40;
+  return type;
 }
 
 //pfsfile_open
@@ -230,7 +230,7 @@ db_types flags_to_unk_40(pfsfile_t* pfsf, filesdb_t* fl, bool restart)
 
 //isec_t is the same type as derive_keys_ctx
 
-//this sets dctx->unk_40 field that can be used in isec_dbseed
+//this sets dctx->db_type field that can be used in isec_dbseed
 void set_drv_ctx(derive_keys_ctx* dctx, pfs_image_types img_type, char* klicensee, char* type_string, char* string_id, std::uint32_t icv_version, bool restart)
 {
    std::uint16_t mode_index;
@@ -262,9 +262,9 @@ void set_drv_ctx(derive_keys_ctx* dctx, pfs_image_types img_type, char* klicense
 
    pfsf.flag0 = mode_to_attr(mode, is_dir(string_id), mode_index, 0);
 
-   //use flag0 and mode_index to convert to unk40
+   //use flag0 and mode_index to convert to db_type
 
-   dctx->unk_40 = (std::uint32_t)flags_to_unk_40(&pfsf, &fl, restart);
+   dctx->db_type = flags_to_db_type(&pfsf, &fl, restart);
    dctx->icv_version = icv_version;
 
    //then can use all the flags

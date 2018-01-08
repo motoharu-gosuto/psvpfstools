@@ -2,6 +2,8 @@
 
 #include <cstdint>
 
+#include "FlagOperations.h"
+
 typedef int SceUID;
 
 typedef struct CryptEngineData
@@ -57,7 +59,7 @@ typedef struct CryptEngineWorkCtx
 
 typedef struct derive_keys_ctx
 {
-   std::uint32_t unk_40; // unknown
+   db_types db_type; //type of db
    std::uint32_t icv_version; // version of icv/unicv
    unsigned char dbseed[0x14];
 

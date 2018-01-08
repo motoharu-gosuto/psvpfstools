@@ -440,11 +440,11 @@ int init_crypt_ctx(CryptEngineWorkCtx* work_ctx, unsigned char* klicensee, sce_n
 
    if(isUnicv)
    {
-      g_data.mode_index = 2; // unknown how to set
+      g_data.mode_index = 0xA; // unknown how to set
    }
    else
    {
-      g_data.mode_index = 5; // unknown how to set
+      g_data.mode_index = 0x5; // unknown how to set
    }
 
    if(isUnicv)
@@ -481,7 +481,17 @@ int init_crypt_ctx(CryptEngineWorkCtx* work_ctx, unsigned char* klicensee, sce_n
    derive_keys_ctx drv_ctx;
    memset(&drv_ctx, 0, sizeof(derive_keys_ctx));
 
-   drv_ctx.unk_40 = 0; // unknown how to set
+   if(isUnicv)
+   {
+      drv_ctx.db_type = db_types::SCEIFTBL_RO;
+   }
+   else
+   {
+      drv_ctx.db_type = db_types::SCEICVDB_RW;
+      //or ?
+      //drv_ctx.db_type = db_types::SCEINULL_NULL_RW;
+   }
+
    drv_ctx.icv_version = table->get_header()->get_version(); // is that correct in generic way? for both games and saves/trophies?
 
    if(isUnicv)
