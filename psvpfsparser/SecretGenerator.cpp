@@ -76,16 +76,16 @@ int generate_secret(unsigned char* secret, const unsigned char* klicensee,  std:
    return 0;
 }
 
-int scePfsUtilGetSecret(unsigned char* secret, const unsigned char* klicensee, std::uint32_t files_salt, std::uint16_t flag, std::uint32_t icv_salt, std::uint16_t key_id)
+int scePfsUtilGetSecret(unsigned char* secret, const unsigned char* klicensee, std::uint32_t files_salt, std::uint16_t pmi_bcl_flag, std::uint32_t icv_salt, std::uint16_t key_id)
 {
-   if((flag & 1) > 0) // check bit 0
+   if((pmi_bcl_flag & 1) > 0) // check bit 0
    {
       throw std::runtime_error("Untested branch in scePfsUtilGetSecret");
 
       memset(secret, 0, 0x14);
       return 0;
    }
-   if((flag & 2) > 0) // check bit 1
+   if((pmi_bcl_flag & 2) > 0) // check bit 1
    {
       return generate_secret_np(secret, klicensee, files_salt, icv_salt, key_id);
    }

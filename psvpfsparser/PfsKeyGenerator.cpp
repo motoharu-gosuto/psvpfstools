@@ -82,9 +82,9 @@ int scePfsUtilGetSDKeys(unsigned char* dec_key, unsigned char* tweak_enc_key, co
 }
 
 //[TESTED]
-int scePfsUtilGetGDKeys(unsigned char* dec_key, unsigned char* tweak_enc_key, const unsigned char* klicensee, std::uint32_t files_salt, std::uint16_t flag, std::uint32_t icv_salt)
+int scePfsUtilGetGDKeys(unsigned char* dec_key, unsigned char* tweak_enc_key, const unsigned char* klicensee, std::uint32_t files_salt, std::uint16_t pmi_bcl_flag, std::uint32_t icv_salt)
 {
-   if((flag & 2) > 0)
+   if((pmi_bcl_flag & 2) > 0)
    {
       memcpy(dec_key, klicensee, 0x10);
 
@@ -97,7 +97,7 @@ int scePfsUtilGetGDKeys(unsigned char* dec_key, unsigned char* tweak_enc_key, co
 }
 
 //[TESTED]
-int scePfsUtilGetGDKeys2(unsigned char* dec_key, unsigned char* tweak_enc_key, const unsigned char* klicensee, std::uint16_t ignored_flag, std::uint16_t ignored_key_id, const unsigned char* dbseed, std::uint32_t dbseed_len)
+int scePfsUtilGetGDKeys2(unsigned char* dec_key, unsigned char* tweak_enc_key, const unsigned char* klicensee, const unsigned char* dbseed, std::uint32_t dbseed_len)
 {
    unsigned char drvkey[0x14] = {0};
 
@@ -114,9 +114,9 @@ int scePfsUtilGetGDKeys2(unsigned char* dec_key, unsigned char* tweak_enc_key, c
 
 //WARNING: 0xD index appeared on 3.60
 
-bool is_gamedata(std::uint16_t flag)
+bool is_gamedata(std::uint16_t pmi_bcl_flag)
 {
-   int index = flag & 0xFFFF;
+   int index = pmi_bcl_flag & 0xFFFF;
    
    if(index > 0x21)
       return false;
@@ -282,7 +282,7 @@ int setup_crypt_packet_keys(CryptEngineData* data, const derive_keys_ctx* drv_ct
    {
       if(isec_dbseed(drv_ctx))
       {  
-         scePfsUtilGetGDKeys2(data->dec_key, data->tweak_enc_key, data->klicensee, data->pmi_bcl_flag, data->key_id, isec_dbseed(drv_ctx), 0x14);  
+         scePfsUtilGetGDKeys2(data->dec_key, data->tweak_enc_key, data->klicensee, isec_dbseed(drv_ctx), 0x14);  
       }
       else
       {
