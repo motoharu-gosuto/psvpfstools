@@ -167,6 +167,168 @@ const unsigned char* isec_dbseed(const derive_keys_ctx* drv_ctx)
 
 //---------------------
 
+//does this encode sce_ng_pfs_file_types ?
+
+struct mode_to_attr_entry_t
+{
+  int unk0;
+  std::uint16_t unk4;
+  std::uint16_t unk6;
+};
+
+mode_to_attr_entry_t genericMode2AttrTbl[4] = 
+{
+   {0x000, 0x0006, 0}, 
+   {0x100, 0x0001, 0}, //ro
+   {0x080, 0x0000, 0}, 
+   {0x180, 0x0000, 0}, //rw
+};
+
+mode_to_attr_entry_t specificMode2AttrTbl[4] = 
+{
+   {0x000000, 0x0000, 0}, 
+   {0x100000, 0x4000, 0}, 
+   {0x200000, 0x2000, 0}, 
+   {0x300000, 0x6000, 0}
+};
+
+int scePfsACSetFSAttrByMode(std::uint32_t mode, std::uint16_t* flag0)
+{
+  std::uint16_t prop0 = 0;
+  std::uint16_t prop1 = 0;
+
+  int i;
+  
+  for(i = 0; i < 4; ++i)
+  {
+    if(genericMode2AttrTbl[i].unk0 == (mode & 0x180))
+    {
+      prop1 = genericMode2AttrTbl[i].unk4;
+      break;
+    }
+  }
+
+  if(i == 4)
+    return -9;
+
+  int j;
+
+  for(j = 0; j < 4; ++j)
+  {
+    if(specificMode2AttrTbl[j].unk0 == (mode & 0x300000))
+    {
+      prop0 = specificMode2AttrTbl[j].unk4;
+      break;
+    }
+  }
+
+  if(j == 4)
+    return -9;
+
+  *flag0 = prop1 | prop0;
+
+  return 0;
+}
+
+int pfsfile_open(std::uint32_t mode)
+{
+   std::uint16_t flag0;
+
+   scePfsACSetFSAttrByMode(mode, &flag0);
+
+   return 0;
+}
+
+//flag0 0x1000 is assigned only when mode has flag 0x1000 and modeindex == ac_root and nid == 0
+
+// if ( mode & 0x1000 && (pfsf->files->mode_index != 4 || nid > 1) )
+//    return 0x8014601C;
+
+int pfsfile_mkdir(std::uint32_t mode)
+{
+   std::uint16_t flag0;
+
+   scePfsACSetFSAttrByMode(mode, &flag0);
+
+   flag0 |= 0x8000;
+
+   if(mode & 0x1000)
+      flag0 |= 0x1000;
+
+   return 0;
+}
+
+int is_dir(char* string_id)
+{
+  return !strcmp(string_id, "dir") || !strcmp(string_id, "aciddir");
+}
+
+#define MODE_RW  0x180
+#define MODE_RO  0x100
+
+#define MODE_ACIDDIR 0x9000
+#define MODE_DIR     0x8000
+#define MODE_NPFS    0x300000
+#define MODE_NENC    0x100000
+#define MODE_NICV    0x200000
+
+int get_file_mode(int *mode, char *type_string, char *string_id)
+{
+   *mode = 0;
+   if(!strcmp(type_string, "") || !strcmp(type_string, "rw"))
+   {
+      *mode |= MODE_RW;
+   }
+   else if(!strcmp(type_string, "ro"))
+   {
+      *mode |= MODE_RO;
+   }
+   else if(!strcmp(type_string, "sys"))
+   {
+      *mode = *mode;
+   }
+   else
+   {
+      std::runtime_error("invalid type_string");
+   }
+  
+   if(!strcmp(string_id, ""))
+   {
+      return 0;
+   }
+   else if(!strcmp(string_id, "aciddir"))
+   {
+      *mode |= MODE_ACIDDIR;
+      return 0;
+   }
+   else if(!strcmp(string_id, "dir"))
+   {
+      *mode |= MODE_DIR;
+      return 0;
+   }
+   else if(!strcmp(string_id, "npfs"))
+   {
+      *mode |= MODE_NPFS;
+      return 0;
+   }
+   else if(!strcmp(string_id, "nenc"))
+   {
+      *mode |= MODE_NENC;
+      return 0;
+   }
+   else if(!strcmp(string_id, "nicv"))
+   {
+      *mode |= MODE_NICV;
+      return 0;
+   }
+   else
+   {
+      std::runtime_error("invalid string_id");
+   }
+}
+
+//---------------------
+
 //flag map - derrivation up to this point
 
 struct filesdb_t
@@ -203,6 +365,10 @@ int set_flag0(pfsfile_t* pfsf)
    throw std::runtime_error("not implemented");
 }
 
+//pfsfile_open
+//if ( pfsf->flag0 & 0x4000 || pfsf->flag0 & 0x8000 )
+//  fa.pmi_bcl_flag |= 1u;
+
 //isec_t is the same type as derive_keys_ctx
 
 //this sets dctx->unk_40 field that can be used in isec_dbseed
@@ -222,9 +388,20 @@ void set_drv_ctx(derive_keys_ctx* dctx, pfs_image_types img_type, char* klicense
    fl.mode_index = mode_index;
    fl.pmi_bcl_flag = pmi_bcl_flag;
    
+
+   //pfsfile_open
+
+
+
    //WHAT ABOUT FLAG0 ? still have to figure that out
    pfsfile_t pfsf;
    set_flag0(&pfsf);
+
+
+
+
+   //setup_icvdb
+
 
    //need flag0 and mode_index
    //convert flags to unk40
