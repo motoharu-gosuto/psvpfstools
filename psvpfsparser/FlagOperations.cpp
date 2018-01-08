@@ -212,6 +212,134 @@ int img_type_to_mode_flag(pfs_image_types img_type, std::uint16_t* mode_index, s
    return 0;
 }
 
+//----------------------
+
+mode_to_attr_entry_t genericMode2AttrTbl[4] = 
+{
+   {MODE_SYS, ATTR_SYS, 0}, //sys
+   {MODE_RO,  ATTR_RO,  0}, //ro
+   {MORE_WO,  ATTR_WO,  0}, //wo - not sure
+   {MODE_RW,  ATTR_RW,  0}, //rw
+};
+
+mode_to_attr_entry_t specificMode2AttrTbl[4] = 
+{
+   {0x000000,  0x0000,    0}, 
+   {MODE_NENC, ATTR_NENC, 0}, //nenc
+   {MODE_NICV, ATTR_NICV, 0}, //nicv
+   {MODE_NPFS, ATTR_NPFS, 0}, //npfs
+};
+
+//it looks like this code encodes sce_ng_pfs_file_types
+
+//sets flag0 when mode is (MODE_RO, MORE_WO or MODE_RW) or mode is (MODE_NENC or MODE_NICV)
+//meaning that generic part can take values 0x0000, 0x0001, 0x0006
+//meaning that specific part can take values 0x100000, 0x200000
+
+int scePfsACSetFSAttrByMode(std::uint32_t mode, std::uint16_t* flag0)
+{
+   std::uint16_t generic = 0;
+
+   int i;
+  
+   for(i = 0; i < 4; ++i)
+   {
+      if(genericMode2AttrTbl[i].mode == (mode & MODE_MASK1))
+      {
+         generic = genericMode2AttrTbl[i].attr;
+         break;
+      }
+   }
+
+   if(i == 4)
+      return -9;
+
+   std::uint16_t specific = 0;
+
+   int j;
+
+   for(j = 0; j < 4; ++j)
+   {
+      if(specificMode2AttrTbl[j].mode == (mode & MODE_MASK3))
+      {
+         specific = specificMode2AttrTbl[j].attr;
+         break;
+      }
+   }
+
+   if(j == 4)
+      return -9;
+
+   *flag0 = generic | specific;
+
+   return 0;
+}
+
+int is_dir(char* string_id)
+{
+  return !strcmp(string_id, "dir") || !strcmp(string_id, "aciddir");
+}
+
+int get_file_mode(std::uint32_t* mode, char* type_string, char* string_id)
+{
+   *mode = 0;
+
+   if(!strcmp(type_string, "") || !strcmp(type_string, "rw"))
+   {
+      *mode |= MODE_RW;
+   }
+   else if(!strcmp(type_string, "ro"))
+   {
+      *mode |= MODE_RO;
+   }
+   else if(!strcmp(type_string, "sys"))
+   {
+      *mode |= MODE_SYS;
+   }
+   else
+   {
+      std::runtime_error("invalid type_string");
+   }
+  
+   if(!strcmp(string_id, ""))
+   {
+      return 0;
+   }
+   else if(!strcmp(string_id, "aciddir"))
+   {
+      *mode |= MODE_ACIDDIR;
+      return 0;
+   }
+   else if(!strcmp(string_id, "dir"))
+   {
+      *mode |= MODE_DIR;
+      return 0;
+   }
+   else if(!strcmp(string_id, "npfs"))
+   {
+      *mode |= MODE_NPFS;
+      return 0;
+   }
+   else if(!strcmp(string_id, "nenc"))
+   {
+      *mode |= MODE_NENC;
+      return 0;
+   }
+   else if(!strcmp(string_id, "nicv"))
+   {
+      *mode |= MODE_NICV;
+      return 0;
+   }
+   else
+   {
+      std::runtime_error("invalid string_id");
+   }
+
+   return 0;
+}
+
+//----------------------
+
 //pseudo implementation based on isec_restart and isec_start
 //converts unk_40 from derive_keys_ctx to db_types
 
