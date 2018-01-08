@@ -15,7 +15,7 @@ int scePfsCheckImage(std::uint16_t mode_index, std::uint16_t expected_image_spec
 struct pfs_mode_settings
 {
    std::uint32_t unk_0;
-   std::uint32_t unk_4;
+   std::uint32_t db_type;
    std::uint32_t unk_8;
    std::uint32_t unk_C;
 

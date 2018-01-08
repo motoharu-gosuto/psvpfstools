@@ -150,7 +150,7 @@ const unsigned char* isec_dbseed(const derive_keys_ctx* drv_ctx)
 
 //---------------------
 
-//does all this encode sce_ng_pfs_file_types ?
+//it looks like this code encodes sce_ng_pfs_file_types
 
 #define MODE_RW  0x180
 #define MODE_RO  0x100
@@ -363,21 +363,34 @@ struct pfsfile_t
    std::uint16_t flag0;
 };
 
-std::uint32_t flags_to_unk_40(pfsfile_t* pfsf, filesdb_t* fl, bool restart)
+db_types flags_to_unk_40(pfsfile_t* pfsf, filesdb_t* fl, bool restart)
 {
    pfs_mode_settings* settings = scePfsGetModeSetting(fl->mode_index);
 
-   std::uint32_t unk40 = settings->unk_4;
+   db_types unk40;
+
+   if(settings->db_type == 0)
+   {
+      unk40 = db_types::SCEIFTBL_RO;
+   }
+   else if(settings->db_type == 1)
+   {
+      unk40 = db_types::SCEICVDB_RW;
+   }
+   else
+   {
+      std::runtime_error("invalid index");
+   }
 
    //if format is icv.db and (not icv or dir)
-   if(settings->unk_4 == 1 && (pfsf->flag0 & ATTR_NICV || pfsf->flag0 & ATTR_DIR))
-      unk40 = 2; // SCEINULL_NULL_RW
+   if(settings->db_type == 1 && (pfsf->flag0 & ATTR_NICV || pfsf->flag0 & ATTR_DIR))
+      unk40 = db_types::SCEINULL_NULL_RW;
 
    if(restart)
    {
       //if format is unicv.db and 
-      if(settings->unk_4 == 0 && pfsf->flag0 & ATTR_UNK3)
-         unk40 = 3; // SCEIFTBL_NULL_RO
+      if(settings->db_type == 0 && pfsf->flag0 & ATTR_UNK3)
+         unk40 = db_types::SCEIFTBL_NULL_RO;
    }
 
   return unk40;
@@ -423,7 +436,7 @@ void set_drv_ctx(derive_keys_ctx* dctx, pfs_image_types img_type, char* klicense
 
    //use flag0 and mode_index to convert to unk40
 
-   dctx->unk_40 = flags_to_unk_40(&pfsf, &fl, restart);
+   dctx->unk_40 = (std::uint32_t)flags_to_unk_40(&pfsf, &fl, restart);
    dctx->icv_version = icv_version;
 
    //then can use all the flags
