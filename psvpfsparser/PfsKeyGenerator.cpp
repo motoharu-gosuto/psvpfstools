@@ -150,93 +150,137 @@ const unsigned char* isec_dbseed(const derive_keys_ctx* drv_ctx)
 
 //---------------------
 
-//does this encode sce_ng_pfs_file_types ?
+//does all this encode sce_ng_pfs_file_types ?
+
+#define MODE_RW  0x180
+#define MODE_RO  0x100
+#define MORE_WO  0x080 //not sure
+#define MODE_SYS 0x000
+
+#define MODE_MASK1 (MODE_RW | MODE_RO | MORE_WO | MODE_SYS)
+
+#define MODE_UNK0    0x1000
+#define MODE_DIR     0x8000
+#define MODE_ACIDDIR (MODE_UNK0 | MODE_DIR) // 0x9000
+
+#define MODE_MASK2 (MODE_UNK0 | MODE_DIR)
+
+#define MODE_NENC    0x100000
+#define MODE_NICV    0x200000
+#define MODE_NPFS    (MODE_NENC | MODE_NICV) // 0x300000
+
+#define MODE_MASK3 (MODE_NENC | MODE_NICV)
 
 struct mode_to_attr_entry_t
 {
-  int unk0;
-  std::uint16_t unk4;
+  std::uint32_t mode;
+  std::uint16_t attr;
   std::uint16_t unk6;
 };
 
+//N most likely means NOT
+
+#define ATTR_RW   0x0000
+#define ATTR_WO   0x0000 //not sure
+#define ATTR_RO   0x0001
+
+#define ATTR_UNK1 0x0002
+#define ATTR_UNK2 0x0004
+#define ATTR_SYS  (ATTR_UNK1 | ATTR_UNK2) //0x0006
+
+#define ATTR_UNK3 0x0400
+
+#define ATTR_UNK0 0x1000
+
+#define ATTR_NICV 0x2000
+#define ATTR_NENC 0x4000
+#define ATTR_NPFS (ATTR_NENC | ATTR_NICV) // 0x6000
+
+#define ATTR_DIR  0x8000
+
 mode_to_attr_entry_t genericMode2AttrTbl[4] = 
 {
-   {0x000, 0x0006, 0}, 
-   {0x100, 0x0001, 0}, //ro
-   {0x080, 0x0000, 0}, 
-   {0x180, 0x0000, 0}, //rw
+   {MODE_SYS, ATTR_SYS, 0}, //sys
+   {MODE_RO,  ATTR_RO,  0}, //ro
+   {MORE_WO,  ATTR_WO,  0}, //wo - not sure
+   {MODE_RW,  ATTR_RW,  0}, //rw
 };
 
 mode_to_attr_entry_t specificMode2AttrTbl[4] = 
 {
-   {0x000000, 0x0000, 0}, 
-   {0x100000, 0x4000, 0}, 
-   {0x200000, 0x2000, 0}, 
-   {0x300000, 0x6000, 0}
+   {0x000000,  0x0000,    0}, 
+   {MODE_NENC, ATTR_NENC, 0}, //nenc
+   {MODE_NICV, ATTR_NICV, 0}, //nicv
+   {MODE_NPFS, ATTR_NPFS, 0}, //npfs
 };
+
+//sets flag0 when mode is (MODE_RO, MORE_WO or MODE_RW) or mode is (MODE_NENC or MODE_NICV)
+//meaning that generic part can take values 0x0000, 0x0001, 0x0006
+//meaning that specific part can take values 0x100000, 0x200000
 
 int scePfsACSetFSAttrByMode(std::uint32_t mode, std::uint16_t* flag0)
 {
-  std::uint16_t prop0 = 0;
-  std::uint16_t prop1 = 0;
+   std::uint16_t generic = 0;
 
-  int i;
+   int i;
   
-  for(i = 0; i < 4; ++i)
-  {
-    if(genericMode2AttrTbl[i].unk0 == (mode & 0x180))
-    {
-      prop1 = genericMode2AttrTbl[i].unk4;
-      break;
-    }
-  }
+   for(i = 0; i < 4; ++i)
+   {
+      if(genericMode2AttrTbl[i].mode == (mode & MODE_MASK1))
+      {
+         generic = genericMode2AttrTbl[i].attr;
+         break;
+      }
+   }
 
-  if(i == 4)
-    return -9;
+   if(i == 4)
+      return -9;
 
-  int j;
+   std::uint16_t specific = 0;
 
-  for(j = 0; j < 4; ++j)
-  {
-    if(specificMode2AttrTbl[j].unk0 == (mode & 0x300000))
-    {
-      prop0 = specificMode2AttrTbl[j].unk4;
-      break;
-    }
-  }
+   int j;
 
-  if(j == 4)
-    return -9;
+   for(j = 0; j < 4; ++j)
+   {
+      if(specificMode2AttrTbl[j].mode == (mode & MODE_MASK3))
+      {
+         specific = specificMode2AttrTbl[j].attr;
+         break;
+      }
+   }
 
-  *flag0 = prop1 | prop0;
+   if(j == 4)
+      return -9;
 
-  return 0;
+   *flag0 = generic | specific;
+
+   return 0;
 }
 
-std::uint16_t pfsfile_open(std::uint32_t mode)
+std::uint16_t mode_to_attr(std::uint32_t mode, bool is_dir, std::uint16_t mode_index, std::uint32_t node_index)
 {
+   if(is_dir)
+   {
+       if (mode & MODE_UNK0)
+       {
+          if(mode_index != 4 || node_index > 0)
+          {
+             std::runtime_error("invalid flags");
+          }
+       }
+   }
+
    std::uint16_t flag0;
 
    scePfsACSetFSAttrByMode(mode, &flag0);
 
-   return flag0;
-}
+   if(is_dir)
+   {
+      flag0 |= ATTR_DIR;
 
-//flag0 0x1000 is assigned only when mode has flag 0x1000 and modeindex == ac_root and nid == 0
-
-// if ( mode & 0x1000 && (pfsf->files->mode_index != 4 || nid > 1) )
-//    return 0x8014601C;
-
-std::uint16_t pfsfile_mkdir(std::uint32_t mode)
-{
-   std::uint16_t flag0;
-
-   scePfsACSetFSAttrByMode(mode, &flag0);
-
-   flag0 |= 0x8000;
-
-   if(mode & 0x1000)
-      flag0 |= 0x1000;
+      if(mode & MODE_UNK0)
+         flag0 |= ATTR_UNK0;
+   }
 
    return flag0;
 }
@@ -246,18 +290,10 @@ int is_dir(char* string_id)
   return !strcmp(string_id, "dir") || !strcmp(string_id, "aciddir");
 }
 
-#define MODE_RW  0x180
-#define MODE_RO  0x100
-
-#define MODE_ACIDDIR 0x9000
-#define MODE_DIR     0x8000
-#define MODE_NPFS    0x300000
-#define MODE_NENC    0x100000
-#define MODE_NICV    0x200000
-
 int get_file_mode(std::uint32_t* mode, char* type_string, char* string_id)
 {
    *mode = 0;
+
    if(!strcmp(type_string, "") || !strcmp(type_string, "rw"))
    {
       *mode |= MODE_RW;
@@ -268,7 +304,7 @@ int get_file_mode(std::uint32_t* mode, char* type_string, char* string_id)
    }
    else if(!strcmp(type_string, "sys"))
    {
-      *mode = *mode;
+      *mode |= MODE_SYS;
    }
    else
    {
@@ -308,6 +344,8 @@ int get_file_mode(std::uint32_t* mode, char* type_string, char* string_id)
    {
       std::runtime_error("invalid string_id");
    }
+
+   return 0;
 }
 
 //---------------------
@@ -331,13 +369,15 @@ std::uint32_t flags_to_unk_40(pfsfile_t* pfsf, filesdb_t* fl, bool restart)
 
    std::uint32_t unk40 = settings->unk_4;
 
-   if(settings->unk_4 == 1 && (pfsf->flag0 & 0x2000 || pfsf->flag0 & 0x8000))
-      unk40 = 2;
+   //if format is icv.db and (not icv or dir)
+   if(settings->unk_4 == 1 && (pfsf->flag0 & ATTR_NICV || pfsf->flag0 & ATTR_DIR))
+      unk40 = 2; // SCEINULL_NULL_RW
 
    if(restart)
    {
-      if(settings->unk_4 == 0 && pfsf->flag0 & 0x400 )
-         unk40 = 3;
+      //if format is unicv.db and 
+      if(settings->unk_4 == 0 && pfsf->flag0 & ATTR_UNK3)
+         unk40 = 3; // SCEIFTBL_NULL_RO
    }
 
   return unk40;
@@ -379,14 +419,7 @@ void set_drv_ctx(derive_keys_ctx* dctx, pfs_image_types img_type, char* klicense
 
    pfsfile_t pfsf;
 
-   if(is_dir(string_id))
-   {
-      pfsf.flag0 = pfsfile_mkdir(mode);
-   }
-   else
-   {
-      pfsf.flag0 = pfsfile_open(mode);
-   }
+   pfsf.flag0 = mode_to_attr(mode, is_dir(string_id), mode_index, 0);
 
    //use flag0 and mode_index to convert to unk40
 
