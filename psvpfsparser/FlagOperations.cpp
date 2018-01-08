@@ -280,6 +280,8 @@ int is_dir(char* string_id)
   return !strcmp(string_id, "dir") || !strcmp(string_id, "aciddir");
 }
 
+//maybe related to https://github.com/weaknespase/PkgDecrypt/blob/master/pkg_dec.c#L454
+
 int get_file_mode(std::uint32_t* mode, char* type_string, char* string_id)
 {
    *mode = 0;
