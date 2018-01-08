@@ -374,13 +374,13 @@ void pfs_decrypt(CryptEngineWorkCtx *work_ctx)
 {
    switch(work_ctx->subctx->opt_code)
    {
-   case 2:
+   case CRYPT_ENGINE_WRITE:
       crypt_engine_work_2_4(work_ctx, work_ctx->subctx);
       break;
-   case 3:
+   case CRYPT_ENGINE_READ:
       crypt_engine_work_3(work_ctx);
       break;
-   case 4:
+   case CRYPT_ENGINE_TRUNC:
       crypt_engine_work_2_4(work_ctx, work_ctx->subctx);
       break;
    default:

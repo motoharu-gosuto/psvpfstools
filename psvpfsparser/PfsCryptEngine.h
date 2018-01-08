@@ -23,9 +23,9 @@ typedef struct CryptEngineData
 
 }CryptEngineData;
 
-#define CRYPT_ENGINE_ENCRYPT1 2
-#define CRYPT_ENGINE_ENCRYPT2 4
-#define CRYPT_ENGINE_DECRYPT 3
+#define CRYPT_ENGINE_WRITE 2
+#define CRYPT_ENGINE_TRUNC 4
+#define CRYPT_ENGINE_READ 3
 
 typedef struct CryptEngineSubctx
 {
