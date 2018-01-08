@@ -467,11 +467,11 @@ int init_crypt_ctx(CryptEngineWorkCtx* work_ctx, unsigned char* klicensee, sce_n
 
    if(isUnicv)
    {
-      g_data.flag0 = 6; // unknown how to set
+      g_data.fs_attr = 6; // unknown how to set
    }
    else
    {
-      g_data.flag0 = 0; // unknown how to set
+      g_data.fs_attr = 0; // unknown how to set
    }
 
    g_data.block_size = table->get_header()->get_fileSectorSize();

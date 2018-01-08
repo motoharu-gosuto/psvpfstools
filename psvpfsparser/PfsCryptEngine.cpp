@@ -13,10 +13,10 @@
 
 void verify_step(CryptEngineWorkCtx* crypt_ctx, int64_t tweak_key, int bitSize, int size, unsigned char* source)
 {
-   if((crypt_ctx->subctx->data->flag0 << 0x12) < 0)
+   if((crypt_ctx->subctx->data->fs_attr << 0x12) < 0)
       return; // this does not terminate crypto task (local exit)
    
-   if((crypt_ctx->subctx->data->flag0 << 0x10) < 0)
+   if((crypt_ctx->subctx->data->fs_attr << 0x10) < 0)
       return; // this does not terminate crypto task (local exit)
 
    if((crypt_ctx->subctx->data->pmi_bcl_flag & 0x20) != 0)
@@ -115,15 +115,13 @@ void work_3_step0(CryptEngineWorkCtx* crypt_ctx, int64_t tweak_key, int bitSize,
    //------------------------------
 
    //conflicts with decryption
-   /*
-   if(((int)crypt_ctx->subctx->data->flag0 & 0x4000) == 0)
+   if(((int)crypt_ctx->subctx->data->fs_attr & 0x4000) == 0)
    {
       crypt_ctx->error = 0;
       return; // this should terminate crypto task (global exit)
    }
-   */
 
-   if((crypt_ctx->subctx->data->flag0 << 0x10) < 0)
+   if((crypt_ctx->subctx->data->fs_attr << 0x10) < 0)
    {
       crypt_ctx->error = 0;
       return; // this should terminate crypto task (global exit)
@@ -195,12 +193,12 @@ void work_3_step1(CryptEngineWorkCtx* crypt_ctx, int bitSize, unsigned char* buf
    if(crypt_ctx->subctx->unk_18 == 0)
    {
       int tweak_key0_block = crypt_ctx->subctx->data->block_size * crypt_ctx->subctx->sector_base;
-      int tweak_key1_block = (int)crypt_ctx->subctx->data->flag0 & 0x4000;
+      int tweak_key1_block = (int)crypt_ctx->subctx->data->fs_attr & 0x4000;
       std::uint64_t tweak_key_block = ((tweak_key1_block << 0x20) | tweak_key1_block);
 
       if(tweak_key1_block == 0)
       {
-         if((crypt_ctx->subctx->data->flag0 << 0x10) >= 0)
+         if((crypt_ctx->subctx->data->fs_attr << 0x10) >= 0)
          {
             if((crypt_ctx->subctx->data->pmi_bcl_flag & 0x41) != 0x41)
             {
@@ -229,7 +227,7 @@ void work_3_step1(CryptEngineWorkCtx* crypt_ctx, int bitSize, unsigned char* buf
       return; // this should terminate crypto task (global exit)
    }
 
-   if(((int)crypt_ctx->subctx->data->flag0 & 0x4000) != 0)
+   if(((int)crypt_ctx->subctx->data->fs_attr & 0x4000) != 0)
    {   
       if(output_src != output_dst)
          memcpy(output_dst, output_src, output_size);
@@ -239,12 +237,12 @@ void work_3_step1(CryptEngineWorkCtx* crypt_ctx, int bitSize, unsigned char* buf
 
    //=========== process tail part of source buffer ? ===============================
    
-   if((crypt_ctx->subctx->data->flag0 << 0x10) >= 0)
+   if((crypt_ctx->subctx->data->fs_attr << 0x10) >= 0)
    {   
       if((crypt_ctx->subctx->data->pmi_bcl_flag & 0x41) != 0x41)
       {
          int tweak_key0_tail = crypt_ctx->subctx->data->block_size * (crypt_ctx->subctx->sector_base + (crypt_ctx->subctx->nBlocks - 1));
-         int tweak_key1_tail = (int)crypt_ctx->subctx->data->flag0 & 0x4000;
+         int tweak_key1_tail = (int)crypt_ctx->subctx->data->fs_attr & 0x4000;
          std::uint64_t tweak_key_tail = ((tweak_key1_tail << 0x20) | tweak_key0_tail);
 
          unsigned char* tail_buffer = buffer + crypt_ctx->subctx->data->block_size * (crypt_ctx->subctx->nBlocks - 1);
@@ -263,7 +261,7 @@ void work_3_step1(CryptEngineWorkCtx* crypt_ctx, int bitSize, unsigned char* buf
 
    //========= copy tail result to output buffer ? ===========================
    
-   if((crypt_ctx->subctx->data->flag0 << 0x10) < 0)
+   if((crypt_ctx->subctx->data->fs_attr << 0x10) < 0)
    {
       if(output_src != output_dst)
          memcpy(output_dst, output_src, output_size);

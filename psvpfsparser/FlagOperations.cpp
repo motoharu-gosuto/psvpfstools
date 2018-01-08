@@ -232,11 +232,11 @@ mode_to_attr_entry_t specificMode2AttrTbl[4] =
 
 //it looks like this code encodes sce_ng_pfs_file_types
 
-//sets flag0 when mode is (MODE_RO, MORE_WO or MODE_RW) or mode is (MODE_NENC or MODE_NICV)
+//sets fs_attr when mode is (MODE_RO, MORE_WO or MODE_RW) or mode is (MODE_NENC or MODE_NICV)
 //meaning that generic part can take values 0x0000, 0x0001, 0x0006
 //meaning that specific part can take values 0x100000, 0x200000
 
-int scePfsACSetFSAttrByMode(std::uint32_t mode, std::uint16_t* flag0)
+int scePfsACSetFSAttrByMode(std::uint32_t mode, std::uint16_t* fs_attr)
 {
    std::uint16_t generic = 0;
 
@@ -270,7 +270,7 @@ int scePfsACSetFSAttrByMode(std::uint32_t mode, std::uint16_t* flag0)
    if(j == 4)
       return -9;
 
-   *flag0 = generic | specific;
+   *fs_attr = generic | specific;
 
    return 0;
 }

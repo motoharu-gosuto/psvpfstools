@@ -165,19 +165,19 @@ std::uint16_t mode_to_attr(std::uint32_t mode, bool is_dir, std::uint16_t mode_i
        }
    }
 
-   std::uint16_t flag0;
+   std::uint16_t fs_attr;
 
-   scePfsACSetFSAttrByMode(mode, &flag0);
+   scePfsACSetFSAttrByMode(mode, &fs_attr);
 
    if(is_dir)
    {
-      flag0 |= ATTR_DIR;
+      fs_attr |= ATTR_DIR;
 
       if(mode & MODE_UNK0)
-         flag0 |= ATTR_UNK0;
+         fs_attr |= ATTR_UNK0;
    }
 
-   return flag0;
+   return fs_attr;
 }
 
 struct filesdb_t
@@ -188,7 +188,7 @@ struct filesdb_t
 
 struct pfsfile_t
 {
-   std::uint16_t flag0;
+   std::uint16_t fs_attr;
 };
 
 db_types flags_to_db_type(pfsfile_t* pfsf, filesdb_t* fl, bool restart)
@@ -211,13 +211,13 @@ db_types flags_to_db_type(pfsfile_t* pfsf, filesdb_t* fl, bool restart)
    }
 
    //if format is icv.db and (not icv or dir)
-   if(settings->db_type == 1 && (pfsf->flag0 & ATTR_NICV || pfsf->flag0 & ATTR_DIR))
+   if(settings->db_type == 1 && (pfsf->fs_attr & ATTR_NICV || pfsf->fs_attr & ATTR_DIR))
       type = db_types::SCEINULL_NULL_RW;
 
    if(restart)
    {
       //if format is unicv.db and 
-      if(settings->db_type == 0 && pfsf->flag0 & ATTR_UNK3)
+      if(settings->db_type == 0 && pfsf->fs_attr & ATTR_UNK3)
          type = db_types::SCEIFTBL_NULL_RO;
    }
 
@@ -225,7 +225,7 @@ db_types flags_to_db_type(pfsfile_t* pfsf, filesdb_t* fl, bool restart)
 }
 
 //pfsfile_open
-//if ( pfsf->flag0 & 0x4000 || pfsf->flag0 & 0x8000 )
+//if ( pfsf->fs_attr & 0x4000 || pfsf->fs_attr & 0x8000 )
 //  fa.pmi_bcl_flag |= 1u;
 
 //isec_t is the same type as derive_keys_ctx
@@ -256,13 +256,13 @@ void set_drv_ctx(derive_keys_ctx* dctx, pfs_image_types img_type, char* klicense
    std::uint32_t mode;
    get_file_mode(&mode, type_string, string_id);
 
-   //convert mode to flag0
+   //convert mode to fs_attr
 
    pfsfile_t pfsf;
 
-   pfsf.flag0 = mode_to_attr(mode, is_dir(string_id), mode_index, 0);
+   pfsf.fs_attr = mode_to_attr(mode, is_dir(string_id), mode_index, 0);
 
-   //use flag0 and mode_index to convert to db_type
+   //use fs_attr and mode_index to convert to db_type
 
    dctx->db_type = flags_to_db_type(&pfsf, &fl, restart);
    dctx->icv_version = icv_version;

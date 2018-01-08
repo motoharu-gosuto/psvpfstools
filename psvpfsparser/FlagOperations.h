@@ -101,7 +101,7 @@ struct mode_to_attr_entry_t
 
 //
 
-int scePfsACSetFSAttrByMode(std::uint32_t mode, std::uint16_t* flag0);
+int scePfsACSetFSAttrByMode(std::uint32_t mode, std::uint16_t* fs_attr);
 
 int is_dir(char* string_id);
 
