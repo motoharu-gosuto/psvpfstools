@@ -440,7 +440,7 @@ int init_crypt_ctx(CryptEngineWorkCtx* work_ctx, unsigned char* klicensee, sce_n
 
    if(isUnicv)
    {
-      g_data.mode_index = 0xA; // unknown how to set
+      g_data.mode_index = 0xA; // unknown how to set // 2 ?
    }
    else
    {
@@ -451,7 +451,7 @@ int init_crypt_ctx(CryptEngineWorkCtx* work_ctx, unsigned char* klicensee, sce_n
    {
       //this is used in key derrivation (for example when calling scePfsUtilGetSecret)
       //but how important is it to other places ?
-      g_data.pmi_bcl_flag = secret_type_to_flag(ngpfs); //not sure
+      g_data.pmi_bcl_flag = 2; //not sure //secret_type_to_flag(ngpfs); // 0xA ?
    }
    else
    {
@@ -463,7 +463,7 @@ int init_crypt_ctx(CryptEngineWorkCtx* work_ctx, unsigned char* klicensee, sce_n
       g_data.pmi_bcl_flag = 8;
    }
 
-   g_data.key_id = 0;
+   g_data.key_id = 0; // can be actually taken from header (and fix comment!)
 
    if(isUnicv)
    {
@@ -508,7 +508,7 @@ int init_crypt_ctx(CryptEngineWorkCtx* work_ctx, unsigned char* klicensee, sce_n
    //--------------------------------
    
    memset(&g_sub_ctx, 0, sizeof(CryptEngineSubctx));
-   g_sub_ctx.opt_code = CRYPT_ENGINE_DECRYPT;
+   g_sub_ctx.opt_code = CRYPT_ENGINE_READ;
    g_sub_ctx.data = &g_data;
    g_sub_ctx.unk_10 = (unsigned char*)0;
    g_sub_ctx.unk_18 = 0;
