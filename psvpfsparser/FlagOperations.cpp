@@ -25,7 +25,7 @@ std::uint16_t scePfsGetImageSpec(std::uint16_t mode_index)
    std::uint16_t index = mode_index & 0xFFFF;
 
    if(index > 0x21)
-      return 0xFFFF;
+      throw std::runtime_error("Invalid index");
    
    switch(index)
    {
@@ -173,36 +173,54 @@ pfs_mode_settings* scePfsGetModeSetting(std::uint16_t mode_index)
 
 //----------------------
 
-//this function derives mode_index and pmi_bcl_flag from image_type
+pfs_image_types img_spec_to_img_type(std::uint16_t image_spec)
+{
+   std::uint16_t index = image_spec & 0xFFFF;
 
-int img_type_to_mode_flag(pfs_image_types img_type, std::uint16_t* mode_index, std::uint16_t* pmi_bcl_flag)
+   if(index > 4)
+      throw std::runtime_error("Invalid index");
+   
+   switch(index)
+   {
+   case 0:
+      throw std::runtime_error("Invalid index");
+   case 1:
+      return gamedata;
+   case 2:
+      return savedata;
+   case 3:
+      return ac_root;
+   case 4:
+      return acid_dir;
+   default: 
+      throw std::runtime_error("Invalid index");
+   }
+}
+
+//this function derives mode_index from image_type
+
+std::uint16_t img_type_to_mode_index(pfs_image_types img_type)
 {
    switch(img_type)
    {
    case gamedata:
       {
-         *mode_index = 0x0A; // gPackSetting - ro image - (image spec 1)
-         *pmi_bcl_flag = 1;
-         *pmi_bcl_flag |= 2;
+         return 0x0A; // gPackSetting - ro image - (image spec 1)
       }
       break;
    case savedata:
       {
-         *mode_index = 0x05; // gSdSetting - rw image - (image spec 2)
-         *pmi_bcl_flag = 1;
+         return 0x05; // gSdSetting - rw image - (image spec 2)
       }
       break;
    case ac_root:
       {
-         *mode_index = 0x04; // gAcSetting - rw image - (image spec 3)
-         *pmi_bcl_flag = 1;
+         return 0x04; // gAcSetting - rw image - (image spec 3)
       }
       break;
    case acid_dir:
       {
-         *mode_index = 0x0B; // gPackSetting - ro image - (image spec 4)
-         *pmi_bcl_flag = 1;
-         *pmi_bcl_flag |= 2;
+         return 0x0B; // gPackSetting - ro image - (image spec 4)
       }
       break;
    default:
@@ -364,4 +382,32 @@ db_types db_type_value_to_db_type(std::uint32_t value)
    default:
       throw std::runtime_error("Invalid index");
    }
+}
+
+//pseudo implementation that generates flags for scePfsUtilGetSecret function
+//based on image type - I was not able to figure out how real flags are calculated
+
+std::uint16_t img_spec_to_pmi_bcl_flag(std::uint16_t image_spec)
+{
+   pfs_image_types img_type = img_spec_to_img_type(image_spec);
+
+   switch(img_type)
+   {
+   case pfs_image_types::gamedata:
+      return 2;
+   case pfs_image_types::savedata:
+      return 0;
+   default:
+      return 1;
+   }
+}
+
+//pseudo function that returns image type based on the fact that data is unicv.db
+
+pfs_image_types is_unicv_to_img_type(bool isUnicv)
+{
+   if(isUnicv)
+      return pfs_image_types::gamedata;
+   else
+      return pfs_image_types::savedata;
 }

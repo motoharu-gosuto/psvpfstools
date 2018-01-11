@@ -47,7 +47,9 @@ enum pfs_image_types : std::uint16_t
    acid_dir = 3
 };
 
-int img_type_to_mode_flag(pfs_image_types img_type, std::uint16_t* mode_index, std::uint16_t* pmi_bcl_flag);
+pfs_image_types img_spec_to_img_type(std::uint16_t image_spec);
+
+std::uint16_t img_type_to_mode_index(pfs_image_types img_type);
 
 //----------------------
 
@@ -118,3 +120,7 @@ enum db_types : std::uint32_t
 };
 
 db_types db_type_value_to_db_type(std::uint32_t value);
+
+std::uint16_t img_spec_to_pmi_bcl_flag(std::uint16_t image_spec);
+
+pfs_image_types is_unicv_to_img_type(bool isUnicv);
