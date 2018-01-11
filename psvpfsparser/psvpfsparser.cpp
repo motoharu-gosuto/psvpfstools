@@ -69,10 +69,14 @@ int execute(PsvPfsParserConfig& cfg)
       return -1;
    }
 
+   bool isUnicv = false;
+   if(get_isUnicv(titleIdPath, isUnicv) < 0)
+      return -1;
+
    sce_ng_pfs_header_t header;
    std::vector<sce_ng_pfs_file_t> files;
    std::vector<sce_ng_pfs_dir_t> dirs;
-   if(parseFilesDb(klicensee, titleIdPath, header, files, dirs) < 0)
+   if(parseFilesDb(klicensee, titleIdPath, isUnicv, header, files, dirs) < 0)
       return -1;
 
    std::shared_ptr<sce_idb_base_t> unicv;
