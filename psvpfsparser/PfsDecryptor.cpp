@@ -149,7 +149,7 @@ int validate_merkle_trees(unsigned char* klicensee, sce_ng_pfs_header_t& ngpfs, 
 
       //calculate secret
       unsigned char secret[0x14];
-      scePfsUtilGetSecret(secret, klicensee, ngpfs.files_salt, secret_type_to_flag(ngpfs), table->get_icv_salt(), 0);
+      scePfsUtilGetSecret(secret, klicensee, ngpfs.files_salt, img_spec_to_pmi_bcl_flag(ngpfs.image_spec), table->get_icv_salt(), 0);
 
       //find junction
       auto junctionIt = pageMap.find(table->get_icv_salt());
@@ -308,7 +308,7 @@ int bruteforce_map(boost::filesystem::path titleIdPath, unsigned char* klicensee
       {
          //generate secret - one secret per unicv.db page is required
          unsigned char secret[0x14];
-         scePfsUtilGetSecret(secret, klicensee, ngpfs.files_salt, secret_type_to_flag(ngpfs), t->get_icv_salt(), 0);
+         scePfsUtilGetSecret(secret, klicensee, ngpfs.files_salt, img_spec_to_pmi_bcl_flag(ngpfs.image_spec), t->get_icv_salt(), 0);
 
          std::shared_ptr<sce_junction> found_path;
 
