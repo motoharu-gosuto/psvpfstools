@@ -29,9 +29,6 @@
 #define FILES_EXPECTED_VERSION_4 4 //looks like files.db salt appeared in this version
 #define FILES_EXPECTED_VERSION_5 5
 
-#define FILES_GAME_TYPE 1 
-#define FILES_TROPHY_SAVE_TYPE 2
-
 struct sce_ng_pfs_header_t
 {
    std::uint8_t magic[8];
@@ -191,4 +188,4 @@ public:
 
 #pragma pack(pop)
 
-int parseFilesDb(unsigned char* klicensee, boost::filesystem::path titleIdPath, sce_ng_pfs_header_t& header, std::vector<sce_ng_pfs_file_t>& filesResult, std::vector<sce_ng_pfs_dir_t>& dirsResult);
+int parseFilesDb(unsigned char* klicensee, boost::filesystem::path titleIdPath, bool isUnicv, sce_ng_pfs_header_t& header, std::vector<sce_ng_pfs_file_t>& filesResult, std::vector<sce_ng_pfs_dir_t>& dirsResult);

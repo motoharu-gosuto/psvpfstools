@@ -92,7 +92,7 @@ bool verify_header_icv(std::ifstream& inputStream, sce_ng_pfs_header_t& header, 
    return true;
 }
 
-bool validate_header(const sce_ng_pfs_header_t& header, int64_t dataSize)
+bool validate_header(const sce_ng_pfs_header_t& header, int64_t dataSize, bool isUnicv)
 {
    //confirm tail size
    if(dataSize != header.tailSize)
@@ -109,7 +109,7 @@ bool validate_header(const sce_ng_pfs_header_t& header, int64_t dataSize)
    }
 
    //check image spec
-   if(scePfsCheckImage(0, header.image_spec) < 0)
+   if(scePfsCheckImage(img_type_to_mode_index(is_unicv_to_img_type(isUnicv)), header.image_spec) < 0)
    {
       std::cout << "Invalid image spec" << std::endl;
       return false;
@@ -159,7 +159,7 @@ bool validate_header(const sce_ng_pfs_header_t& header, int64_t dataSize)
    return true;
 }
 
-bool parseFilesDb(unsigned char* klicensee, std::ifstream& inputStream, sce_ng_pfs_header_t& header, std::vector<sce_ng_pfs_block_t>& blocks)
+bool parseFilesDb(unsigned char* klicensee, std::ifstream& inputStream, bool isUnicv, sce_ng_pfs_header_t& header, std::vector<sce_ng_pfs_block_t>& blocks)
 {
    inputStream.read((char*)&header, sizeof(sce_ng_pfs_header_t));
 
@@ -171,7 +171,7 @@ bool parseFilesDb(unsigned char* klicensee, std::ifstream& inputStream, sce_ng_p
 
    //generate secret
    unsigned char secret[0x14];
-   scePfsUtilGetSecret(secret, klicensee, header.files_salt, secret_type_to_flag(header), 0, 0);
+   scePfsUtilGetSecret(secret, klicensee, header.files_salt, img_spec_to_pmi_bcl_flag(header.image_spec), 0, 0);
 
    //verify header
    if(!verify_header_icv(inputStream, header, secret))
@@ -186,7 +186,7 @@ bool parseFilesDb(unsigned char* klicensee, std::ifstream& inputStream, sce_ng_p
    int64_t dataSize = cunksEndPos - chunksBeginPos;
 
    //validate header
-   if(!validate_header(header, dataSize))
+   if(!validate_header(header, dataSize, isUnicv))
       return false;
 
    //seek back to the beginning of tail
@@ -818,7 +818,7 @@ int match_file_lists(const std::vector<sce_ng_pfs_file_t>& filesResult, const st
 }
 
 //parses files.db and flattens it into file list
-int parseFilesDb(unsigned char* klicensee, boost::filesystem::path titleIdPath, sce_ng_pfs_header_t& header, std::vector<sce_ng_pfs_file_t>& filesResult, std::vector<sce_ng_pfs_dir_t>& dirsResult)
+int parseFilesDb(unsigned char* klicensee, boost::filesystem::path titleIdPath, bool isUnicv, sce_ng_pfs_header_t& header, std::vector<sce_ng_pfs_file_t>& filesResult, std::vector<sce_ng_pfs_dir_t>& dirsResult)
 {
    std::cout << "parsing  files.db..." << std::endl;
 
@@ -841,7 +841,7 @@ int parseFilesDb(unsigned char* klicensee, boost::filesystem::path titleIdPath, 
 
    //parse data into raw structures
    std::vector<sce_ng_pfs_block_t> blocks;
-   if(!parseFilesDb(klicensee, inputStream, header, blocks))
+   if(!parseFilesDb(klicensee, inputStream, isUnicv, header, blocks))
       return -1;
 
    //build child index -> parent index relationship map
