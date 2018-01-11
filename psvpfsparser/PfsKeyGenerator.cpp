@@ -182,7 +182,6 @@ std::uint16_t mode_to_attr(std::uint32_t mode, bool is_dir, std::uint16_t mode_i
 
 struct filesdb_t
 {
-   std::uint16_t pmi_bcl_flag;
    std::uint16_t mode_index;
 };
 
@@ -234,22 +233,11 @@ db_types flags_to_db_type(pfsfile_t* pfsf, filesdb_t* fl, bool restart)
 void set_drv_ctx(derive_keys_ctx* dctx, pfs_image_types img_type, char* klicensee, char* type_string, char* string_id, std::uint32_t icv_version, bool restart)
 {
    std::uint16_t mode_index;
-   std::uint16_t pmi_bcl_flag;
 
-   //convert image type to mode_index and pmi_bcl_flag
-
-   img_type_to_mode_flag(img_type, &mode_index, &pmi_bcl_flag); 
-
-   //adjust flags to klicensee - whats the point? it always has 1 anyway
-
-   if (klicensee == 0)
-      pmi_bcl_flag |= 1;
-
-   //copy mode_index and pmi_bcl_flag
+   //convert image type to mode_index
 
    filesdb_t fl;
-   fl.mode_index = mode_index;
-   fl.pmi_bcl_flag = pmi_bcl_flag;
+   fl.mode_index = img_type_to_mode_index(img_type);
 
    //get mode of a file
 
@@ -269,8 +257,6 @@ void set_drv_ctx(derive_keys_ctx* dctx, pfs_image_types img_type, char* klicense
 
    //then can use all the flags
 
-   is_gamedata(fl.pmi_bcl_flag);
-
    isec_dbseed(dctx);
 }
 
@@ -278,11 +264,12 @@ void set_drv_ctx(derive_keys_ctx* dctx, pfs_image_types img_type, char* klicense
 
 int setup_crypt_packet_keys(CryptEngineData* data, const derive_keys_ctx* drv_ctx)
 {
-   if(is_gamedata(data->pmi_bcl_flag))
+   if(is_gamedata(data->mode_index))
    {
       if(isec_dbseed(drv_ctx))
       {  
-         scePfsUtilGetGDKeys2(data->dec_key, data->tweak_enc_key, data->klicensee, isec_dbseed(drv_ctx), 0x14);  
+         // only ro db with version > 1 
+         scePfsUtilGetGDKeys2(data->dec_key, data->tweak_enc_key, data->klicensee, isec_dbseed(drv_ctx), 0x14);
       }
       else
       {
