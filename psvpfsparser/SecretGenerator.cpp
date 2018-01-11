@@ -10,7 +10,6 @@
 #include "IcvPrimitives.h"
 
 #include "PfsCryptEngineBase.h"
-#include "FilesDbParser.h"
 
 //[TESTED both branches]
 int gen_secret(unsigned char* combo, std::uint32_t files_salt, std::uint32_t icv_salt)
@@ -92,22 +91,5 @@ int scePfsUtilGetSecret(unsigned char* secret, const unsigned char* klicensee, s
    else
    {
       return generate_secret(secret, klicensee, icv_salt);
-   }
-}
-
-//convert pfs type flag to the flags for key derivation
-int secret_type_to_flag(sce_ng_pfs_header_t& header)
-{
-   if(header.image_spec == FILES_GAME_TYPE)
-   {
-      return 2;  
-   }
-   else if(header.image_spec == FILES_TROPHY_SAVE_TYPE)
-   {
-      return 0;
-   }
-   else
-   {
-      return 1;
    }
 }
