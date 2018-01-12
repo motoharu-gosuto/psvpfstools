@@ -13,7 +13,7 @@ typedef struct CryptEngineData
    std::uint32_t icv_salt; // unicv page or icv filename is used as salt to derive keys
    std::uint16_t mode_index;
    std::uint16_t pmi_bcl_flag;
-   std::uint16_t key_id; // used for WithKeygen F00D functions. always 0.
+   std::uint16_t key_id; // used for WithKeygen DMAC5 / F00D functions. always 0.
    std::uint16_t fs_attr;
    std::uint32_t block_size; // file sector size specified in unicv.db
 
