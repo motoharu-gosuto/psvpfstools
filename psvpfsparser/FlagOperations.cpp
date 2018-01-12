@@ -204,30 +204,16 @@ std::uint16_t img_type_to_mode_index(pfs_image_types img_type)
    switch(img_type)
    {
    case gamedata:
-      {
-         return 0x0A; // gPackSetting - ro image - (image spec 1)
-      }
-      break;
+      return 0x0A; // gPackSetting - ro image - (image spec 1)
    case savedata:
-      {
-         return 0x05; // gSdSetting - rw image - (image spec 2)
-      }
-      break;
+      return 0x05; // gSdSetting - rw image - (image spec 2)
    case ac_root:
-      {
-         return 0x04; // gAcSetting - rw image - (image spec 3)
-      }
-      break;
+      return 0x04; // gAcSetting - rw image - (image spec 3)
    case acid_dir:
-      {
-         return 0x0B; // gPackSetting - ro image - (image spec 4)
-      }
-      break;
+      return 0x0B; // gPackSetting - ro image - (image spec 4)
    default:
       throw std::runtime_error("Invalid index");
    }
-
-   return 0;
 }
 
 //----------------------
@@ -300,21 +286,21 @@ int is_dir(char* string_id)
 
 //maybe related to https://github.com/weaknespase/PkgDecrypt/blob/master/pkg_dec.c#L454
 
-int get_file_mode(std::uint32_t* mode, char* type_string, char* string_id)
+std::uint32_t get_file_mode(char* type_string, char* string_id)
 {
-   *mode = 0;
+   std::uint32_t mode = 0;
 
    if(!strcmp(type_string, "") || !strcmp(type_string, "rw"))
    {
-      *mode |= MODE_RW;
+      mode |= MODE_RW;
    }
    else if(!strcmp(type_string, "ro"))
    {
-      *mode |= MODE_RO;
+      mode |= MODE_RO;
    }
    else if(!strcmp(type_string, "sys"))
    {
-      *mode |= MODE_SYS;
+      mode |= MODE_SYS;
    }
    else
    {
@@ -323,39 +309,92 @@ int get_file_mode(std::uint32_t* mode, char* type_string, char* string_id)
   
    if(!strcmp(string_id, ""))
    {
-      return 0;
+      return mode;
    }
    else if(!strcmp(string_id, "aciddir"))
    {
-      *mode |= MODE_ACIDDIR;
-      return 0;
+      mode |= MODE_ACIDDIR;
+      return mode;
    }
    else if(!strcmp(string_id, "dir"))
    {
-      *mode |= MODE_DIR;
-      return 0;
+      mode |= MODE_DIR;
+      return mode;
    }
    else if(!strcmp(string_id, "npfs"))
    {
-      *mode |= MODE_NPFS;
-      return 0;
+      mode |= MODE_NPFS;
+      return mode;
    }
    else if(!strcmp(string_id, "nenc"))
    {
-      *mode |= MODE_NENC;
-      return 0;
+      mode |= MODE_NENC;
+      return mode;
    }
    else if(!strcmp(string_id, "nicv"))
    {
-      *mode |= MODE_NICV;
-      return 0;
+      mode |= MODE_NICV;
+      return mode;
    }
    else
    {
-      std::runtime_error("invalid string_id");
+      throw std::runtime_error("invalid string_id");
+   }
+}
+
+std::uint16_t mode_to_attr(std::uint32_t mode, bool is_dir, std::uint16_t mode_index, std::uint32_t node_index)
+{
+   if(is_dir)
+   {
+       if (mode & MODE_UNK0)
+       {
+          if(mode_index != 4 || node_index > 0) //applicable only to ac_root
+          {
+             std::runtime_error("invalid flags");
+          }
+       }
    }
 
-   return 0;
+   std::uint16_t fs_attr;
+
+   scePfsACSetFSAttrByMode(mode, &fs_attr);
+
+   if(is_dir)
+   {
+      fs_attr |= ATTR_DIR;
+
+      if(mode & MODE_UNK0) //applicable only to ac_root
+         fs_attr |= ATTR_UNK0;
+   }
+
+   return fs_attr;
+}
+
+//----------------------
+
+//WARNING: 0xD index appeared on 3.60
+
+bool is_gamedata(std::uint16_t mode_index)
+{
+   int index = mode_index & 0xFFFF;
+   
+   if(index > 0x21)
+      throw std::runtime_error("Invalid index");
+   
+   switch(index)
+   {
+      case 0x02:
+      case 0x03:
+      case 0x0A:
+      case 0x0B:
+      case 0x0D:
+      case 0x20:
+      case 0x21:
+         return true;
+
+      default:
+         return false;
+   }
 }
 
 //----------------------
@@ -372,17 +411,64 @@ db_types db_type_value_to_db_type(std::uint32_t value)
    switch(value)
    {
    case 0:
-      return SCEIFTBL_RO;
+      return db_types::SCEIFTBL_RO;
    case 1:
-      return SCEICVDB_RW;
+      return db_types::SCEICVDB_RW;
    case 2:
-      return SCEINULL_NULL_RW;
+      return db_types::SCEINULL_NULL_RW;
    case 3:
-      return SCEIFTBL_NULL_RO;
+      return db_types::SCEIFTBL_NULL_RO;
    default:
       throw std::runtime_error("Invalid index");
    }
 }
+
+//----------------------
+
+db_types settings_to_db_type(std::uint16_t mode_index, std::uint16_t fs_attr, bool restart)
+{
+   pfs_mode_settings* settings = scePfsGetModeSetting(mode_index);
+
+   db_types type;
+
+   if(settings->db_type == 0)
+   {
+      type = db_types::SCEIFTBL_RO;
+   }
+   else if(settings->db_type == 1)
+   {
+      type = db_types::SCEICVDB_RW;
+   }
+   else
+   {
+      std::runtime_error("invalid index");
+   }
+
+   //if format is icv.db and (not icv or dir)
+   if(settings->db_type == 1 && (fs_attr & ATTR_NICV || fs_attr & ATTR_DIR))
+      type = db_types::SCEINULL_NULL_RW;
+
+   if(restart)
+   {
+      //if format is unicv.db and 
+      if(settings->db_type == 0 && fs_attr & ATTR_UNK3)
+         type = db_types::SCEIFTBL_NULL_RO;
+   }
+
+   return type;
+}
+
+//----------------------
+
+bool has_dbseed(db_types db_type, std::uint32_t icv_version)
+{
+   //db_type must be equal to 0 or 3 (SCEIFTBL_RO or SCEIFTBL_NULL_RO) 
+   //AND version should be > 1 showing that ricv seed is supported
+
+   return ((db_type == db_types::SCEIFTBL_RO || db_type == db_types::SCEIFTBL_NULL_RO) && icv_version > 1);
+}
+
+//----------------------
 
 //pseudo implementation that generates flags for scePfsUtilGetSecret function
 //based on image type - I was not able to figure out how real flags are calculated
@@ -402,6 +488,15 @@ std::uint16_t img_spec_to_pmi_bcl_flag(std::uint16_t image_spec)
    }
 }
 
+//pseudo implementation that converts image spec to mode index
+
+std::uint16_t img_spec_to_mode_index(std::uint16_t image_spec)
+{
+   pfs_image_types img_type = img_spec_to_img_type(image_spec);
+   std::uint16_t mode_index = img_type_to_mode_index(img_type);
+   return mode_index;
+}
+
 //pseudo function that returns image type based on the fact that data is unicv.db
 
 pfs_image_types is_unicv_to_img_type(bool isUnicv)
@@ -410,4 +505,23 @@ pfs_image_types is_unicv_to_img_type(bool isUnicv)
       return pfs_image_types::gamedata;
    else
       return pfs_image_types::savedata;
+}
+
+//pseudo function that converts db type to boolean
+
+bool db_type_to_is_unicv(db_types type)
+{
+   switch(type)
+   {
+   case db_types::SCEIFTBL_RO:
+      return true;
+   case db_types::SCEICVDB_RW:
+      return false;
+   case db_types::SCEINULL_NULL_RW:
+      return false;
+   case db_types::SCEIFTBL_NULL_RO:
+      return true;
+   default:
+      throw std::runtime_error("Invalid index");
+   }
 }

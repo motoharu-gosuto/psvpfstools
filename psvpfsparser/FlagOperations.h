@@ -107,7 +107,13 @@ int scePfsACSetFSAttrByMode(std::uint32_t mode, std::uint16_t* fs_attr);
 
 int is_dir(char* string_id);
 
-int get_file_mode(std::uint32_t* mode, char* type_string, char* string_id);
+std::uint32_t get_file_mode(char* type_string, char* string_id);
+
+std::uint16_t mode_to_attr(std::uint32_t mode, bool is_dir, std::uint16_t mode_index, std::uint32_t node_index);
+
+//----------------------
+
+bool is_gamedata(std::uint16_t mode_index);
 
 //----------------------
 
@@ -121,6 +127,20 @@ enum db_types : std::uint32_t
 
 db_types db_type_value_to_db_type(std::uint32_t value);
 
+//----------------------
+
+db_types settings_to_db_type(std::uint16_t mode_index, std::uint16_t fs_attr, bool restart = false);
+
+//----------------------
+
+bool has_dbseed(db_types db_type, std::uint32_t icv_version);
+
+//----------------------
+
 std::uint16_t img_spec_to_pmi_bcl_flag(std::uint16_t image_spec);
 
+std::uint16_t img_spec_to_mode_index(std::uint16_t image_spec);
+
 pfs_image_types is_unicv_to_img_type(bool isUnicv);
+
+bool db_type_to_is_unicv(db_types type);
