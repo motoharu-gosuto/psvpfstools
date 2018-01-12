@@ -87,8 +87,8 @@ int AESCBCDecrypt_base(const unsigned char* key, unsigned char* tweak, std::uint
 
 //ok
 int AESCBCEncryptWithKeygen_base(const unsigned char* key, unsigned char* tweak, std::uint32_t size, const unsigned char* src, unsigned char* dst, std::uint16_t key_id)
-{
-   std::uint16_t kid = 0; //key_id argument is ignored and is always 0
+{   
+   std::uint16_t kid = key_id;
 
    int size_tail = size & 0xF; // get size of tail
    int size_block = size & (~0xF); // get block size aligned to 0x10 boundary
@@ -128,7 +128,7 @@ int AESCBCEncryptWithKeygen_base(const unsigned char* key, unsigned char* tweak,
 //ok
 int AESCBCDecryptWithKeygen_base(const unsigned char* key, unsigned char* tweak, std::uint32_t size, const unsigned char* src, unsigned char* dst, std::uint16_t key_id)
 {
-   std::uint16_t kid = 0; //key_id argument is ignored and is always 0
+   std::uint16_t kid = key_id;
 
    int size_tail = size & 0xF;
    int size_block = size & (~0xF);
@@ -257,7 +257,7 @@ int AESCMACEncryptWithKeygen_base(const unsigned char* key, unsigned char* tweak
 {
    throw std::runtime_error("Untested function");
 
-   std::uint16_t kid = 0; //key_id argument is ignored and is always 0
+   std::uint16_t kid = key_id;
 
    int size_tail = size & 0xF;
    int size_block = size & (~0xF);
@@ -300,7 +300,7 @@ int AESCMACDecryptWithKeygen_base(const unsigned char* key, unsigned char* tweak
 {
    throw std::runtime_error("Untested function");
 
-   std::uint16_t kid = 0; //key_id argument is ignored and is always 0
+   std::uint16_t kid = key_id;
 
    int size_tail = size & 0xF;
    int size_block = size & (~0xF);
