@@ -10,6 +10,9 @@
 //this function is tested and works
 int SceSblSsMgrForDriver_sceSblSsMgrAESCBCDecryptWithKeygenForDriver(const unsigned char* src, unsigned char* dst, int size, const unsigned char* key, int key_size, unsigned char* iv, std::uint16_t key_id, int mask_enable)
 {
+   if(key_id != 0)
+      throw std::runtime_error("Unexpected key_id");
+
    F00DKeyEncryptor* ec = get_F00D_encryptor();
    unsigned char drv_key[0x20] = {0}; //use max possible buffer
    if(ec->encrypt_key(key, key_size, drv_key) < 0)
@@ -26,6 +29,9 @@ int SceSblSsMgrForDriver_sceSblSsMgrAESCBCDecryptWithKeygenForDriver(const unsig
 //this function is tested and works
 int SceSblSsMgrForDriver_sceSblSsMgrAESCBCEncryptWithKeygenForDriver(const unsigned char* src, unsigned char* dst, int size, const unsigned char* key, int key_size, unsigned char* iv, std::uint16_t key_id, int mask_enable)
 {
+   if(key_id != 0)
+      throw std::runtime_error("Unexpected key_id");
+
    F00DKeyEncryptor* ec = get_F00D_encryptor();
    unsigned char drv_key[0x20] = {0}; //use max possible buffer
    if(ec->encrypt_key(key, key_size, drv_key) < 0)
@@ -42,6 +48,9 @@ int SceSblSsMgrForDriver_sceSblSsMgrAESCBCEncryptWithKeygenForDriver(const unsig
 //this function is tested and works
 int SceSblSsMgrForDriver_sceSblSsMgrAESECBEncryptWithKeygenForDriver(const unsigned char* src, unsigned char* dst, int size, const unsigned char* key, int key_size, std::uint16_t key_id, int mask_enable)
 {
+   if(key_id != 0)
+      throw std::runtime_error("Unexpected key_id");
+
    F00DKeyEncryptor* ec = get_F00D_encryptor();
    unsigned char drv_key[0x20] = {0}; //use max possible buffer
    if(ec->encrypt_key(key, key_size, drv_key) < 0)
@@ -143,6 +152,9 @@ int SceSblSsMgrForDriver_sceSblSsMgrAESCMACForDriver(const unsigned char* src, u
 int SceSblSsMgrForDriver_sceSblSsMgrAESCMACWithKeygenForDriver(const unsigned char* src, unsigned char dst[0x10], int size, const unsigned char* key, int key_size, unsigned char* iv, std::uint16_t key_id, int mask_enable, int command_bit)
 {
    throw std::runtime_error("not tested");
+
+   if(key_id != 0)
+      throw std::runtime_error("Unexpected key_id");
 
    if(iv != 0)
       throw std::runtime_error("iv must be 0");
