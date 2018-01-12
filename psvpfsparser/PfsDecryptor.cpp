@@ -430,50 +430,16 @@ CryptEngineData g_data;
 CryptEngineSubctx g_sub_ctx;
 std::vector<std::uint8_t> g_signatureTable;
 
-int init_crypt_ctx(CryptEngineWorkCtx* work_ctx, unsigned char* klicensee, sce_ng_pfs_header_t& ngpfs, std::shared_ptr<sce_iftbl_base_t> table, sig_tbl_t& block, std::uint32_t sector_base, std::uint32_t tail_size, unsigned char* source, bool isUnicv)
+int init_crypt_ctx(CryptEngineWorkCtx* work_ctx, unsigned char* klicensee, sce_ng_pfs_header_t& ngpfs, const sce_ng_pfs_file_t& file, std::shared_ptr<sce_iftbl_base_t> table, sig_tbl_t& block, std::uint32_t sector_base, std::uint32_t tail_size, unsigned char* source)
 {     
    memset(&g_data, 0, sizeof(CryptEngineData));
    g_data.klicensee = klicensee;
    g_data.files_salt = ngpfs.files_salt;
    g_data.icv_salt = table->get_icv_salt();
-
-
-   if(isUnicv)
-   {
-      g_data.mode_index = 0xA; // unknown how to set // 2 ?
-   }
-   else
-   {
-      g_data.mode_index = 0x5; // unknown how to set
-   }
-
-   if(isUnicv)
-   {
-      //this is used in key derrivation (for example when calling scePfsUtilGetSecret)
-      //but how important is it to other places ?
-      g_data.pmi_bcl_flag = 2; //not sure //secret_type_to_flag(ngpfs); // 0xA ?
-   }
-   else
-   {
-      //leads to call of scePfsUtilGetSecret in scePfsUtilGetSecret which is only applicable case for ICV.cb
-      //also leads to call of generate_secrets in DerivePfsKeys which I guess is only applicable case because of 0xC0000B03 check
-      //since only 0xC0000B03 branch in decryption routine matches correct hash validation step that is used for ICV.cb hashes
-      //this flag also affects which function will be selected in pfs_decrypt_sw (i guess need to select AESCMACDecryptSw_base)
-      //maybe use PFS_CRYPTO_USE_KEYGEN and PFS_CRYPTO_USE_CMAC to init where required?
-      g_data.pmi_bcl_flag = 8;
-   }
-
-   g_data.key_id = 0; // can be actually taken from header (and fix comment!)
-
-   if(isUnicv)
-   {
-      g_data.fs_attr = 6; // unknown how to set
-   }
-   else
-   {
-      g_data.fs_attr = 0; // unknown how to set
-   }
-
+   g_data.mode_index = img_spec_to_mode_index(ngpfs.image_spec);
+   g_data.pmi_bcl_flag = img_spec_to_pmi_bcl_flag(ngpfs.image_spec); // NOT SURE, STILL NEED TO INVESTIGATE
+   g_data.key_id = ngpfs.key_id;
+   g_data.fs_attr = file.file.info.type; // HIGHLY SUSPECT THAT THIS IS THE CASE. BUT NEED TO VERIFY. WARNING - THIS CAN BE MODIFIED WHEN RESTORING ILLEGAL TYPES, SO NEED TO STORE ORIGINAL VALUE!
    g_data.block_size = table->get_header()->get_fileSectorSize();
 
    //--------------------------------
@@ -481,29 +447,15 @@ int init_crypt_ctx(CryptEngineWorkCtx* work_ctx, unsigned char* klicensee, sce_n
    derive_keys_ctx drv_ctx;
    memset(&drv_ctx, 0, sizeof(derive_keys_ctx));
 
-   if(isUnicv)
-   {
-      drv_ctx.db_type = db_types::SCEIFTBL_RO;
-   }
-   else
-   {
-      drv_ctx.db_type = db_types::SCEICVDB_RW;
-      //or ?
-      //drv_ctx.db_type = db_types::SCEINULL_NULL_RW;
-   }
+   drv_ctx.db_type = settings_to_db_type(g_data.mode_index, g_data.fs_attr);
+   drv_ctx.icv_version = table->get_header()->get_version();
 
-   drv_ctx.icv_version = table->get_header()->get_version(); // is that correct in generic way? for both games and saves/trophies?
-
-   if(isUnicv)
-   {
+   if(is_gamedata(g_data.mode_index) && has_dbseed(drv_ctx.db_type, drv_ctx.icv_version))
       memcpy(drv_ctx.dbseed, table->get_header()->get_dbseed(), 0x14);
-   }
    else
-   {
       memset(drv_ctx.dbseed, 0, 0x14);
-   }
 
-   setup_crypt_packet_keys(&g_data, &drv_ctx); //derive dec_key, iv_key, secret
+   setup_crypt_packet_keys(&g_data, &drv_ctx); //derive dec_key, tweak_enc_key, secret
 
    //--------------------------------
    
@@ -514,20 +466,16 @@ int init_crypt_ctx(CryptEngineWorkCtx* work_ctx, unsigned char* klicensee, sce_n
    g_sub_ctx.unk_18 = 0;
    g_sub_ctx.nBlocksTail = 0;
 
-   if(isUnicv)
-   {
+   if(db_type_to_is_unicv(drv_ctx.db_type))
       g_sub_ctx.nBlocks = block.get_header()->get_nSignatures();
-   }
    else
-   {
       g_sub_ctx.nBlocks = table->get_header()->get_numSectors();
-   }
 
    g_sub_ctx.sector_base = sector_base;
    g_sub_ctx.dest_offset = 0;
    g_sub_ctx.tail_size = tail_size;
 
-   if(isUnicv)
+   if(db_type_to_is_unicv(drv_ctx.db_type))
    {
       g_signatureTable.clear();
       g_signatureTable.resize(block.m_signatures.size() * block.get_header()->get_sigSize());
@@ -624,7 +572,7 @@ int decrypt_icv_file(boost::filesystem::path titleIdPath, boost::filesystem::pat
          tail_size = table->get_header()->get_fileSectorSize();
          
       CryptEngineWorkCtx work_ctx;
-      if(init_crypt_ctx(&work_ctx, klicensee, ngpfs, table, table->m_blocks.front(), 0, tail_size, buffer.data(), false) < 0)
+      if(init_crypt_ctx(&work_ctx, klicensee, ngpfs, file, table, table->m_blocks.front(), 0, tail_size, buffer.data()) < 0)
          return -1;
 
       pfs_decrypt(&work_ctx);
@@ -693,7 +641,7 @@ int decrypt_unicv_file(boost::filesystem::path titleIdPath, boost::filesystem::p
          tail_size = table->get_header()->get_fileSectorSize();
          
       CryptEngineWorkCtx work_ctx;
-      if(init_crypt_ctx(&work_ctx, klicensee, ngpfs, table, table->m_blocks.front(), 0, tail_size, buffer.data(), true) < 0)
+      if(init_crypt_ctx(&work_ctx, klicensee, ngpfs, file, table, table->m_blocks.front(), 0, tail_size, buffer.data()) < 0)
          return -1;
 
       pfs_decrypt(&work_ctx);
@@ -737,7 +685,7 @@ int decrypt_unicv_file(boost::filesystem::path titleIdPath, boost::filesystem::p
                tail_size = table->get_header()->get_fileSectorSize();
          
             CryptEngineWorkCtx work_ctx;
-            if(init_crypt_ctx(&work_ctx, klicensee, ngpfs, table, b, sector_base, tail_size, buffer.data(), true) < 0)
+            if(init_crypt_ctx(&work_ctx, klicensee, ngpfs, file, table, b, sector_base, tail_size, buffer.data()) < 0)
                return -1;
 
             pfs_decrypt(&work_ctx);
@@ -767,7 +715,7 @@ int decrypt_unicv_file(boost::filesystem::path titleIdPath, boost::filesystem::p
                   tail_size = table->get_header()->get_fileSectorSize();
 
                CryptEngineWorkCtx work_ctx;
-               if(init_crypt_ctx(&work_ctx, klicensee, ngpfs, table, b, sector_base, tail_size, buffer.data(), true) < 0)
+               if(init_crypt_ctx(&work_ctx, klicensee, ngpfs, file, table, b, sector_base, tail_size, buffer.data()) < 0)
                   return -1;
 
                pfs_decrypt(&work_ctx);
@@ -789,7 +737,7 @@ int decrypt_unicv_file(boost::filesystem::path titleIdPath, boost::filesystem::p
                inputStream.read((char*)buffer.data(), full_block_size);
 
                CryptEngineWorkCtx work_ctx;
-               if(init_crypt_ctx(&work_ctx, klicensee, ngpfs, table, b, sector_base, table->get_header()->get_fileSectorSize(), buffer.data(), true) < 0)
+               if(init_crypt_ctx(&work_ctx, klicensee, ngpfs, file, table, b, sector_base, table->get_header()->get_fileSectorSize(), buffer.data()) < 0)
                   return -1;
 
                pfs_decrypt(&work_ctx);
