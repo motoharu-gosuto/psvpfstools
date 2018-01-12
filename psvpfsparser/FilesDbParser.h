@@ -26,14 +26,14 @@
 #define EXPECTED_BLOCK_SIZE 0x400
 
 #define FILES_EXPECTED_VERSION_3 3
-#define FILES_EXPECTED_VERSION_4 4 //looks like files.db salt appeared in this version
+#define FILES_EXPECTED_VERSION_4 4 //looks like files.db salt appeared in this version. before that it was 0
 #define FILES_EXPECTED_VERSION_5 5
 
 struct sce_ng_pfs_header_t
 {
    std::uint8_t magic[8];
    std::uint32_t version;
-   std::uint16_t image_spec; // 0x1 for games, 0x2 for trophy or savedata. probably type ?
+   std::uint16_t image_spec; // allows to distinguish unicv.db and icv.db - check is_unicv_to_img_type
    std::uint16_t key_id;
    std::uint32_t pageSize;
    std::uint32_t bt_order; // order value of the binary tree - derived from btree_order
