@@ -19,12 +19,16 @@ int gen_secret(unsigned char* combo, std::uint32_t files_salt, std::uint32_t icv
 
    if(files_salt == 0)
    {
+      throw std::runtime_error("Untested branch in gen_secret");
+
       int saltin0[1] = {0};
       saltin0[0] = icv_salt;
       icv_set_hmac_sw(base, hmac_key1, (unsigned char*)saltin0, 4); // derive base with one salt
    }
    else
    {
+      throw std::runtime_error("Untested branch in gen_secret");
+
       int saltin1[2] = {0};
       saltin1[0] = files_salt;
       saltin1[1] = icv_salt;
@@ -39,6 +43,8 @@ int gen_secret(unsigned char* combo, std::uint32_t files_salt, std::uint32_t icv
 //[TESTED]
 int generate_secret_np(unsigned char* secret, const unsigned char* klicensee, std::uint32_t files_salt, std::uint32_t icv_salt, std::uint16_t key_id)
 {
+   throw std::runtime_error("Untested branch in generate_secret_np");
+
    unsigned char drvkey[0x14] = {0};
    unsigned char iv[0x10] = {0};
    unsigned char combo[0x14] = {0};
@@ -57,6 +63,8 @@ int generate_secret_np(unsigned char* secret, const unsigned char* klicensee, st
 //[TESTED]
 int generate_secret(unsigned char* secret, const unsigned char* klicensee,  std::uint32_t icv_salt)
 {
+   throw std::runtime_error("Untested branch in generate_secret");
+
    int saltin[2] = {0};
    unsigned char base0[0x14] = {0};
    unsigned char base1[0x14] = {0};
@@ -87,10 +95,14 @@ int scePfsUtilGetSecret(unsigned char* secret, const unsigned char* klicensee, s
    }
    else if(pmi_bcl_flag & PMI_BCL_CRYPTO_USE_KEYGEN) // check bit 1
    {
+      throw std::runtime_error("Untested branch in scePfsUtilGetSecret");
+
       return generate_secret_np(secret, klicensee, files_salt, icv_salt, key_id);
    }
    else
    {
+      throw std::runtime_error("Untested branch in scePfsUtilGetSecret");
+
       return generate_secret(secret, klicensee, icv_salt);
    }
 }

@@ -13,6 +13,8 @@
 //[TESTED]
 int generate_enckeys(unsigned char* dec_key, unsigned char* tweak_enc_key, const unsigned char* klicensee, std::uint32_t icv_salt)
 {
+   throw std::runtime_error("Untested branch in generate_enckeys");
+
    int saltin[2] = {0};
    unsigned char base0[0x14] = {0};
    unsigned char base1[0x14] = {0};
@@ -53,6 +55,8 @@ int gen_iv(unsigned char* tweak_enc_key, std::uint32_t files_salt, std::uint32_t
 
    if(files_salt == 0)
    {
+      throw std::runtime_error("Untested branch in gen_iv");
+
       int saltin0[1] = {0};
       saltin0[0] = icv_salt;
 
@@ -60,6 +64,8 @@ int gen_iv(unsigned char* tweak_enc_key, std::uint32_t files_salt, std::uint32_t
    }
    else
    {
+      throw std::runtime_error("Untested branch in gen_iv");
+
       int saltin1[2] = {0};
       saltin1[0] = files_salt;
       saltin1[1] = icv_salt;
@@ -77,8 +83,10 @@ int gen_iv(unsigned char* tweak_enc_key, std::uint32_t files_salt, std::uint32_t
 //[TESTED]
 int scePfsUtilGetSDKeys(unsigned char* dec_key, unsigned char* tweak_enc_key, const unsigned char* klicensee, std::uint32_t files_salt, std::uint32_t icv_salt)
 {
-  //files_salt is ignored
-  return generate_enckeys(dec_key, tweak_enc_key, klicensee, icv_salt);
+   throw std::runtime_error("Untested branch in scePfsUtilGetSDKeys");
+
+   //files_salt is ignored
+   return generate_enckeys(dec_key, tweak_enc_key, klicensee, icv_salt);
 }
 
 //[TESTED]
@@ -86,12 +94,16 @@ int scePfsUtilGetGDKeys(unsigned char* dec_key, unsigned char* tweak_enc_key, co
 {
    if(pmi_bcl_flag & PMI_BCL_CRYPTO_USE_KEYGEN)
    {
+      throw std::runtime_error("Untested branch in scePfsUtilGetGDKeys");
+
       memcpy(dec_key, klicensee, 0x10);
 
       return gen_iv(tweak_enc_key, files_salt, icv_salt);
    }
    else
    {
+      throw std::runtime_error("Untested branch in scePfsUtilGetGDKeys");
+
       return generate_enckeys(dec_key, tweak_enc_key, klicensee, icv_salt);
    }
 }
@@ -99,6 +111,8 @@ int scePfsUtilGetGDKeys(unsigned char* dec_key, unsigned char* tweak_enc_key, co
 //[TESTED]
 int scePfsUtilGetGDKeys2(unsigned char* dec_key, unsigned char* tweak_enc_key, const unsigned char* klicensee, const unsigned char* dbseed, std::uint32_t dbseed_len)
 {
+   throw std::runtime_error("Untested branch in scePfsUtilGetGDKeys2");
+
    unsigned char drvkey[0x14] = {0};
 
    icv_set_hmac_sw(drvkey, hmac_key0, dbseed, dbseed_len);

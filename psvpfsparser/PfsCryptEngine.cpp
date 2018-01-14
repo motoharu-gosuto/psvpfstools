@@ -24,6 +24,8 @@ void verify_step(CryptEngineWorkCtx* crypt_ctx, std::uint16_t mode_index, unsign
 
    if(!is_gamedata(mode_index))
    {
+      throw std::runtime_error("Untested branch in verify_step");
+
       if((crypt_ctx->subctx->data->pmi_bcl_flag & (PMI_BCL_CRYPTO_USE_CMAC | PMI_BCL_SKIP_DECRYPT)) != (PMI_BCL_CRYPTO_USE_CMAC | PMI_BCL_SKIP_DECRYPT))
       {
          if(crypt_ctx->subctx->nBlocks != 0)
@@ -60,6 +62,8 @@ void verify_step(CryptEngineWorkCtx* crypt_ctx, std::uint16_t mode_index, unsign
    }
    else
    {
+      throw std::runtime_error("Untested branch in verify_step");
+
       if((crypt_ctx->subctx->data->pmi_bcl_flag & (PMI_BCL_CRYPTO_USE_CMAC | PMI_BCL_SKIP_DECRYPT)) != (PMI_BCL_CRYPTO_USE_CMAC | PMI_BCL_SKIP_DECRYPT))
       {
          std::uint32_t tweak_key = crypt_ctx->subctx->sector_base;
@@ -140,6 +144,8 @@ void work_3_step0(CryptEngineWorkCtx* crypt_ctx, std::uint16_t mode_index, unsig
 
    if(!is_gamedata(mode_index))
    {
+      throw std::runtime_error("Untested branch in work_3_step0");
+
       do
       {
          pfs_decrypt_icv(key, tweak_enc_key, 0x80, tweak_key + offset, crypt_ctx->subctx->data->block_size, crypt_ctx->subctx->data->block_size, buffer + offset, buffer + offset, crypt_ctx->subctx->data->pmi_bcl_flag);
@@ -151,6 +157,8 @@ void work_3_step0(CryptEngineWorkCtx* crypt_ctx, std::uint16_t mode_index, unsig
    }
    else
    {
+      throw std::runtime_error("Untested branch in work_3_step0");
+
       std::uint32_t bytes_left = crypt_ctx->subctx->data->block_size * (crypt_ctx->subctx->nBlocks - 1) + (crypt_ctx->subctx->tail_size);
    
       do
