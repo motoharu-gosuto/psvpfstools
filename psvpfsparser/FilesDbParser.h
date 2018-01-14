@@ -116,6 +116,26 @@ struct sce_ng_pfs_file_info_t
    std::uint32_t padding1; //probably padding ? always 0
 };
 
+struct sce_ng_pfs_file_info_proxy_t
+{
+   sce_ng_pfs_file_info_t header;
+   sce_ng_pfs_file_types original_type;
+   bool hasFixedType;
+
+   sce_ng_pfs_file_info_proxy_t()
+      : hasFixedType(false)
+   {
+   }
+
+   sce_ng_pfs_file_types get_original_type() const
+   {
+      if(hasFixedType)
+         return original_type;
+      else
+         return header.type;
+   }
+};
+
 struct sce_ng_pfs_hash_t
 {
    std::uint8_t data[20];
@@ -128,7 +148,7 @@ struct sce_ng_pfs_block_t
 
    //infos may contain non INVALID_FILE_INDEX as last element
    //still dont know the purpose of this
-   std::vector<sce_ng_pfs_file_info_t> infos; // size = 16 * 10 = 160
+   std::vector<sce_ng_pfs_file_info_proxy_t> m_infos; // size = 16 * 10 = 160
    std::vector<sce_ng_pfs_hash_t> hashes; // size = 20 * 10 = 200
 
    std::uint32_t page;
@@ -138,7 +158,7 @@ struct sce_ng_pfs_flat_block_t
 {
    sce_ng_pfs_block_header_t header;
    sce_ng_pfs_file_header_t file;
-   sce_ng_pfs_file_info_t info;
+   sce_ng_pfs_file_info_proxy_t m_info;
    sce_ng_pfs_hash_t hash;
 };
 

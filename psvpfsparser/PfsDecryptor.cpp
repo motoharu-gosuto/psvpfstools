@@ -439,7 +439,7 @@ int init_crypt_ctx(CryptEngineWorkCtx* work_ctx, unsigned char* klicensee, sce_n
    g_data.mode_index = img_spec_to_mode_index(ngpfs.image_spec);
    g_data.pmi_bcl_flag = img_spec_to_pmi_bcl_flag(ngpfs.image_spec) | PMI_BCL_THROW_ERROR; // NOT SURE, STILL NEED TO INVESTIGATE
    g_data.key_id = ngpfs.key_id;
-   g_data.fs_attr = file.file.info.type; // HIGHLY SUSPECT THAT THIS IS THE CASE. BUT NEED TO VERIFY. WARNING - THIS CAN BE MODIFIED WHEN RESTORING ILLEGAL TYPES, SO NEED TO STORE ORIGINAL VALUE!
+   g_data.fs_attr = file.file.m_info.get_original_type(); // HIGHLY SUSPECT THAT THIS IS THE CASE. BUT NEED TO VERIFY
    g_data.block_size = table->get_header()->get_fileSectorSize();
 
    //--------------------------------
@@ -850,16 +850,16 @@ int decrypt_files(boost::filesystem::path titleIdPath, boost::filesystem::path d
       }
 
       //directory and unexisting file are unexpected
-      if(file->file.info.type == sce_ng_pfs_file_types::normal_directory ||
-         file->file.info.type == sce_ng_pfs_file_types::unk_directory ||
-         file->file.info.type == sce_ng_pfs_file_types::unexisting)
+      if(file->file.m_info.header.type == sce_ng_pfs_file_types::normal_directory ||
+         file->file.m_info.header.type == sce_ng_pfs_file_types::unk_directory ||
+         file->file.m_info.header.type == sce_ng_pfs_file_types::unexisting)
       {
          std::cout << "Unexpected file type" << std::endl;
          return -1;
       }
       //copy unencrypted files
-      else if(file->file.info.type == sce_ng_pfs_file_types::unencrypted_system_file ||
-              file->file.info.type == sce_ng_pfs_file_types::unencrypted_unk1)
+      else if(file->file.m_info.header.type == sce_ng_pfs_file_types::unencrypted_system_file ||
+              file->file.m_info.header.type == sce_ng_pfs_file_types::unencrypted_unk1)
       {
          if(!filepath.copy_existing_file(titleIdPath, destTitleIdPath))
          {
@@ -872,9 +872,9 @@ int decrypt_files(boost::filesystem::path titleIdPath, boost::filesystem::path d
          }
       }
       //decrypt encrypted files
-      else if(file->file.info.type == sce_ng_pfs_file_types::encrypted_system_file ||
-              file->file.info.type == sce_ng_pfs_file_types::encrypted_unk2 || 
-              file->file.info.type == sce_ng_pfs_file_types::normal_file)
+      else if(file->file.m_info.header.type == sce_ng_pfs_file_types::encrypted_system_file ||
+              file->file.m_info.header.type == sce_ng_pfs_file_types::encrypted_unk2 || 
+              file->file.m_info.header.type == sce_ng_pfs_file_types::normal_file)
       {
          if(decrypt_file(titleIdPath, destTitleIdPath, *file, filepath, klicensee, ngpfs, t, fdb->isUnicv()) < 0)
          {
