@@ -73,16 +73,16 @@ int pfs_decrypt_unicv(const unsigned char* key, const unsigned char* tweak_mask,
          else
             size_arg = bytes_left;
 
-         if((pmi_bcl_flag & PMI_BCL_CRYPTO_USE_KEYGEN) != 0)
+         if(pmi_bcl_flag & PMI_BCL_CRYPTO_USE_KEYGEN)
          {
-            if((pmi_bcl_flag & PMI_BCL_CRYPTO_USE_CMAC) != 0)
+            if(pmi_bcl_flag & PMI_BCL_CRYPTO_USE_CMAC)
                AESCMACDecryptWithKeygen_base(key, tweak, size_arg, src + offset, g_cmac_buffer, key_id);
             else
                AESCBCDecryptWithKeygen_base(key, tweak, size_arg, src + offset, dst + offset, key_id); //cbc decrypt with tweak as iv
          }
          else
          {
-            if((pmi_bcl_flag & PMI_BCL_CRYPTO_USE_CMAC) != 0)
+            if(pmi_bcl_flag & PMI_BCL_CRYPTO_USE_CMAC)
                AESCMACDecrypt_base(key, tweak, size_arg, src + offset, g_cmac_buffer);
             else
                AESCBCDecrypt_base(key, tweak, size_arg, src + offset, dst + offset); //cbc decrypt with tweak as iv
@@ -96,7 +96,7 @@ int pfs_decrypt_unicv(const unsigned char* key, const unsigned char* tweak_mask,
 
    //copy result to dest buffer since cmac functions operate with global buffer
 
-   if((pmi_bcl_flag & PMI_BCL_CRYPTO_USE_CMAC) != 0)
+   if(pmi_bcl_flag & PMI_BCL_CRYPTO_USE_CMAC)
    {
       if(dst != src)
       {
@@ -142,16 +142,16 @@ int pfs_encrypt_unicv(const unsigned char* key, const unsigned char* tweak_mask,
          else
             size_arg = bytes_left;
 
-         if((pmi_bcl_flag & PMI_BCL_CRYPTO_USE_KEYGEN) != 0)
+         if(pmi_bcl_flag & PMI_BCL_CRYPTO_USE_KEYGEN)
          {
-            if((pmi_bcl_flag & PMI_BCL_CRYPTO_USE_CMAC) != 0)
+            if(pmi_bcl_flag & PMI_BCL_CRYPTO_USE_CMAC)
                AESCMACEncryptWithKeygen_base(key, tweak, size_arg, src + offset, g_cmac_buffer, key_id);
             else
                AESCBCEncryptWithKeygen_base(key, tweak, size_arg, src + offset, dst + offset, key_id); //cbc encrypt with tweak as iv
          }
          else
          {
-            if((pmi_bcl_flag & PMI_BCL_CRYPTO_USE_CMAC) != 0)
+            if(pmi_bcl_flag & PMI_BCL_CRYPTO_USE_CMAC)
                AESCMACEncrypt_base(key, tweak, size_arg, src + offset, g_cmac_buffer);
             else
                AESCBCEncrypt_base(key, tweak, size_arg, src + offset, dst + offset); //cbc encrypt with tweak as iv
@@ -165,7 +165,7 @@ int pfs_encrypt_unicv(const unsigned char* key, const unsigned char* tweak_mask,
 
    //copy result to dest buffer since cmac functions operate with global buffer
 
-   if((pmi_bcl_flag & PMI_BCL_CRYPTO_USE_CMAC) != 0)
+   if(pmi_bcl_flag & PMI_BCL_CRYPTO_USE_CMAC)
    {
       if(dst != src)
       {
@@ -209,7 +209,7 @@ int pfs_decrypt_icv(const unsigned char* key, const unsigned char* tweak_enc_key
          size_arg = bytes_left;
 
       int result0 = 0;
-      if((pmi_bcl_flag & PMI_BCL_CRYPTO_USE_CMAC) != 0)
+      if(pmi_bcl_flag & PMI_BCL_CRYPTO_USE_CMAC)
          result0 = XTSCMACDecrypt_base(tweak, key, tweak_enc_key, keysize, size_arg, src + offset, g_cmac_buffer);
       else
          result0 = XTSAESDecrypt_base(tweak, key, tweak_enc_key, keysize, size_arg, src + offset, dst + offset); //xts-aes decrypt
@@ -226,7 +226,7 @@ int pfs_decrypt_icv(const unsigned char* key, const unsigned char* tweak_enc_key
 
    //copy result to dest buffer since cmac functions operate with global buffer
 
-   if((pmi_bcl_flag & PMI_BCL_CRYPTO_USE_CMAC) != 0)
+   if(pmi_bcl_flag & PMI_BCL_CRYPTO_USE_CMAC)
    {
       if(dst != src)
       {
@@ -267,7 +267,7 @@ int pfs_encrypt_icv(const unsigned char* key, const unsigned char* tweak_enc_key
          size_arg = bytes_left;
 
       int result0 = 0;
-      if((pmi_bcl_flag & PMI_BCL_CRYPTO_USE_CMAC) != 0)
+      if(pmi_bcl_flag & PMI_BCL_CRYPTO_USE_CMAC)
          result0 = XTSCMACEncrypt_base(tweak, key, tweak_enc_key, keysize, size_arg, src + offset, g_cmac_buffer);
       else
          result0 = XTSAESEncrypt_base(tweak, key, tweak_enc_key, keysize, size_arg, src + offset, dst + offset); //xts-aes encrypt
@@ -284,7 +284,7 @@ int pfs_encrypt_icv(const unsigned char* key, const unsigned char* tweak_enc_key
 
    //copy result to dest buffer since cmac functions operate with global buffer
 
-   if((pmi_bcl_flag & PMI_BCL_CRYPTO_USE_CMAC) != 0)
+   if(pmi_bcl_flag & PMI_BCL_CRYPTO_USE_CMAC)
    {
       if(dst != src)
       {
