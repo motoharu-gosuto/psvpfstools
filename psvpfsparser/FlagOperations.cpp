@@ -480,11 +480,11 @@ std::uint16_t img_spec_to_pmi_bcl_flag(std::uint16_t image_spec)
    switch(img_type)
    {
    case pfs_image_types::gamedata:
-      return 2;
+      return PMI_BCL_CRYPTO_USE_KEYGEN;
    case pfs_image_types::savedata:
       return 0;
    default:
-      return 1;
+      return PMI_BCL_CRYPTO_USE_CMAC;
    }
 }
 

@@ -437,7 +437,7 @@ int init_crypt_ctx(CryptEngineWorkCtx* work_ctx, unsigned char* klicensee, sce_n
    g_data.files_salt = ngpfs.files_salt;
    g_data.icv_salt = table->get_icv_salt();
    g_data.mode_index = img_spec_to_mode_index(ngpfs.image_spec);
-   g_data.pmi_bcl_flag = img_spec_to_pmi_bcl_flag(ngpfs.image_spec); // NOT SURE, STILL NEED TO INVESTIGATE
+   g_data.pmi_bcl_flag = img_spec_to_pmi_bcl_flag(ngpfs.image_spec) | PMI_BCL_THROW_ERROR; // NOT SURE, STILL NEED TO INVESTIGATE
    g_data.key_id = ngpfs.key_id;
    g_data.fs_attr = file.file.info.type; // HIGHLY SUSPECT THAT THIS IS THE CASE. BUT NEED TO VERIFY. WARNING - THIS CAN BE MODIFIED WHEN RESTORING ILLEGAL TYPES, SO NEED TO STORE ORIGINAL VALUE!
    g_data.block_size = table->get_header()->get_fileSectorSize();
