@@ -32,8 +32,8 @@ typedef struct CryptEngineSubctx
    std::uint32_t opt_code; // if 3 then decrypt, if 4 then encrypt, if 2 then encrypt
    CryptEngineData* data;
    
-   unsigned char* unk_10; // unknown but probably pointer
-   std::uint32_t unk_18; // unknown but probably size (based on tweak key derrivation)
+   unsigned char* work_buffer_ofst;
+   std::uint32_t nBlocksOffset; // offset in sectors
    std::uint32_t nBlocksTail;
    
    std::uint32_t nBlocks; // number of file sectors corresponding to unicv page with signatures

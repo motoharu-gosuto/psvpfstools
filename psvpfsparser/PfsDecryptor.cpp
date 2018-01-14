@@ -462,8 +462,8 @@ int init_crypt_ctx(CryptEngineWorkCtx* work_ctx, unsigned char* klicensee, sce_n
    memset(&g_sub_ctx, 0, sizeof(CryptEngineSubctx));
    g_sub_ctx.opt_code = CRYPT_ENGINE_READ;
    g_sub_ctx.data = &g_data;
-   g_sub_ctx.unk_10 = (unsigned char*)0;
-   g_sub_ctx.unk_18 = 0;
+   g_sub_ctx.work_buffer_ofst = (unsigned char*)0;
+   g_sub_ctx.nBlocksOffset = 0;
    g_sub_ctx.nBlocksTail = 0;
 
    if(db_type_to_is_unicv(drv_ctx.db_type))

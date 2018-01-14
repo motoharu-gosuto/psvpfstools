@@ -11,20 +11,20 @@
 
 //----------------------
 
-void verify_step(CryptEngineWorkCtx* crypt_ctx, int64_t tweak_key, int bitSize, int size, unsigned char* source)
+void verify_step(CryptEngineWorkCtx* crypt_ctx, std::uint16_t mode_index, unsigned char* source)
 {
-   if((crypt_ctx->subctx->data->fs_attr << 0x12) < 0)
-      return; // this does not terminate crypto task (local exit)
-   
-   if((crypt_ctx->subctx->data->fs_attr << 0x10) < 0)
+   //check that it is not a directory and does have icv
+   if((crypt_ctx->subctx->data->fs_attr & ATTR_NICV || crypt_ctx->subctx->data->fs_attr & ATTR_DIR))
       return; // this does not terminate crypto task (local exit)
 
-   if((crypt_ctx->subctx->data->pmi_bcl_flag & 0x20) != 0)
+   if(crypt_ctx->subctx->data->pmi_bcl_flag & PMI_BCL_FLAG_UNK3)
       return; // this does not terminate crypto task (local exit)
 
-   if((bitSize > 0x1F) || ((0xC0000B03 & (1 << bitSize)) == 0))
+   //check signature table
+
+   if(!is_gamedata(mode_index))
    {
-      if((crypt_ctx->subctx->data->pmi_bcl_flag & 0x41) != 0x41)
+      if((crypt_ctx->subctx->data->pmi_bcl_flag & (PMI_BCL_FLAG_UNK0 | PMI_BCL_FLAG_UNK1)) != (PMI_BCL_FLAG_UNK0 | PMI_BCL_FLAG_UNK1))
       {
          if(crypt_ctx->subctx->nBlocks != 0)
          {
@@ -43,7 +43,7 @@ void verify_step(CryptEngineWorkCtx* crypt_ctx, int64_t tweak_key, int bitSize, 
                int ver_res = memcmp(signatures_base, bytes14, 0x14);
 
                //if verify is not successful and flag is not specified
-               if((ver_res != 0) && ((crypt_ctx->subctx->data->pmi_bcl_flag & 9) != 1))
+               if((ver_res != 0) && ((crypt_ctx->subctx->data->pmi_bcl_flag & (PMI_BCL_FLAG_UNK2 | PMI_BCL_FLAG_UNK0)) != PMI_BCL_FLAG_UNK0))
                {
                   crypt_ctx->error = 0x80140F02;
                   return; // this should terminate crypto task (global exit)
@@ -62,12 +62,12 @@ void verify_step(CryptEngineWorkCtx* crypt_ctx, int64_t tweak_key, int bitSize, 
    {
       if((crypt_ctx->subctx->data->pmi_bcl_flag & 0x41) != 0x41)
       {
-         int salt = (int)tweak_key;
+         std::uint32_t tweak_key = crypt_ctx->subctx->sector_base;
                   
          if(crypt_ctx->subctx->nBlocks != 0)
          {
             std::uint32_t counter = 0;
-            std::uint32_t bytes_left = size;
+            std::uint32_t bytes_left = crypt_ctx->subctx->data->block_size * (crypt_ctx->subctx->nBlocks - 1) + (crypt_ctx->subctx->tail_size);
 
             unsigned char* source_base = source;
             unsigned char* signatures_base = crypt_ctx->subctx->signature_table;
@@ -77,7 +77,7 @@ void verify_step(CryptEngineWorkCtx* crypt_ctx, int64_t tweak_key, int bitSize, 
 
             do
             {
-               SceKernelUtilsForDriver_sceHmacSha1DigestForDriver(crypt_ctx->subctx->data->secret, 0x14, (unsigned char*)&salt, 4, digest);
+               SceKernelUtilsForDriver_sceHmacSha1DigestForDriver(crypt_ctx->subctx->data->secret, 0x14, (unsigned char*)&tweak_key, 4, digest);
 
                int size_arg = (crypt_ctx->subctx->data->block_size < bytes_left) ? crypt_ctx->subctx->data->block_size : bytes_left;
                SceSblSsMgrForDriver_sceSblSsMgrHMACSHA1ForDriver(source_base, bytes14, size_arg, digest, 0, 1, 0);
@@ -85,7 +85,7 @@ void verify_step(CryptEngineWorkCtx* crypt_ctx, int64_t tweak_key, int bitSize, 
                int ver_res = memcmp(signatures_base, bytes14, 0x14);
                         
                //if verify is not successful and flag is not specified
-               if((ver_res != 0) && ((crypt_ctx->subctx->data->pmi_bcl_flag & 9) != 1))
+               if((ver_res != 0) && ((crypt_ctx->subctx->data->pmi_bcl_flag & (PMI_BCL_FLAG_UNK2 | PMI_BCL_FLAG_UNK0)) != PMI_BCL_FLAG_UNK0))
                {
                   crypt_ctx->error = 0x80140F02;
                   return; // this should terminate crypto task (global exit)
@@ -97,7 +97,7 @@ void verify_step(CryptEngineWorkCtx* crypt_ctx, int64_t tweak_key, int bitSize, 
                source_base = source_base + crypt_ctx->subctx->data->block_size;
                signatures_base = signatures_base + 0x14;
 
-               salt = salt + 1;
+               tweak_key = tweak_key + 1;
             }
             while(counter != crypt_ctx->subctx->nBlocks);
          }
@@ -105,29 +105,16 @@ void verify_step(CryptEngineWorkCtx* crypt_ctx, int64_t tweak_key, int bitSize, 
    }
 }
 
-void work_3_step0(CryptEngineWorkCtx* crypt_ctx, int64_t tweak_key, int bitSize, int size, unsigned char* buffer)
+void work_3_step0(CryptEngineWorkCtx* crypt_ctx, std::uint16_t mode_index, unsigned char* buffer)
 {
-   // variable mapping
-
-   unsigned const char* key = crypt_ctx->subctx->data->dec_key;
-   unsigned const char* tweak_enc_key = crypt_ctx->subctx->data->tweak_enc_key;
+   //check that it is not a directory and is encrypted
+   if(crypt_ctx->subctx->data->fs_attr & ATTR_NENC || crypt_ctx->subctx->data->fs_attr & ATTR_DIR)
+   {
+      crypt_ctx->error = 0;
+      return; // this should terminate crypto task (global exit)
+   }
    
-   //------------------------------
-
-   //conflicts with decryption
-   if(((int)crypt_ctx->subctx->data->fs_attr & 0x4000) == 0)
-   {
-      crypt_ctx->error = 0;
-      return; // this should terminate crypto task (global exit)
-   }
-
-   if((crypt_ctx->subctx->data->fs_attr << 0x10) < 0)
-   {
-      crypt_ctx->error = 0;
-      return; // this should terminate crypto task (global exit)
-   }
-
-   if((crypt_ctx->subctx->data->pmi_bcl_flag & 0x41) == 0x41)
+   if((crypt_ctx->subctx->data->pmi_bcl_flag & (PMI_BCL_FLAG_UNK0 | PMI_BCL_FLAG_UNK1)) == (PMI_BCL_FLAG_UNK0 | PMI_BCL_FLAG_UNK1))
    {
       crypt_ctx->error = 0;
       return; // this should terminate crypto task (global exit)
@@ -139,12 +126,19 @@ void work_3_step0(CryptEngineWorkCtx* crypt_ctx, int64_t tweak_key, int bitSize,
       return; // this should terminate crypto task (global exit)
    }
 
-   //============== remove first encryption layer ? =========================
+   // variable mapping
+
+   unsigned const char* key = crypt_ctx->subctx->data->dec_key;
+   unsigned const char* tweak_enc_key = crypt_ctx->subctx->data->tweak_enc_key;
+
+   //remove encryption layer
 
    int offset = 0;
    std::uint32_t counter = 0;
 
-   if((bitSize > 0x1F) || ((0xC0000B03 & (1 << bitSize)) == 0))
+   std::uint64_t tweak_key = crypt_ctx->subctx->data->block_size + crypt_ctx->subctx->sector_base;
+
+   if(!is_gamedata(mode_index))
    {
       do
       {
@@ -157,7 +151,7 @@ void work_3_step0(CryptEngineWorkCtx* crypt_ctx, int64_t tweak_key, int bitSize,
    }
    else
    {
-      std::uint32_t bytes_left = size;
+      std::uint32_t bytes_left = crypt_ctx->subctx->data->block_size * (crypt_ctx->subctx->nBlocks - 1) + (crypt_ctx->subctx->tail_size);
    
       do
       {
@@ -175,7 +169,7 @@ void work_3_step0(CryptEngineWorkCtx* crypt_ctx, int64_t tweak_key, int bitSize,
    return; // this should terminate crypto task (global exit)
 }
 
-void work_3_step1(CryptEngineWorkCtx* crypt_ctx, int bitSize, unsigned char* buffer)
+void work_3_step1(CryptEngineWorkCtx* crypt_ctx, std::uint16_t mode_index, unsigned char* buffer)
 {
    throw std::runtime_error("Untested decryption branch work_3_step1");
 
@@ -184,42 +178,36 @@ void work_3_step1(CryptEngineWorkCtx* crypt_ctx, int bitSize, unsigned char* buf
    unsigned const char* key = crypt_ctx->subctx->data->dec_key;
    unsigned const char* tweak_enc_key = crypt_ctx->subctx->data->tweak_enc_key;
 
-   unsigned char* output_dst = crypt_ctx->subctx->unk_10 + ((crypt_ctx->subctx->data->block_size * crypt_ctx->subctx->unk_18) - crypt_ctx->subctx->dest_offset);
-   unsigned char* output_src = buffer + (crypt_ctx->subctx->data->block_size * crypt_ctx->subctx->unk_18);
+   unsigned char* output_dst = crypt_ctx->subctx->work_buffer_ofst + ((crypt_ctx->subctx->data->block_size * crypt_ctx->subctx->nBlocksOffset) - crypt_ctx->subctx->dest_offset);
+   unsigned char* output_src = buffer + (crypt_ctx->subctx->data->block_size * crypt_ctx->subctx->nBlocksOffset);
    int output_size = crypt_ctx->subctx->data->block_size * crypt_ctx->subctx->nBlocksTail;
 
-   //========== process block part of source buffer ? ========================
+   //decrypt data at offset - single block
 
-   if(crypt_ctx->subctx->unk_18 == 0)
+   if(crypt_ctx->subctx->nBlocksOffset > 0)
    {
-      int tweak_key0_block = crypt_ctx->subctx->data->block_size * crypt_ctx->subctx->sector_base;
-      int tweak_key1_block = (int)crypt_ctx->subctx->data->fs_attr & 0x4000;
-      std::uint64_t tweak_key_block = ((tweak_key1_block << 0x20) | tweak_key1_block);
-
-      if(tweak_key1_block == 0)
+      //check that is not a directory and is encrypted
+      if(((crypt_ctx->subctx->data->fs_attr & ATTR_NENC) == 0) && ((crypt_ctx->subctx->data->fs_attr & ATTR_DIR) == 0))
       {
-         if((crypt_ctx->subctx->data->fs_attr << 0x10) >= 0)
+         if((crypt_ctx->subctx->data->pmi_bcl_flag & (PMI_BCL_FLAG_UNK0 | PMI_BCL_FLAG_UNK1)) != (PMI_BCL_FLAG_UNK0 | PMI_BCL_FLAG_UNK1))
          {
-            if((crypt_ctx->subctx->data->pmi_bcl_flag & 0x41) != 0x41)
+            std::uint64_t head_tweak_key = crypt_ctx->subctx->sector_base * crypt_ctx->subctx->data->block_size;
+
+            if(!is_gamedata(mode_index))
             {
-               if((bitSize > 0x1F) || ((0xC0000B03 & (1 << bitSize)) == 0))
-               {
-                  pfs_decrypt_icv(key, tweak_enc_key, 0x80, tweak_key_block, crypt_ctx->subctx->data->block_size, crypt_ctx->subctx->data->block_size, buffer, buffer, crypt_ctx->subctx->data->pmi_bcl_flag);
-               }
-               else
-               {
-                  pfs_decrypt_unicv(key, tweak_enc_key, tweak_key_block, crypt_ctx->subctx->data->block_size, crypt_ctx->subctx->data->block_size, buffer, buffer, crypt_ctx->subctx->data->pmi_bcl_flag, crypt_ctx->subctx->data->key_id);
-               }
+               pfs_decrypt_icv(key, tweak_enc_key, 0x80, head_tweak_key, crypt_ctx->subctx->data->block_size, crypt_ctx->subctx->data->block_size, buffer, buffer, crypt_ctx->subctx->data->pmi_bcl_flag);
+            }
+            else
+            {
+               pfs_decrypt_unicv(key, tweak_enc_key, head_tweak_key, crypt_ctx->subctx->data->block_size, crypt_ctx->subctx->data->block_size, buffer, buffer, crypt_ctx->subctx->data->pmi_bcl_flag, crypt_ctx->subctx->data->key_id);
             }
          }
       }  
    }
 
-   //========= copy result to output buffer if source buffer had no tail ? ============
+   //copy to result if nBlocksTail + nBlocksOffset > nBlocks
 
-   std::uint32_t some_value = crypt_ctx->subctx->nBlocksTail + crypt_ctx->subctx->unk_18;
-   
-   if((some_value >= crypt_ctx->subctx->nBlocks))
+   if(((crypt_ctx->subctx->nBlocksOffset + crypt_ctx->subctx->nBlocksTail) >= crypt_ctx->subctx->nBlocks))
    {
       if(output_src != output_dst)
          memcpy(output_dst, output_src, output_size);
@@ -227,7 +215,9 @@ void work_3_step1(CryptEngineWorkCtx* crypt_ctx, int bitSize, unsigned char* buf
       return; // this should terminate crypto task (global exit)
    }
 
-   if(((int)crypt_ctx->subctx->data->fs_attr & 0x4000) != 0)
+   //copy result if data is not encrypted
+
+   if(crypt_ctx->subctx->data->fs_attr & ATTR_NENC)
    {   
       if(output_src != output_dst)
          memcpy(output_dst, output_src, output_size);
@@ -235,33 +225,30 @@ void work_3_step1(CryptEngineWorkCtx* crypt_ctx, int bitSize, unsigned char* buf
       return; // this should terminate crypto task (global exit)
    }
 
-   //=========== process tail part of source buffer ? ===============================
+   //decrypt tail data - single block
    
-   if((crypt_ctx->subctx->data->fs_attr << 0x10) >= 0)
+   if((crypt_ctx->subctx->data->fs_attr & ATTR_DIR) == 0)
    {   
-      if((crypt_ctx->subctx->data->pmi_bcl_flag & 0x41) != 0x41)
+      if((crypt_ctx->subctx->data->pmi_bcl_flag & (PMI_BCL_FLAG_UNK0 | PMI_BCL_FLAG_UNK1)) != (PMI_BCL_FLAG_UNK0 | PMI_BCL_FLAG_UNK1))
       {
-         int tweak_key0_tail = crypt_ctx->subctx->data->block_size * (crypt_ctx->subctx->sector_base + (crypt_ctx->subctx->nBlocks - 1));
-         int tweak_key1_tail = (int)crypt_ctx->subctx->data->fs_attr & 0x4000;
-         std::uint64_t tweak_key_tail = ((tweak_key1_tail << 0x20) | tweak_key0_tail);
-
+         std::uint64_t tail_tweak_key = crypt_ctx->subctx->data->block_size * (crypt_ctx->subctx->sector_base + (crypt_ctx->subctx->nBlocks - 1));
          unsigned char* tail_buffer = buffer + crypt_ctx->subctx->data->block_size * (crypt_ctx->subctx->nBlocks - 1);
 
-         if((bitSize > 0x1F) || ((0xC0000B03 & (1 << bitSize)) == 0))
+         if(!is_gamedata(mode_index))
          {
-            pfs_decrypt_icv(key, tweak_enc_key, 0x80, tweak_key_tail, crypt_ctx->subctx->data->block_size, crypt_ctx->subctx->data->block_size, tail_buffer, tail_buffer, crypt_ctx->subctx->data->pmi_bcl_flag);
+            pfs_decrypt_icv(key, tweak_enc_key, 0x80, tail_tweak_key, crypt_ctx->subctx->data->block_size, crypt_ctx->subctx->data->block_size, tail_buffer, tail_buffer, crypt_ctx->subctx->data->pmi_bcl_flag);
          }
          else
          {
             int size_arg = (crypt_ctx->subctx->data->block_size <= crypt_ctx->subctx->tail_size) ? crypt_ctx->subctx->data->block_size : crypt_ctx->subctx->tail_size;
-            pfs_decrypt_unicv(key, tweak_enc_key, tweak_key_tail, size_arg, crypt_ctx->subctx->data->block_size, tail_buffer, tail_buffer, crypt_ctx->subctx->data->pmi_bcl_flag, crypt_ctx->subctx->data->key_id);
+            pfs_decrypt_unicv(key, tweak_enc_key, tail_tweak_key, size_arg, crypt_ctx->subctx->data->block_size, tail_buffer, tail_buffer, crypt_ctx->subctx->data->pmi_bcl_flag, crypt_ctx->subctx->data->key_id);
          }
       }
    }
 
-   //========= copy tail result to output buffer ? ===========================
+   //copy result if data is dir
    
-   if((crypt_ctx->subctx->data->fs_attr << 0x10) < 0)
+   if(crypt_ctx->subctx->data->fs_attr & ATTR_DIR)
    {
       if(output_src != output_dst)
          memcpy(output_dst, output_src, output_size);
@@ -269,7 +256,9 @@ void work_3_step1(CryptEngineWorkCtx* crypt_ctx, int bitSize, unsigned char* buf
       return; // this should terminate crypto task (global exit)
    }
 
-   if((crypt_ctx->subctx->data->pmi_bcl_flag & 0x41) == 0x41)
+   //copy result if pmi flags are not correct
+
+   if((crypt_ctx->subctx->data->pmi_bcl_flag & (PMI_BCL_FLAG_UNK0 | PMI_BCL_FLAG_UNK1)) == (PMI_BCL_FLAG_UNK0 | PMI_BCL_FLAG_UNK1))
    {
       if(output_src != output_dst)
          memcpy(output_dst, output_src, output_size);
@@ -277,26 +266,26 @@ void work_3_step1(CryptEngineWorkCtx* crypt_ctx, int bitSize, unsigned char* buf
       return; // this should terminate crypto task (global exit)
    }
 
-   //============== remove second encryption layer ? =========================
+   //exit if no blocks in tail
 
-   //seed derrivation is quite same to derrivation in first layer
-
-   int seed_root = crypt_ctx->subctx->data->block_size * (crypt_ctx->subctx->unk_18 + crypt_ctx->subctx->sector_base);
-   
    if(crypt_ctx->subctx->nBlocksTail == 0)
    {
       crypt_ctx->error = 0;
       return; // this should terminate crypto task (global exit)
    }
 
+   //decrypt main data - N blocks
+
+   std::uint64_t tweak_key = crypt_ctx->subctx->data->block_size * (crypt_ctx->subctx->nBlocksOffset + crypt_ctx->subctx->sector_base);
+
    int offset = 0;
    std::uint32_t counter = 0;
 
-   if((bitSize > 0x1F) || ((0xC0000B03 & (1 << bitSize)) == 0))
+   if(!is_gamedata(mode_index))
    {
       do
       {
-         pfs_decrypt_icv(key, tweak_enc_key, 0x80, seed_root + offset, crypt_ctx->subctx->data->block_size, crypt_ctx->subctx->data->block_size, output_src + offset, output_dst + offset, crypt_ctx->subctx->data->pmi_bcl_flag);
+         pfs_decrypt_icv(key, tweak_enc_key, 0x80, tweak_key + offset, crypt_ctx->subctx->data->block_size, crypt_ctx->subctx->data->block_size, output_src + offset, output_dst + offset, crypt_ctx->subctx->data->pmi_bcl_flag);
 
          offset = offset + crypt_ctx->subctx->data->block_size;
          counter = counter + 1;
@@ -313,7 +302,7 @@ void work_3_step1(CryptEngineWorkCtx* crypt_ctx, int bitSize, unsigned char* buf
       do
       {
          int size_arg = (crypt_ctx->subctx->data->block_size <= bytes_left) ? crypt_ctx->subctx->data->block_size : bytes_left;
-         pfs_decrypt_unicv(key, tweak_enc_key, seed_root + offset, size_arg, crypt_ctx->subctx->data->block_size, output_src + offset, output_dst + offset, crypt_ctx->subctx->data->pmi_bcl_flag, crypt_ctx->subctx->data->key_id);
+         pfs_decrypt_unicv(key, tweak_enc_key, tweak_key + offset, size_arg, crypt_ctx->subctx->data->block_size, output_src + offset, output_dst + offset, crypt_ctx->subctx->data->pmi_bcl_flag, crypt_ctx->subctx->data->key_id);
 
          offset = offset + crypt_ctx->subctx->data->block_size;
          bytes_left = bytes_left - crypt_ctx->subctx->data->block_size;
@@ -326,42 +315,30 @@ void work_3_step1(CryptEngineWorkCtx* crypt_ctx, int bitSize, unsigned char* buf
    }
 }
 
-//TODO CHECK:
-//int var_8C = (int)crypt_ctx->subctx->data->type - 2; // this does not correlate with derive_keys_from_klicensee_219B4A0
-//int some_flag_base = (std::uint32_t)(data->pmi_bcl_flag - 2);
-//int some_flag = 0xC0000B03 & (1 << some_flag_base);
-
-//however i have double checked the code and it is correct in both places
-
 void crypt_engine_work_3(CryptEngineWorkCtx* crypt_ctx)
 {
-   int bitSize = (int)crypt_ctx->subctx->data->mode_index - 2; // this does not correlate with derive_keys_from_klicensee_219B4A0
-   int total_size = (crypt_ctx->subctx->data->block_size) * ((crypt_ctx->subctx->nBlocks) - 1) + (crypt_ctx->subctx->tail_size);
-
    unsigned char* work_buffer;
-   if((bitSize > 0x1F) || ((0xC0000B03 & (1 << bitSize)) == 0))
+   if(!is_gamedata(crypt_ctx->subctx->data->mode_index))
       work_buffer = crypt_ctx->subctx->work_buffer0;
    else
       work_buffer = crypt_ctx->subctx->work_buffer1;
 
-   //verifies table of hashes ?
-   verify_step(crypt_ctx, crypt_ctx->subctx->sector_base, bitSize, total_size, work_buffer);
+   //verifies icv table
+   verify_step(crypt_ctx, crypt_ctx->subctx->data->mode_index, work_buffer);
 
-   //need to add this check since dec functionality is now split into several functions
+   //check verification error
    if(crypt_ctx->error < 0)
       return;
 
    if(crypt_ctx->subctx->nBlocksTail == 0)
    {
-      //immediately decrypts everything in while loop
-      work_3_step0(crypt_ctx, crypt_ctx->subctx->sector_base * crypt_ctx->subctx->data->block_size, bitSize, total_size, work_buffer);
+      //single decryption loop - decrypts area of nBlocks blocks
+      work_3_step0(crypt_ctx, crypt_ctx->subctx->data->mode_index, work_buffer);
    }
    else
    {
-      //first - decrypts block part with single call
-      //second - decrypts tail part with single call
-      //third - decrypts everything in while loop
-      work_3_step1(crypt_ctx, bitSize, work_buffer);
+      //two decryption calls and one decryption loop - looks like decrypts nBlocks of data from offset. not sure
+      work_3_step1(crypt_ctx, crypt_ctx->subctx->data->mode_index, work_buffer);
    }
 }
 

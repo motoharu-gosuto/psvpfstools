@@ -81,8 +81,6 @@ struct mode_to_attr_entry_t
 
 //
 
-//N most likely means NOT
-
 #define ATTR_RW   0x0000
 #define ATTR_WO   0x0000 //not sure
 #define ATTR_RO   0x0001
@@ -95,9 +93,9 @@ struct mode_to_attr_entry_t
 
 #define ATTR_UNK0 0x1000
 
-#define ATTR_NICV 0x2000
-#define ATTR_NENC 0x4000
-#define ATTR_NPFS (ATTR_NENC | ATTR_NICV) // 0x6000
+#define ATTR_NICV 0x2000 // does not have icv
+#define ATTR_NENC 0x4000 // not encrypted
+#define ATTR_NPFS (ATTR_NENC | ATTR_NICV) // 0x6000 - not pfs
 
 #define ATTR_DIR  0x8000
 
@@ -144,3 +142,10 @@ std::uint16_t img_spec_to_mode_index(std::uint16_t image_spec);
 pfs_image_types is_unicv_to_img_type(bool isUnicv);
 
 bool db_type_to_is_unicv(db_types type);
+
+//----------------------
+
+#define PMI_BCL_FLAG_UNK0 0x01
+#define PMI_BCL_FLAG_UNK2 0x08
+#define PMI_BCL_FLAG_UNK3 0x20
+#define PMI_BCL_FLAG_UNK1 0x40
