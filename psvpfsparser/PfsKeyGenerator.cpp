@@ -84,7 +84,7 @@ int scePfsUtilGetSDKeys(unsigned char* dec_key, unsigned char* tweak_enc_key, co
 //[TESTED]
 int scePfsUtilGetGDKeys(unsigned char* dec_key, unsigned char* tweak_enc_key, const unsigned char* klicensee, std::uint32_t files_salt, std::uint16_t pmi_bcl_flag, std::uint32_t icv_salt)
 {
-   if((pmi_bcl_flag & 2) > 0)
+   if(pmi_bcl_flag & PMI_BCL_CRYPTO_USE_KEYGEN)
    {
       memcpy(dec_key, klicensee, 0x10);
 

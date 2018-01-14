@@ -2,9 +2,6 @@
 
 #include <cstdint>
 
-#define PFS_CRYPTO_USE_CMAC   0x0001 //1
-#define PFS_CRYPTO_USE_KEYGEN 0x0002 //2
-
 //#### GROUP 1 (possible keygen aes-cbc-cts dec/aes-cbc-cts enc) ####
 //#### GROUP 2 (possible keygen aes-cmac-cts dec/aes-cmac-cts enc) (technically there is no dec/enc - this is pair of same functions since cmac) ####
 

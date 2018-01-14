@@ -17,14 +17,14 @@ void verify_step(CryptEngineWorkCtx* crypt_ctx, std::uint16_t mode_index, unsign
    if((crypt_ctx->subctx->data->fs_attr & ATTR_NICV || crypt_ctx->subctx->data->fs_attr & ATTR_DIR))
       return; // this does not terminate crypto task (local exit)
 
-   if(crypt_ctx->subctx->data->pmi_bcl_flag & PMI_BCL_FLAG_UNK3)
+   if(crypt_ctx->subctx->data->pmi_bcl_flag & PMI_BCL_SKIP_VERIFY)
       return; // this does not terminate crypto task (local exit)
 
    //check signature table
 
    if(!is_gamedata(mode_index))
    {
-      if((crypt_ctx->subctx->data->pmi_bcl_flag & (PMI_BCL_FLAG_UNK0 | PMI_BCL_FLAG_UNK1)) != (PMI_BCL_FLAG_UNK0 | PMI_BCL_FLAG_UNK1))
+      if((crypt_ctx->subctx->data->pmi_bcl_flag & (PMI_BCL_CRYPTO_USE_CMAC | PMI_BCL_SKIP_DECRYPT)) != (PMI_BCL_CRYPTO_USE_CMAC | PMI_BCL_SKIP_DECRYPT))
       {
          if(crypt_ctx->subctx->nBlocks != 0)
          {
@@ -43,7 +43,7 @@ void verify_step(CryptEngineWorkCtx* crypt_ctx, std::uint16_t mode_index, unsign
                int ver_res = memcmp(signatures_base, bytes14, 0x14);
 
                //if verify is not successful and flag is not specified
-               if((ver_res != 0) && ((crypt_ctx->subctx->data->pmi_bcl_flag & (PMI_BCL_FLAG_UNK2 | PMI_BCL_FLAG_UNK0)) != PMI_BCL_FLAG_UNK0))
+               if((ver_res != 0) && ((crypt_ctx->subctx->data->pmi_bcl_flag & (PMI_BCL_THROW_ERROR | PMI_BCL_CRYPTO_USE_CMAC)) != PMI_BCL_CRYPTO_USE_CMAC))
                {
                   crypt_ctx->error = 0x80140F02;
                   return; // this should terminate crypto task (global exit)
@@ -60,7 +60,7 @@ void verify_step(CryptEngineWorkCtx* crypt_ctx, std::uint16_t mode_index, unsign
    }
    else
    {
-      if((crypt_ctx->subctx->data->pmi_bcl_flag & 0x41) != 0x41)
+      if((crypt_ctx->subctx->data->pmi_bcl_flag & (PMI_BCL_CRYPTO_USE_CMAC | PMI_BCL_SKIP_DECRYPT)) != (PMI_BCL_CRYPTO_USE_CMAC | PMI_BCL_SKIP_DECRYPT))
       {
          std::uint32_t tweak_key = crypt_ctx->subctx->sector_base;
                   
@@ -85,7 +85,7 @@ void verify_step(CryptEngineWorkCtx* crypt_ctx, std::uint16_t mode_index, unsign
                int ver_res = memcmp(signatures_base, bytes14, 0x14);
                         
                //if verify is not successful and flag is not specified
-               if((ver_res != 0) && ((crypt_ctx->subctx->data->pmi_bcl_flag & (PMI_BCL_FLAG_UNK2 | PMI_BCL_FLAG_UNK0)) != PMI_BCL_FLAG_UNK0))
+               if((ver_res != 0) && ((crypt_ctx->subctx->data->pmi_bcl_flag & (PMI_BCL_THROW_ERROR | PMI_BCL_CRYPTO_USE_CMAC)) != PMI_BCL_CRYPTO_USE_CMAC))
                {
                   crypt_ctx->error = 0x80140F02;
                   return; // this should terminate crypto task (global exit)
@@ -114,7 +114,7 @@ void work_3_step0(CryptEngineWorkCtx* crypt_ctx, std::uint16_t mode_index, unsig
       return; // this should terminate crypto task (global exit)
    }
    
-   if((crypt_ctx->subctx->data->pmi_bcl_flag & (PMI_BCL_FLAG_UNK0 | PMI_BCL_FLAG_UNK1)) == (PMI_BCL_FLAG_UNK0 | PMI_BCL_FLAG_UNK1))
+   if((crypt_ctx->subctx->data->pmi_bcl_flag & (PMI_BCL_CRYPTO_USE_CMAC | PMI_BCL_SKIP_DECRYPT)) == (PMI_BCL_CRYPTO_USE_CMAC | PMI_BCL_SKIP_DECRYPT))
    {
       crypt_ctx->error = 0;
       return; // this should terminate crypto task (global exit)
@@ -189,7 +189,7 @@ void work_3_step1(CryptEngineWorkCtx* crypt_ctx, std::uint16_t mode_index, unsig
       //check that is not a directory and is encrypted
       if(((crypt_ctx->subctx->data->fs_attr & ATTR_NENC) == 0) && ((crypt_ctx->subctx->data->fs_attr & ATTR_DIR) == 0))
       {
-         if((crypt_ctx->subctx->data->pmi_bcl_flag & (PMI_BCL_FLAG_UNK0 | PMI_BCL_FLAG_UNK1)) != (PMI_BCL_FLAG_UNK0 | PMI_BCL_FLAG_UNK1))
+         if((crypt_ctx->subctx->data->pmi_bcl_flag & (PMI_BCL_CRYPTO_USE_CMAC | PMI_BCL_SKIP_DECRYPT)) != (PMI_BCL_CRYPTO_USE_CMAC | PMI_BCL_SKIP_DECRYPT))
          {
             std::uint64_t head_tweak_key = crypt_ctx->subctx->sector_base * crypt_ctx->subctx->data->block_size;
 
@@ -229,7 +229,7 @@ void work_3_step1(CryptEngineWorkCtx* crypt_ctx, std::uint16_t mode_index, unsig
    
    if((crypt_ctx->subctx->data->fs_attr & ATTR_DIR) == 0)
    {   
-      if((crypt_ctx->subctx->data->pmi_bcl_flag & (PMI_BCL_FLAG_UNK0 | PMI_BCL_FLAG_UNK1)) != (PMI_BCL_FLAG_UNK0 | PMI_BCL_FLAG_UNK1))
+      if((crypt_ctx->subctx->data->pmi_bcl_flag & (PMI_BCL_CRYPTO_USE_CMAC | PMI_BCL_SKIP_DECRYPT)) != (PMI_BCL_CRYPTO_USE_CMAC | PMI_BCL_SKIP_DECRYPT))
       {
          std::uint64_t tail_tweak_key = crypt_ctx->subctx->data->block_size * (crypt_ctx->subctx->sector_base + (crypt_ctx->subctx->nBlocks - 1));
          unsigned char* tail_buffer = buffer + crypt_ctx->subctx->data->block_size * (crypt_ctx->subctx->nBlocks - 1);
@@ -258,7 +258,7 @@ void work_3_step1(CryptEngineWorkCtx* crypt_ctx, std::uint16_t mode_index, unsig
 
    //copy result if pmi flags are not correct
 
-   if((crypt_ctx->subctx->data->pmi_bcl_flag & (PMI_BCL_FLAG_UNK0 | PMI_BCL_FLAG_UNK1)) == (PMI_BCL_FLAG_UNK0 | PMI_BCL_FLAG_UNK1))
+   if((crypt_ctx->subctx->data->pmi_bcl_flag & (PMI_BCL_CRYPTO_USE_CMAC | PMI_BCL_SKIP_DECRYPT)) == (PMI_BCL_CRYPTO_USE_CMAC | PMI_BCL_SKIP_DECRYPT))
    {
       if(output_src != output_dst)
          memcpy(output_dst, output_src, output_size);

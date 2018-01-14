@@ -145,7 +145,9 @@ bool db_type_to_is_unicv(db_types type);
 
 //----------------------
 
-#define PMI_BCL_FLAG_UNK0 0x01
-#define PMI_BCL_FLAG_UNK2 0x08
-#define PMI_BCL_FLAG_UNK3 0x20
-#define PMI_BCL_FLAG_UNK1 0x40
+#define PMI_BCL_CRYPTO_USE_CMAC   0x0001 //setting this flag will force decryption calls to use cmac functions instead of decryption
+#define PMI_BCL_CRYPTO_USE_KEYGEN 0x0002 //setting this flag will force decryption calls to use "with keygen" dmac5 functions
+#define PMI_BCL_THROW_ERROR       0x0008 //setting this flag allows to throw errors if they happen during icv (signature) verification step
+
+#define PMI_BCL_SKIP_VERIFY       0x0020 //setting this flag allows to skip icv (signature) verification step when doing pfs decryption
+#define PMI_BCL_SKIP_DECRYPT      0x0040 //setting this flag together with PMI_BCL_CRYPTO_USE_CMAC will skip decryption calls

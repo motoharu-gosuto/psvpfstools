@@ -10,6 +10,7 @@
 #include "IcvPrimitives.h"
 
 #include "PfsCryptEngineBase.h"
+#include "FlagOperations.h"
 
 //[TESTED both branches]
 int gen_secret(unsigned char* combo, std::uint32_t files_salt, std::uint32_t icv_salt)
@@ -77,14 +78,14 @@ int generate_secret(unsigned char* secret, const unsigned char* klicensee,  std:
 
 int scePfsUtilGetSecret(unsigned char* secret, const unsigned char* klicensee, std::uint32_t files_salt, std::uint16_t pmi_bcl_flag, std::uint32_t icv_salt, std::uint16_t key_id)
 {
-   if((pmi_bcl_flag & 1) > 0) // check bit 0
+   if(pmi_bcl_flag & PMI_BCL_CRYPTO_USE_CMAC) // check bit 0
    {
       throw std::runtime_error("Untested branch in scePfsUtilGetSecret");
 
       memset(secret, 0, 0x14);
       return 0;
    }
-   if((pmi_bcl_flag & 2) > 0) // check bit 1
+   else if(pmi_bcl_flag & PMI_BCL_CRYPTO_USE_KEYGEN) // check bit 1
    {
       return generate_secret_np(secret, klicensee, files_salt, icv_salt, key_id);
    }
