@@ -376,7 +376,6 @@ int bruteforce_map(boost::filesystem::path titleIdPath, unsigned char* klicensee
 
    if(fileDatas.size() != 0)
    {
-      std::cout << "Extra files are left after mapping (warning):" << std::endl;
       for(auto& f : fileDatas)
          std::cout << f.first << std::endl;
    }

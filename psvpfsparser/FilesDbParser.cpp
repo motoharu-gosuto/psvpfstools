@@ -109,10 +109,25 @@ bool validate_header(const sce_ng_pfs_header_t& header, int64_t dataSize, bool i
    }
 
    //check image spec
-   if(scePfsCheckImage(img_type_to_mode_index(is_unicv_to_img_type(isUnicv)), header.image_spec) < 0)
    {
-      std::cout << "Invalid image spec" << std::endl;
-      return false;
+      std::vector<pfs_image_types> possibleTypes;
+      is_unicv_to_img_types(isUnicv, possibleTypes);
+
+      bool found = false;
+      for(auto pt : possibleTypes)
+      {
+         if(scePfsCheckImage(img_type_to_mode_index(pt), header.image_spec) == 0)
+         {
+            found = true;
+            break;
+         }
+      }
+
+      if(!found)
+      {
+         std::cout << "Invalid image spec" << std::endl;
+         return false;
+      }
    }
    
    //check key_id - should be 0 - we do not expect any other values or the code has to be changed

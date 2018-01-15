@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <vector>
 
 bool scePfsIsRoImage(std::uint16_t image_spec);
 
@@ -44,7 +45,7 @@ enum pfs_image_types : std::uint16_t
    gamedata = 0,
    savedata = 1,
    ac_root = 2,
-   acid_dir = 3
+   acid_dir = 3 // DLC
 };
 
 pfs_image_types img_spec_to_img_type(std::uint16_t image_spec);
@@ -139,7 +140,7 @@ std::uint16_t img_spec_to_pmi_bcl_flag(std::uint16_t image_spec);
 
 std::uint16_t img_spec_to_mode_index(std::uint16_t image_spec);
 
-pfs_image_types is_unicv_to_img_type(bool isUnicv);
+void is_unicv_to_img_types(bool isUnicv, std::vector<pfs_image_types>& possibleTypes);
 
 bool db_type_to_is_unicv(db_types type);
 

@@ -1,6 +1,7 @@
 #include "FlagOperations.h"
 
 #include <stdexcept>
+#include <vector>
 
 //set of methods to distinguish between ro and rw db by checking image spec
 
@@ -479,10 +480,12 @@ std::uint16_t img_spec_to_pmi_bcl_flag(std::uint16_t image_spec)
 
    switch(img_type)
    {
-   case pfs_image_types::gamedata:
+   case pfs_image_types::gamedata: //gamedata is considered to be a pfs_pack (unicv.db - sef of pfs_file objects)
       return PMI_BCL_CRYPTO_USE_KEYGEN;
-   case pfs_image_types::savedata:
+   case pfs_image_types::savedata: // savedata is considered to be a pfs_file (icv.db)
       return 0;
+   case pfs_image_types::acid_dir:
+      return PMI_BCL_CRYPTO_USE_KEYGEN; //DLCs are considered to be a pfs_pack (unicv.db - sef of pfs_file objects)
    default:
       return PMI_BCL_CRYPTO_USE_CMAC;
    }
@@ -499,12 +502,17 @@ std::uint16_t img_spec_to_mode_index(std::uint16_t image_spec)
 
 //pseudo function that returns image type based on the fact that data is unicv.db
 
-pfs_image_types is_unicv_to_img_type(bool isUnicv)
+void is_unicv_to_img_types(bool isUnicv, std::vector<pfs_image_types>& possibleTypes)
 {
    if(isUnicv)
-      return pfs_image_types::gamedata;
+   {
+      possibleTypes.push_back(pfs_image_types::gamedata);
+      possibleTypes.push_back(pfs_image_types::acid_dir);
+   }
    else
-      return pfs_image_types::savedata;
+   {
+      possibleTypes.push_back(pfs_image_types::savedata);
+   }
 }
 
 //pseudo function that converts db type to boolean
