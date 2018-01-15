@@ -347,7 +347,7 @@ std::uint16_t mode_to_attr(std::uint32_t mode, bool is_dir, std::uint16_t mode_i
 {
    if(is_dir)
    {
-       if (mode & MODE_UNK0)
+       if (mode & MODE_AC)
        {
           if(mode_index != 4 || node_index > 0) //applicable only to ac_root
           {
@@ -362,10 +362,10 @@ std::uint16_t mode_to_attr(std::uint32_t mode, bool is_dir, std::uint16_t mode_i
 
    if(is_dir)
    {
-      fs_attr |= ATTR_DIR;
+      fs_attr |= ATTR_DIR; //normal directory
 
-      if(mode & MODE_UNK0) //applicable only to ac_root
-         fs_attr |= ATTR_UNK0;
+      if(mode & MODE_AC) //applicable only to ac_root
+         fs_attr |= ATTR_AC; //ac directory
    }
 
    return fs_attr;
@@ -482,7 +482,9 @@ std::uint16_t img_spec_to_pmi_bcl_flag(std::uint16_t image_spec)
    {
    case pfs_image_types::gamedata: //gamedata is considered to be a pfs_pack (unicv.db - sef of pfs_file objects)
       return PMI_BCL_CRYPTO_USE_KEYGEN;
-   case pfs_image_types::savedata: // savedata is considered to be a pfs_file (icv.db)
+   case pfs_image_types::savedata: //savedata is considered to be a pfs_file (icv.db)
+      return 0;
+   case pfs_image_types::ac_root: //ADDCONT is considered to be a pfs_file (icv.db)
       return 0;
    case pfs_image_types::acid_dir:
       return PMI_BCL_CRYPTO_USE_KEYGEN; //DLCs are considered to be a pfs_pack (unicv.db - sef of pfs_file objects)
@@ -512,6 +514,7 @@ void is_unicv_to_img_types(bool isUnicv, std::vector<pfs_image_types>& possibleT
    else
    {
       possibleTypes.push_back(pfs_image_types::savedata);
+      possibleTypes.push_back(pfs_image_types::ac_root);
    }
 }
 

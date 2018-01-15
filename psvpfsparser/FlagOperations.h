@@ -44,7 +44,7 @@ enum pfs_image_types : std::uint16_t
 {
    gamedata = 0,
    savedata = 1,
-   ac_root = 2,
+   ac_root = 2, // ADDCONT
    acid_dir = 3 // DLC
 };
 
@@ -68,11 +68,11 @@ struct mode_to_attr_entry_t
 
 #define MODE_MASK1 (MODE_RW | MODE_RO | MORE_WO | MODE_SYS)
 
-#define MODE_UNK0    0x1000
+#define MODE_AC    0x1000
 #define MODE_DIR     0x8000
-#define MODE_ACIDDIR (MODE_UNK0 | MODE_DIR) // 0x9000
+#define MODE_ACIDDIR (MODE_AC | MODE_DIR) // 0x9000
 
-#define MODE_MASK2 (MODE_UNK0 | MODE_DIR)
+#define MODE_MASK2 (MODE_AC | MODE_DIR)
 
 #define MODE_NENC    0x100000
 #define MODE_NICV    0x200000
@@ -92,7 +92,7 @@ struct mode_to_attr_entry_t
 
 #define ATTR_UNK3 0x0400
 
-#define ATTR_UNK0 0x1000
+#define ATTR_AC 0x1000
 
 #define ATTR_NICV 0x2000 // does not have icv
 #define ATTR_NENC 0x4000 // not encrypted

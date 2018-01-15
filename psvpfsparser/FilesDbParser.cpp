@@ -284,7 +284,8 @@ bool parseFilesDb(unsigned char* klicensee, std::ifstream& inputStream, bool isU
             fi.header.type != sce_ng_pfs_file_types::encrypted_system_file && 
             fi.header.type != sce_ng_pfs_file_types::unk_directory && 
             fi.header.type != sce_ng_pfs_file_types::unencrypted_unk1 &&
-            fi.header.type != sce_ng_pfs_file_types::encrypted_unk2)
+            fi.header.type != sce_ng_pfs_file_types::encrypted_unk2 &&
+            fi.header.type != sce_ng_pfs_file_types::acid_directory)
          {
             std::cout << "Unexpected file type" << std::endl;
             return false;
@@ -361,7 +362,9 @@ bool constructDirmatrix(const std::vector<sce_ng_pfs_block_t>& blocks, std::map<
    {
       for(std::uint32_t i = 0; i < block.header.nFiles; i++)
       {
-         if(block.m_infos[i].header.type != sce_ng_pfs_file_types::normal_directory && block.m_infos[i].header.type != sce_ng_pfs_file_types::unk_directory)
+         if(block.m_infos[i].header.type != sce_ng_pfs_file_types::normal_directory && 
+            block.m_infos[i].header.type != sce_ng_pfs_file_types::unk_directory &&
+            block.m_infos[i].header.type != sce_ng_pfs_file_types::acid_directory)
             continue;
 
          std::uint32_t child = block.m_infos[i].header.idx;
@@ -402,7 +405,9 @@ bool constructFileMatrix(std::vector<sce_ng_pfs_block_t>& blocks, std::map<std::
    {
       for(std::uint32_t i = 0; i < block.header.nFiles; i++)
       {
-         if(block.m_infos[i].header.type == sce_ng_pfs_file_types::normal_directory || block.m_infos[i].header.type == sce_ng_pfs_file_types::unk_directory)
+         if(block.m_infos[i].header.type == sce_ng_pfs_file_types::normal_directory || 
+            block.m_infos[i].header.type == sce_ng_pfs_file_types::unk_directory ||
+            block.m_infos[i].header.type == sce_ng_pfs_file_types::acid_directory)
             continue;
 
          std::uint32_t child = block.m_infos[i].header.idx;
@@ -504,7 +509,8 @@ const std::vector<sce_ng_pfs_flat_block_t>::const_iterator findFlatBlockDir(cons
    for(auto& block : flatBlocks)
    {
       if((block.m_info.header.idx == index && block.m_info.header.type == sce_ng_pfs_file_types::normal_directory) ||
-         (block.m_info.header.idx == index && block.m_info.header.type == sce_ng_pfs_file_types::unk_directory))
+         (block.m_info.header.idx == index && block.m_info.header.type == sce_ng_pfs_file_types::unk_directory) ||
+         (block.m_info.header.idx == index && block.m_info.header.type == sce_ng_pfs_file_types::acid_directory))
          return flatBlocks.begin() + i;
       i++;
    }
@@ -518,7 +524,8 @@ const std::vector<sce_ng_pfs_flat_block_t>::const_iterator findFlatBlockFile(con
    for(auto& block : flatBlocks)
    {
       if((block.m_info.header.idx == index && block.m_info.header.type != sce_ng_pfs_file_types::normal_directory) &&
-         (block.m_info.header.idx == index && block.m_info.header.type != sce_ng_pfs_file_types::unk_directory))
+         (block.m_info.header.idx == index && block.m_info.header.type != sce_ng_pfs_file_types::unk_directory) &&
+         (block.m_info.header.idx == index && block.m_info.header.type != sce_ng_pfs_file_types::acid_directory))
          return flatBlocks.begin() + i;
       i++;
    }
@@ -691,6 +698,8 @@ std::string fileTypeToString(sce_ng_pfs_file_types ft)
       return "normal_directory";
    case sce_ng_pfs_file_types::unk_directory:
       return "unk_directory";
+   case sce_ng_pfs_file_types::acid_directory:
+      return "acid_dir";
    case sce_ng_pfs_file_types::unencrypted_system_file:
       return "unencrypted_system_file";
    case sce_ng_pfs_file_types::encrypted_system_file:

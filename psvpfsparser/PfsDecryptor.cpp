@@ -851,6 +851,7 @@ int decrypt_files(boost::filesystem::path titleIdPath, boost::filesystem::path d
       //directory and unexisting file are unexpected
       if(file->file.m_info.header.type == sce_ng_pfs_file_types::normal_directory ||
          file->file.m_info.header.type == sce_ng_pfs_file_types::unk_directory ||
+         file->file.m_info.header.type == sce_ng_pfs_file_types::acid_directory ||
          file->file.m_info.header.type == sce_ng_pfs_file_types::unexisting)
       {
          std::cout << "Unexpected file type" << std::endl;
