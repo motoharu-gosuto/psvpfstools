@@ -11,10 +11,9 @@
 #include "FlagOperations.h"
 
 //[TESTED]
+//this function can be used both for gamedata and savedata
 int generate_enckeys(unsigned char* dec_key, unsigned char* tweak_enc_key, const unsigned char* klicensee, std::uint32_t icv_salt)
 {
-   throw std::runtime_error("Untested branch in generate_enckeys");
-
    int saltin[2] = {0};
    unsigned char base0[0x14] = {0};
    unsigned char base1[0x14] = {0};
@@ -48,15 +47,15 @@ int generate_enckeys(unsigned char* dec_key, unsigned char* tweak_enc_key, const
    return 0;
 }
 
-//[TESTED]
+//[TESTED both branches]
+//this function is used only for gamedata with icv_version <= 1
+//files_salt is not empty starting from FILES_EXPECTED_VERSION_4
 int gen_iv(unsigned char* tweak_enc_key, std::uint32_t files_salt, std::uint32_t icv_salt)
 {
    unsigned char drvkey[0x14] = {0};
 
    if(files_salt == 0)
    {
-      throw std::runtime_error("Untested branch in gen_iv");
-
       int saltin0[1] = {0};
       saltin0[0] = icv_salt;
 
@@ -64,8 +63,6 @@ int gen_iv(unsigned char* tweak_enc_key, std::uint32_t files_salt, std::uint32_t
    }
    else
    {
-      throw std::runtime_error("Untested branch in gen_iv");
-
       int saltin1[2] = {0};
       saltin1[0] = files_salt;
       saltin1[1] = icv_salt;
@@ -81,21 +78,19 @@ int gen_iv(unsigned char* tweak_enc_key, std::uint32_t files_salt, std::uint32_t
 //---------------------
 
 //[TESTED]
+//this function is used for savedata
 int scePfsUtilGetSDKeys(unsigned char* dec_key, unsigned char* tweak_enc_key, const unsigned char* klicensee, std::uint32_t files_salt, std::uint32_t icv_salt)
 {
-   throw std::runtime_error("Untested branch in scePfsUtilGetSDKeys");
-
    //files_salt is ignored
    return generate_enckeys(dec_key, tweak_enc_key, klicensee, icv_salt);
 }
 
-//[TESTED]
+//[TESTED one branch]
+//this function is used for gamedata with icv_version <= 1
 int scePfsUtilGetGDKeys(unsigned char* dec_key, unsigned char* tweak_enc_key, const unsigned char* klicensee, std::uint32_t files_salt, std::uint16_t pmi_bcl_flag, std::uint32_t icv_salt)
 {
    if(pmi_bcl_flag & PMI_BCL_CRYPTO_USE_KEYGEN)
    {
-      throw std::runtime_error("Untested branch in scePfsUtilGetGDKeys");
-
       memcpy(dec_key, klicensee, 0x10);
 
       return gen_iv(tweak_enc_key, files_salt, icv_salt);
@@ -109,10 +104,9 @@ int scePfsUtilGetGDKeys(unsigned char* dec_key, unsigned char* tweak_enc_key, co
 }
 
 //[TESTED]
+//this function is used for gamedata with icv_version > 1
 int scePfsUtilGetGDKeys2(unsigned char* dec_key, unsigned char* tweak_enc_key, const unsigned char* klicensee, const unsigned char* dbseed, std::uint32_t dbseed_len)
 {
-   throw std::runtime_error("Untested branch in scePfsUtilGetGDKeys2");
-
    unsigned char drvkey[0x14] = {0};
 
    icv_set_hmac_sw(drvkey, hmac_key0, dbseed, dbseed_len);
@@ -126,6 +120,8 @@ int scePfsUtilGetGDKeys2(unsigned char* dec_key, unsigned char* tweak_enc_key, c
 
 //---------------------
 
+//[TESTED]
+//this function is used to derive keys for gamedata and savedata
 int setup_crypt_packet_keys(CryptEngineData* data, const derive_keys_ctx* drv_ctx)
 {
    if(is_gamedata(data->mode_index))
