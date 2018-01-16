@@ -103,6 +103,12 @@ int get_sealedkey(boost::filesystem::path titleIdPath, unsigned char* dec_key)
    boost::filesystem::path root(titleIdPath);
    boost::filesystem::path filepath = root / "sce_sys" / "sealedkey";
 
+   if(!boost::filesystem::exists(filepath))
+   {
+      std::cout << "sealedkey does not exist" << std::endl;
+      return -1;
+   }
+
    sealedkey_t sk;
 
    std::ifstream inputStream(filepath.generic_string().c_str(), std::ios::in | std::ios::binary);
@@ -123,6 +129,12 @@ int get_keystone(boost::filesystem::path titleIdPath, char* passcode)
 {
    boost::filesystem::path root(titleIdPath);
    boost::filesystem::path filepath = root / "sce_sys" / "keystone";
+
+   if(!boost::filesystem::exists(filepath))
+   {
+      std::cout << "keystone does not exist" << std::endl;
+      return -1;
+   }
 
    keystone_t ks;
 
