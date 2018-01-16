@@ -482,7 +482,7 @@ bool sce_iftbl_cvdb_proxy_t::read(std::ifstream& inputStream, std::uint64_t& ind
 
 std::uint32_t sce_iftbl_proxy_t::get_icv_salt() const
 {
-   return get_page(); // unicv.db uses page number as salt
+   return m_page; // unicv.db uses page number as salt
 }
 
 

@@ -477,12 +477,6 @@ public:
    }
 
 public:
-   std::uint32_t get_page() const
-   {
-      return m_page;
-   }
-
-public:
    virtual bool read(std::ifstream& inputStream, std::uint64_t& index, std::uint32_t icv_salt);
 
 protected:
