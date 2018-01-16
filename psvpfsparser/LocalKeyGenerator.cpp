@@ -12,6 +12,7 @@
 #include <libcrypto/aes.h>
 
 #include "LocalKeys.h"
+#include "Utils.h"
 
 //check functions are based on code provided by Proxima
 
@@ -19,11 +20,35 @@ int check_sealedkey(sealedkey_t& sk)
 {
    std::uint8_t result[0x20];
 
+   if(std::string((char*)sk.magic, 8) != SEALEDKEY_MAGIC)
+   {
+      std::cout << "sealedkey: invalid magic" << std::endl;
+      return -1;
+   }
+
+   if(sk.type_major != SEALEDKEY_EXPECTED_TYPE_MAJOR)
+   {
+      std::cout << "sealedkey: invalid type_major" << std::endl;
+      return -1;
+   }
+   
+   if(sk.type_minor != SEALEDKEY_EXPECTED_TYPE_MINOR)
+   {
+      std::cout << "sealedkey: invalid type_minor" << std::endl;
+      return -1;
+   }
+
+   if(!isZeroVector(sk.padding, sk.padding + sizeof(sk.padding)))
+   {
+      std::cout << "sealedkey: invalid padding" << std::endl;
+      return -1;
+   }
+
    hmac_sha256(sealedkey_retail_key, 0x10, (unsigned char*)&sk, 0x30, result);
    if(memcmp(sk.hmac, result, 0x20) == 0) 
    {
       std::cout << "sealedkey: matched retail hmac" << std::endl;
-      return 1;
+      return 0;
    } 
    else 
    {
@@ -44,6 +69,30 @@ int check_sealedkey(sealedkey_t& sk)
 int check_keystone(keystone_t& ks)
 {
    std::uint8_t result[0x20];
+
+   if(std::string((char*)ks.magic, 8) != KEYSTONE_MAGIC)
+   {
+      std::cout << "keystone: invalid magic" << std::endl;
+      return -1;
+   }
+
+   if(ks.type != KEYSTONE_EXPECTED_TYPE)
+   {
+      std::cout << "keystone: invalid type" << std::endl;
+      return -1;
+   }
+   
+   if(ks.version != KEYSTONE_EXPECTED_VERSION)
+   {
+      std::cout << "keystone: invalid version" << std::endl;
+      return -1;
+   }
+
+   if(!isZeroVector(ks.padding, ks.padding + sizeof(ks.padding)))
+   {
+      std::cout << "keystone: invalid padding" << std::endl;
+      return -1;
+   }
 
    hmac_sha256(keystone_hmac_secret, 0x20, (unsigned char*)&ks, 0x40, result);
    if(memcmp(ks.keystone_hmac, result, 0x20) == 0) 

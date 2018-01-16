@@ -13,9 +13,9 @@
 typedef struct sealedkey_t
 {
    std::uint8_t magic[8];
-   std::uint16_t type_major;
-   std::uint16_t type_minor;
-   std::uint32_t padding;
+   std::uint8_t type_major;
+   std::uint8_t type_minor;
+   std::uint8_t padding[6];
    std::uint8_t iv[0x10];
    std::uint8_t enc_key[0x10];
    std::uint8_t hmac[0x20];
