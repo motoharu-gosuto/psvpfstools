@@ -91,6 +91,11 @@ int execute(PsvPfsParserConfig& cfg)
    if(decrypt_files(titleIdPath, destTitleIdPath, klicensee, header, files, dirs, unicv, pageMap, emptyFiles) < 0)
       return -1;
 
+   std::cout << "keystone sanity check..." << std::endl;
+
+   if(get_keystone(destTitleIdPath) < 0)
+      return -1;
+
    return 0;
 }
 
