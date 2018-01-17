@@ -63,20 +63,49 @@ You have to set these environment variables for cmake:
 - CURL_INCLUDE_DIR=C:\Program Files (x86)\CURL\include
 - CURL_LIBRARY=C:\Program Files (x86)\CURL\lib\libcurl_imp.lib
 #### Ubuntu (example)
-You can install curl library with apt-get: apt-get install libcurl4-gnutls-dev or libcurl4-openssl-dev
+You can install curl library with apt-get: 
+
+```
+apt-get install libcurl4-gnutls-dev
+```
+or
+```
+apt-get install libcurl4-openssl-dev
+```
 
 ### boost
 
 #### Windows (example)
 Any boost version should work out in theory. Build was tested with 1.55 and 1.65.1
-Consult with this page for build:
+
+To build boost with Visual Studio 2012 you can follow these steps
+- Start Visual Studio command prompt
+- Navigate to boost directory
+- Execute the following commands
+
+```
+bootstrap.bat
+b2 toolset=msvc-11.0 address-model=64 --build-type=complete stage
+```
+
+First command sets up build system. Second command builds boost libraries. 
+You can remove address-model argument if you need 32 bit build.
+If you want to use different version of Visual Studio - change toolset parameter.
+If you need different type of build - look at such options as variant, link, runtime-link.
+Build type complete will build all library variations.
+
+For additional reference - consult with this page for windows build:
 http://www.boost.org/doc/libs/1_65_1/more/getting_started/windows.html
 
 You have to set these environment variables for cmake:
 - BOOST_INCLUDEDIR=C:\boost_1_55_0
 - BOOST_LIBRARYDIR=C:\boost_1_55_0\vc110\lib
 #### Ubuntu (example)
-You can install boost with apt-get: libboost-all-dev
+You can install boost with apt-get: 
+
+```
+apt-get install libboost-all-dev
+```
 
 ### zlib
 
@@ -88,7 +117,11 @@ You have to set these environment variables for cmake:
 - ZLIB_LIBRARY=C:\zlib\contrib\vstudio\vc11\x86\ZlibStatDebug\zlibstat.lib
 
 #### Ubuntu (example)
-You can install zlib with apt-get: zlib1g-dev
+You can install zlib with apt-get: 
+
+```
+aptget install zlib1g-dev
+```
 
 ## build
 
