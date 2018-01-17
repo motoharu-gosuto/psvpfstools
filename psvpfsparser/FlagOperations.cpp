@@ -224,7 +224,7 @@ mode_to_attr_entry_t genericMode2AttrTbl[4] =
    {MODE_SYS, ATTR_SYS, 0}, //sys
    {MODE_RO,  ATTR_RO,  0}, //ro
    {MORE_WO,  ATTR_WO,  0}, //wo - not sure
-   {MODE_RW,  ATTR_RW,  0}, //rw
+   {MODE_RW_OR_NONE,  ATTR_RW_OR_NONE,  0}, //rw
 };
 
 mode_to_attr_entry_t specificMode2AttrTbl[4] = 
@@ -293,7 +293,7 @@ std::uint32_t get_file_mode(char* type_string, char* string_id)
 
    if(!strcmp(type_string, "") || !strcmp(type_string, "rw"))
    {
-      mode |= MODE_RW;
+      mode |= MODE_RW_OR_NONE;
    }
    else if(!strcmp(type_string, "ro"))
    {

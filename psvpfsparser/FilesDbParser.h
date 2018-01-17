@@ -16,6 +16,7 @@
 #include <boost/algorithm/string.hpp>
 
 #include "Utils.h"
+#include "FlagOperations.h"
 
 #pragma pack(push, 1)
 
@@ -71,40 +72,21 @@ struct sce_ng_pfs_file_header_t
    std::uint8_t fileName[68];
 };
 
-#define FILE_TYPE_FLAG_UNEXISTING   0x0000
-#define FILE_TYPE_FLAG_NORMAL_FILE  0x0001
-#define FILE_TYPE_FLAG_SYSTEM_FILE1 0x0002
-#define FILE_TYPE_FLAG_SYSTEM_FILE2 0x0004
-#define FILE_TYPE_FLAG_UNK00 0x0008
-#define FILE_TYPE_FLAG_UNK01 0x0010
-#define FILE_TYPE_FLAG_UNK02 0x0020
-#define FILE_TYPE_FLAG_UNK03 0x0040
-#define FILE_TYPE_FLAG_UNK04 0x0080
-#define FILE_TYPE_FLAG_UNK05 0x0100
-#define FILE_TYPE_FLAG_UNK06 0x0200
-#define FILE_TYPE_FLAG_UNK07 0x0400
-#define FILE_TYPE_FLAG_UNK08 0x0800
-#define FILE_TYPE_FLAG_UNK09 0x1000
-#define FILE_TYPE_FLAG_UNK10 0x2000
-#define FILE_TYPE_FLAG_UNENCRYPTED 0x4000
-#define FILE_TYPE_FLAG_NORMAL_DIR  0x8000
-
 enum sce_ng_pfs_file_types : std::uint16_t
 {
-   unexisting =       FILE_TYPE_FLAG_UNEXISTING,  //(0x0000)
-   normal_file =      FILE_TYPE_FLAG_NORMAL_FILE, //(0x0001)
-   normal_directory = FILE_TYPE_FLAG_NORMAL_DIR,  //(0x8000)
+   unexisting =                 ATTR_RW_OR_NONE,  //(0x0000)
+   normal_file =                ATTR_RO, //(0x0001)
+   normal_directory =           ATTR_DIR,  //(0x8000)
    
-   // directory that has size multiple of sector size (size of dir is usually 0) (file inside is padded with zeroes) ?
-   unk_directory = FILE_TYPE_FLAG_NORMAL_DIR | FILE_TYPE_FLAG_SYSTEM_FILE1 | FILE_TYPE_FLAG_SYSTEM_FILE2, //(0x8006)
+   sys_directory =              ATTR_DIR | ATTR_SYS1 | ATTR_SYS2, //(0x8006)
 
-   unencrypted_system_file = FILE_TYPE_FLAG_UNENCRYPTED | FILE_TYPE_FLAG_SYSTEM_FILE1 | FILE_TYPE_FLAG_SYSTEM_FILE2, //(0x4006)
-   encrypted_system_file = FILE_TYPE_FLAG_SYSTEM_FILE1 | FILE_TYPE_FLAG_SYSTEM_FILE2, //(0x0006)
+   unencrypted_system_file_rw = ATTR_NENC | ATTR_SYS1 | ATTR_SYS2, //(0x4006)
+   encrypted_system_file_rw =   ATTR_SYS1 | ATTR_SYS2, //(0x0006)
 
-   unencrypted_unk1 = FILE_TYPE_FLAG_UNENCRYPTED | FILE_TYPE_FLAG_SYSTEM_FILE1 | FILE_TYPE_FLAG_SYSTEM_FILE2 | FILE_TYPE_FLAG_NORMAL_FILE, //(0x4007)
-   encrypted_unk2 = FILE_TYPE_FLAG_SYSTEM_FILE1 | FILE_TYPE_FLAG_SYSTEM_FILE2 | FILE_TYPE_FLAG_NORMAL_FILE, //(0x0007)
+   unencrypted_system_file_ro = ATTR_NENC | ATTR_SYS1 | ATTR_SYS2 | ATTR_RO, //(0x4007)
+   encrypted_system_file_ro =   ATTR_SYS1 | ATTR_SYS2 | ATTR_RO, //(0x0007)
 
-   acid_directory = FILE_TYPE_FLAG_NORMAL_DIR | FILE_TYPE_FLAG_UNK09 | FILE_TYPE_FLAG_SYSTEM_FILE2, //(0x9004) encountered in ADDCONT
+   acid_directory =             ATTR_DIR | ATTR_AC | ATTR_SYS2, //(0x9004) encountered in ADDCONT
 };
 
 #define INVALID_FILE_INDEX 0xFFFFFFFF

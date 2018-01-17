@@ -30,7 +30,7 @@
 bool is_directory(sce_ng_pfs_file_types type)
 {
    return type == sce_ng_pfs_file_types::normal_directory || 
-          type == sce_ng_pfs_file_types::unk_directory || 
+          type == sce_ng_pfs_file_types::sys_directory || 
           type == sce_ng_pfs_file_types::acid_directory;
 }
 
@@ -39,25 +39,25 @@ bool is_valid_file_type(sce_ng_pfs_file_types type)
    return type == sce_ng_pfs_file_types::unexisting || 
           type == sce_ng_pfs_file_types::normal_file || 
           type == sce_ng_pfs_file_types::normal_directory ||
-          type == sce_ng_pfs_file_types::unencrypted_system_file ||
-          type == sce_ng_pfs_file_types::encrypted_system_file ||
-          type == sce_ng_pfs_file_types::unk_directory || 
-          type == sce_ng_pfs_file_types::unencrypted_unk1 ||
-          type == sce_ng_pfs_file_types::encrypted_unk2 ||
+          type == sce_ng_pfs_file_types::unencrypted_system_file_rw ||
+          type == sce_ng_pfs_file_types::encrypted_system_file_rw ||
+          type == sce_ng_pfs_file_types::sys_directory || 
+          type == sce_ng_pfs_file_types::unencrypted_system_file_ro ||
+          type == sce_ng_pfs_file_types::encrypted_system_file_ro ||
           type == sce_ng_pfs_file_types::acid_directory;
 }
 
 bool is_encrypted(sce_ng_pfs_file_types type)
 {
-   return type == sce_ng_pfs_file_types::encrypted_system_file ||
-          type == sce_ng_pfs_file_types::encrypted_unk2 || 
+   return type == sce_ng_pfs_file_types::encrypted_system_file_rw ||
+          type == sce_ng_pfs_file_types::encrypted_system_file_ro || 
           type == sce_ng_pfs_file_types::normal_file;
 }
 
 bool is_unencrypted(sce_ng_pfs_file_types type)
 {
-   return type == sce_ng_pfs_file_types::unencrypted_system_file ||
-          type == sce_ng_pfs_file_types::unencrypted_unk1;
+   return type == sce_ng_pfs_file_types::unencrypted_system_file_rw ||
+          type == sce_ng_pfs_file_types::unencrypted_system_file_ro;
 }
 
 bool is_unexisting(sce_ng_pfs_file_types type)
@@ -718,14 +718,18 @@ std::string fileTypeToString(sce_ng_pfs_file_types ft)
       return "normal_file";
    case sce_ng_pfs_file_types::normal_directory:
       return "normal_directory";
-   case sce_ng_pfs_file_types::unk_directory:
-      return "unk_directory";
+   case sce_ng_pfs_file_types::sys_directory:
+      return "sys_directory";
    case sce_ng_pfs_file_types::acid_directory:
       return "acid_dir";
-   case sce_ng_pfs_file_types::unencrypted_system_file:
-      return "unencrypted_system_file";
-   case sce_ng_pfs_file_types::encrypted_system_file:
-      return "encrypted_system_file";
+   case sce_ng_pfs_file_types::unencrypted_system_file_rw:
+      return "unencrypted_system_file_rw";
+   case sce_ng_pfs_file_types::encrypted_system_file_rw:
+      return "encrypted_system_file_rw";
+   case sce_ng_pfs_file_types::unencrypted_system_file_ro:
+      return "unencrypted_system_file_ro";
+   case sce_ng_pfs_file_types::encrypted_system_file_ro:
+      return "encrypted_system_file_ro";
    default:
       return "unknown";
    }

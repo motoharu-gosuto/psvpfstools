@@ -61,12 +61,12 @@ struct mode_to_attr_entry_t
   std::uint16_t unk6;
 };
 
-#define MODE_RW  0x180
+#define MODE_RW_OR_NONE  0x180
 #define MODE_RO  0x100
 #define MORE_WO  0x080 //not sure
 #define MODE_SYS 0x000
 
-#define MODE_MASK1 (MODE_RW | MODE_RO | MORE_WO | MODE_SYS)
+#define MODE_MASK1 (MODE_RW_OR_NONE | MODE_RO | MORE_WO | MODE_SYS)
 
 #define MODE_AC    0x1000
 #define MODE_DIR     0x8000
@@ -82,13 +82,13 @@ struct mode_to_attr_entry_t
 
 //
 
-#define ATTR_RW   0x0000
+#define ATTR_RW_OR_NONE   0x0000
 #define ATTR_WO   0x0000 //not sure
 #define ATTR_RO   0x0001
 
-#define ATTR_UNK1 0x0002
-#define ATTR_UNK2 0x0004
-#define ATTR_SYS  (ATTR_UNK1 | ATTR_UNK2) //0x0006
+#define ATTR_SYS1 0x0002
+#define ATTR_SYS2 0x0004
+#define ATTR_SYS  (ATTR_SYS1 | ATTR_SYS2) //0x0006
 
 #define ATTR_UNK3 0x0400
 
