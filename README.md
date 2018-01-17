@@ -20,7 +20,7 @@ Currently you can use a service url located at: http://cma.henkaku.xyz
 
 The only purpose of F00D service is to take the given key, encrypt it and give it back. F00D service **does not decrypt PFS**. To those that are curious - service **does not use PS Vita** as well.
 
-Typically during decryption process service is called only once to encrypt klicensee that is extracted from zRIF string. 
+Typically during decryption process service is called only once to encrypt klicensee that is extracted from zRIF string if you are decrypting gamedata or addcont (unicv.db format). Service is called once to encrypt key that is extracted from sealedkey file if you are decrypting savedata, trophies, appmeta, addcont root (icv.db format).
 
 On Vita - there are 3 hardware implementations of crypto functions:
 - Use key - you have a freedom of giving the key to crypto function and key is used directly.
@@ -32,9 +32,13 @@ https://wiki.henkaku.xyz/vita/SceSblSsMgr#SceSblSsMgrForDriver
 
 ## What exactly can be decrypted?
 
+Tool now supports both icv.db and unicv.db formats.
+
+Which means that it can decrypt gamedata, addcont, savedata, trophies, appmeta, addcont root.
+
 In theory everything that is PFS encrypted can be decrypted.
 
-The tool was tested on some games, including 3.61+ and DLCs.
+The tool was tested in all scenarios listed above, including 3.61+ games.
 
 In case of specific problems please refer to the next section.
 
@@ -42,7 +46,7 @@ In case of specific problems please refer to the next section.
 
 PFS tools are still under developement and testing. 
 
-If you find bugs or have problems with decrypting specific application please consider leaving a report here:
+If you find bugs or have problems with decrypting specific data please consider leaving a report here:
 
 https://github.com/motoharu-gosuto/psvpfstools/issues
 
