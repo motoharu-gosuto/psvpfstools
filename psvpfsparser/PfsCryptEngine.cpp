@@ -18,20 +18,20 @@ bool is_noicv(CryptEngineWorkCtx* crypt_ctx)
 }
 
 //not sure how to call
-bool is_pmi_bcl_unk(CryptEngineWorkCtx* crypt_ctx)
+bool is_crypto_engine_unk(CryptEngineWorkCtx* crypt_ctx)
 {
-   return (crypt_ctx->subctx->data->pmi_bcl_flag & (PMI_BCL_CRYPTO_USE_CMAC | PMI_BCL_SKIP_DECRYPT)) == (PMI_BCL_CRYPTO_USE_CMAC | PMI_BCL_SKIP_DECRYPT);
+   return (crypt_ctx->subctx->data->crypto_engine_flag & (CRYPTO_ENGINE_CRYPTO_USE_CMAC | CRYPTO_ENGINE_SKIP_DECRYPT)) == (CRYPTO_ENGINE_CRYPTO_USE_CMAC | CRYPTO_ENGINE_SKIP_DECRYPT);
 }
 
 //not sure how to call
 bool is_verify_skip(CryptEngineWorkCtx* crypt_ctx)
 {
-   return (crypt_ctx->subctx->data->pmi_bcl_flag & PMI_BCL_SKIP_VERIFY) > 0;
+   return (crypt_ctx->subctx->data->crypto_engine_flag & CRYPTO_ENGINE_SKIP_VERIFY) > 0;
 }
 
 bool is_fake(CryptEngineWorkCtx* crypt_ctx)
 {
-   return !(crypt_ctx->subctx->data->pmi_bcl_flag & PMI_BCL_THROW_ERROR) && (crypt_ctx->subctx->data->pmi_bcl_flag & PMI_BCL_CRYPTO_USE_CMAC);
+   return !(crypt_ctx->subctx->data->crypto_engine_flag & CRYPTO_ENGINE_THROW_ERROR) && (crypt_ctx->subctx->data->crypto_engine_flag & CRYPTO_ENGINE_CRYPTO_USE_CMAC);
 }
 
 bool is_noenc(CryptEngineWorkCtx* crypt_ctx)
@@ -44,7 +44,7 @@ bool is_noenc(CryptEngineWorkCtx* crypt_ctx)
 
 int icv_gd_verify(CryptEngineWorkCtx* crypt_ctx, unsigned char* source)
 {
-   if(is_pmi_bcl_unk(crypt_ctx))
+   if(is_crypto_engine_unk(crypt_ctx))
       return 0;
 
    std::uint32_t tweak_key = crypt_ctx->subctx->sector_base;
@@ -94,7 +94,7 @@ int icv_gd_verify(CryptEngineWorkCtx* crypt_ctx, unsigned char* source)
 
 int icv_sd_verify(CryptEngineWorkCtx* crypt_ctx, unsigned char* source)
 {
-   if(is_pmi_bcl_unk(crypt_ctx))
+   if(is_crypto_engine_unk(crypt_ctx))
       return 0;
 
    if(crypt_ctx->subctx->nBlocks != 0)
@@ -175,7 +175,7 @@ int cbc_dec(CryptEngineWorkCtx* crypt_ctx, unsigned char* buffer)
    do
    {
       int size_arg = ((crypt_ctx->subctx->data->block_size < bytes_left) ? crypt_ctx->subctx->data->block_size : bytes_left);
-      pfs_decrypt_unicv(key, tweak_enc_key, tweak_key + offset, size_arg, crypt_ctx->subctx->data->block_size, buffer + offset, buffer + offset, crypt_ctx->subctx->data->pmi_bcl_flag, crypt_ctx->subctx->data->key_id);
+      pfs_decrypt_unicv(key, tweak_enc_key, tweak_key + offset, size_arg, crypt_ctx->subctx->data->block_size, buffer + offset, buffer + offset, crypt_ctx->subctx->data->crypto_engine_flag, crypt_ctx->subctx->data->key_id);
 
       bytes_left = bytes_left - crypt_ctx->subctx->data->block_size;
       offset = offset + crypt_ctx->subctx->data->block_size;
@@ -202,7 +202,7 @@ int xts_dec(CryptEngineWorkCtx* crypt_ctx, unsigned char* buffer)
 
    do
    {
-      pfs_decrypt_icv(key, tweak_enc_key, 0x80, tweak_key + offset, crypt_ctx->subctx->data->block_size, crypt_ctx->subctx->data->block_size, buffer + offset, buffer + offset, crypt_ctx->subctx->data->pmi_bcl_flag);
+      pfs_decrypt_icv(key, tweak_enc_key, 0x80, tweak_key + offset, crypt_ctx->subctx->data->block_size, crypt_ctx->subctx->data->block_size, buffer + offset, buffer + offset, crypt_ctx->subctx->data->crypto_engine_flag);
 
       counter = counter + 1;
       offset = offset + crypt_ctx->subctx->data->block_size;
@@ -221,7 +221,7 @@ void decrypt_simple(CryptEngineWorkCtx* crypt_ctx, std::uint16_t mode_index, uns
       return;
    }
 
-   if(is_pmi_bcl_unk(crypt_ctx))
+   if(is_crypto_engine_unk(crypt_ctx))
    {
       crypt_ctx->error = 0;
       return;
@@ -268,17 +268,17 @@ void decrypt_complex(CryptEngineWorkCtx* crypt_ctx, std::uint16_t mode_index, un
       //check that is not a directory and is encrypted
       if(((crypt_ctx->subctx->data->fs_attr & ATTR_NENC) == 0) && ((crypt_ctx->subctx->data->fs_attr & ATTR_DIR) == 0))
       {
-         if((crypt_ctx->subctx->data->pmi_bcl_flag & (PMI_BCL_CRYPTO_USE_CMAC | PMI_BCL_SKIP_DECRYPT)) != (PMI_BCL_CRYPTO_USE_CMAC | PMI_BCL_SKIP_DECRYPT))
+         if((crypt_ctx->subctx->data->crypto_engine_flag & (CRYPTO_ENGINE_CRYPTO_USE_CMAC | CRYPTO_ENGINE_SKIP_DECRYPT)) != (CRYPTO_ENGINE_CRYPTO_USE_CMAC | CRYPTO_ENGINE_SKIP_DECRYPT))
          {
             std::uint64_t head_tweak_key = crypt_ctx->subctx->sector_base * crypt_ctx->subctx->data->block_size;
 
             if(!is_gamedata(mode_index))
             {
-               pfs_decrypt_icv(key, tweak_enc_key, 0x80, head_tweak_key, crypt_ctx->subctx->data->block_size, crypt_ctx->subctx->data->block_size, buffer, buffer, crypt_ctx->subctx->data->pmi_bcl_flag);
+               pfs_decrypt_icv(key, tweak_enc_key, 0x80, head_tweak_key, crypt_ctx->subctx->data->block_size, crypt_ctx->subctx->data->block_size, buffer, buffer, crypt_ctx->subctx->data->crypto_engine_flag);
             }
             else
             {
-               pfs_decrypt_unicv(key, tweak_enc_key, head_tweak_key, crypt_ctx->subctx->data->block_size, crypt_ctx->subctx->data->block_size, buffer, buffer, crypt_ctx->subctx->data->pmi_bcl_flag, crypt_ctx->subctx->data->key_id);
+               pfs_decrypt_unicv(key, tweak_enc_key, head_tweak_key, crypt_ctx->subctx->data->block_size, crypt_ctx->subctx->data->block_size, buffer, buffer, crypt_ctx->subctx->data->crypto_engine_flag, crypt_ctx->subctx->data->key_id);
             }
          }
       }  
@@ -308,19 +308,19 @@ void decrypt_complex(CryptEngineWorkCtx* crypt_ctx, std::uint16_t mode_index, un
    
    if((crypt_ctx->subctx->data->fs_attr & ATTR_DIR) == 0)
    {   
-      if((crypt_ctx->subctx->data->pmi_bcl_flag & (PMI_BCL_CRYPTO_USE_CMAC | PMI_BCL_SKIP_DECRYPT)) != (PMI_BCL_CRYPTO_USE_CMAC | PMI_BCL_SKIP_DECRYPT))
+      if((crypt_ctx->subctx->data->crypto_engine_flag & (CRYPTO_ENGINE_CRYPTO_USE_CMAC | CRYPTO_ENGINE_SKIP_DECRYPT)) != (CRYPTO_ENGINE_CRYPTO_USE_CMAC | CRYPTO_ENGINE_SKIP_DECRYPT))
       {
          std::uint64_t tail_tweak_key = crypt_ctx->subctx->data->block_size * (crypt_ctx->subctx->sector_base + (crypt_ctx->subctx->nBlocks - 1));
          unsigned char* tail_buffer = buffer + crypt_ctx->subctx->data->block_size * (crypt_ctx->subctx->nBlocks - 1);
 
          if(!is_gamedata(mode_index))
          {
-            pfs_decrypt_icv(key, tweak_enc_key, 0x80, tail_tweak_key, crypt_ctx->subctx->data->block_size, crypt_ctx->subctx->data->block_size, tail_buffer, tail_buffer, crypt_ctx->subctx->data->pmi_bcl_flag);
+            pfs_decrypt_icv(key, tweak_enc_key, 0x80, tail_tweak_key, crypt_ctx->subctx->data->block_size, crypt_ctx->subctx->data->block_size, tail_buffer, tail_buffer, crypt_ctx->subctx->data->crypto_engine_flag);
          }
          else
          {
             int size_arg = (crypt_ctx->subctx->data->block_size <= crypt_ctx->subctx->tail_size) ? crypt_ctx->subctx->data->block_size : crypt_ctx->subctx->tail_size;
-            pfs_decrypt_unicv(key, tweak_enc_key, tail_tweak_key, size_arg, crypt_ctx->subctx->data->block_size, tail_buffer, tail_buffer, crypt_ctx->subctx->data->pmi_bcl_flag, crypt_ctx->subctx->data->key_id);
+            pfs_decrypt_unicv(key, tweak_enc_key, tail_tweak_key, size_arg, crypt_ctx->subctx->data->block_size, tail_buffer, tail_buffer, crypt_ctx->subctx->data->crypto_engine_flag, crypt_ctx->subctx->data->key_id);
          }
       }
    }
@@ -337,7 +337,7 @@ void decrypt_complex(CryptEngineWorkCtx* crypt_ctx, std::uint16_t mode_index, un
 
    //copy result if pmi flags are not correct
 
-   if((crypt_ctx->subctx->data->pmi_bcl_flag & (PMI_BCL_CRYPTO_USE_CMAC | PMI_BCL_SKIP_DECRYPT)) == (PMI_BCL_CRYPTO_USE_CMAC | PMI_BCL_SKIP_DECRYPT))
+   if((crypt_ctx->subctx->data->crypto_engine_flag & (CRYPTO_ENGINE_CRYPTO_USE_CMAC | CRYPTO_ENGINE_SKIP_DECRYPT)) == (CRYPTO_ENGINE_CRYPTO_USE_CMAC | CRYPTO_ENGINE_SKIP_DECRYPT))
    {
       if(output_src != output_dst)
          memcpy(output_dst, output_src, output_size);
@@ -364,7 +364,7 @@ void decrypt_complex(CryptEngineWorkCtx* crypt_ctx, std::uint16_t mode_index, un
    {
       do
       {
-         pfs_decrypt_icv(key, tweak_enc_key, 0x80, tweak_key + offset, crypt_ctx->subctx->data->block_size, crypt_ctx->subctx->data->block_size, output_src + offset, output_dst + offset, crypt_ctx->subctx->data->pmi_bcl_flag);
+         pfs_decrypt_icv(key, tweak_enc_key, 0x80, tweak_key + offset, crypt_ctx->subctx->data->block_size, crypt_ctx->subctx->data->block_size, output_src + offset, output_dst + offset, crypt_ctx->subctx->data->crypto_engine_flag);
 
          offset = offset + crypt_ctx->subctx->data->block_size;
          counter = counter + 1;
@@ -381,7 +381,7 @@ void decrypt_complex(CryptEngineWorkCtx* crypt_ctx, std::uint16_t mode_index, un
       do
       {
          int size_arg = (crypt_ctx->subctx->data->block_size <= bytes_left) ? crypt_ctx->subctx->data->block_size : bytes_left;
-         pfs_decrypt_unicv(key, tweak_enc_key, tweak_key + offset, size_arg, crypt_ctx->subctx->data->block_size, output_src + offset, output_dst + offset, crypt_ctx->subctx->data->pmi_bcl_flag, crypt_ctx->subctx->data->key_id);
+         pfs_decrypt_unicv(key, tweak_enc_key, tweak_key + offset, size_arg, crypt_ctx->subctx->data->block_size, output_src + offset, output_dst + offset, crypt_ctx->subctx->data->crypto_engine_flag, crypt_ctx->subctx->data->key_id);
 
          offset = offset + crypt_ctx->subctx->data->block_size;
          bytes_left = bytes_left - crypt_ctx->subctx->data->block_size;

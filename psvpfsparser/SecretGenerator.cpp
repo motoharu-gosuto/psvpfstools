@@ -82,16 +82,16 @@ int generate_secret(unsigned char* secret, const unsigned char* klicensee,  std:
 
 //[TESTED 2 branches]
 //this function is used to derive secret for gamedata and savedata
-int scePfsUtilGetSecret(unsigned char* secret, const unsigned char* klicensee, std::uint32_t files_salt, std::uint16_t pmi_bcl_flag, std::uint32_t icv_salt, std::uint16_t key_id)
+int scePfsUtilGetSecret(unsigned char* secret, const unsigned char* klicensee, std::uint32_t files_salt, std::uint16_t crypto_engine_flag, std::uint32_t icv_salt, std::uint16_t key_id)
 {
-   if(pmi_bcl_flag & PMI_BCL_CRYPTO_USE_CMAC)
+   if(crypto_engine_flag & CRYPTO_ENGINE_CRYPTO_USE_CMAC)
    {
       throw std::runtime_error("Untested branch in scePfsUtilGetSecret");
 
       memset(secret, 0, 0x14);
       return 0;
    }
-   else if(pmi_bcl_flag & PMI_BCL_CRYPTO_USE_KEYGEN)
+   else if(crypto_engine_flag & CRYPTO_ENGINE_CRYPTO_USE_KEYGEN)
    {
       return generate_secret_np(secret, klicensee, files_salt, icv_salt, key_id);
    }

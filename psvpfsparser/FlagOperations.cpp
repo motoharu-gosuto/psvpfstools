@@ -474,22 +474,22 @@ bool has_dbseed(db_types db_type, std::uint32_t icv_version)
 //pseudo implementation that generates flags for scePfsUtilGetSecret function
 //based on image type - I was not able to figure out how real flags are calculated
 
-std::uint16_t img_spec_to_pmi_bcl_flag(std::uint16_t image_spec)
+std::uint16_t img_spec_to_crypto_engine_flag(std::uint16_t image_spec)
 {
    pfs_image_types img_type = img_spec_to_img_type(image_spec);
 
    switch(img_type)
    {
    case pfs_image_types::gamedata: //gamedata is considered to be a pfs_pack (unicv.db - sef of pfs_file objects)
-      return PMI_BCL_CRYPTO_USE_KEYGEN;
+      return CRYPTO_ENGINE_CRYPTO_USE_KEYGEN;
    case pfs_image_types::savedata: //savedata is considered to be a pfs_file (icv.db)
       return 0;
    case pfs_image_types::ac_root: //ADDCONT is considered to be a pfs_file (icv.db)
       return 0;
    case pfs_image_types::acid_dir:
-      return PMI_BCL_CRYPTO_USE_KEYGEN; //DLCs are considered to be a pfs_pack (unicv.db - sef of pfs_file objects)
+      return CRYPTO_ENGINE_CRYPTO_USE_KEYGEN; //DLCs are considered to be a pfs_pack (unicv.db - sef of pfs_file objects)
    default:
-      return PMI_BCL_CRYPTO_USE_CMAC;
+      return CRYPTO_ENGINE_CRYPTO_USE_CMAC;
    }
 }
 

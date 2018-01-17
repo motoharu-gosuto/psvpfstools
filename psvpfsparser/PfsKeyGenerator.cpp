@@ -87,9 +87,9 @@ int scePfsUtilGetSDKeys(unsigned char* dec_key, unsigned char* tweak_enc_key, co
 
 //[TESTED one branch]
 //this function is used for gamedata with icv_version <= 1
-int scePfsUtilGetGDKeys(unsigned char* dec_key, unsigned char* tweak_enc_key, const unsigned char* klicensee, std::uint32_t files_salt, std::uint16_t pmi_bcl_flag, std::uint32_t icv_salt)
+int scePfsUtilGetGDKeys(unsigned char* dec_key, unsigned char* tweak_enc_key, const unsigned char* klicensee, std::uint32_t files_salt, std::uint16_t crypto_engine_flag, std::uint32_t icv_salt)
 {
-   if(pmi_bcl_flag & PMI_BCL_CRYPTO_USE_KEYGEN)
+   if(crypto_engine_flag & CRYPTO_ENGINE_CRYPTO_USE_KEYGEN)
    {
       memcpy(dec_key, klicensee, 0x10);
 
@@ -133,7 +133,7 @@ int setup_crypt_packet_keys(CryptEngineData* data, const derive_keys_ctx* drv_ct
       }
       else
       {
-         scePfsUtilGetGDKeys(data->dec_key, data->tweak_enc_key, data->klicensee, data->files_salt, data->pmi_bcl_flag, data->icv_salt);
+         scePfsUtilGetGDKeys(data->dec_key, data->tweak_enc_key, data->klicensee, data->files_salt, data->crypto_engine_flag, data->icv_salt);
       }
    }
    else
@@ -141,5 +141,5 @@ int setup_crypt_packet_keys(CryptEngineData* data, const derive_keys_ctx* drv_ct
       scePfsUtilGetSDKeys(data->dec_key, data->tweak_enc_key, data->klicensee, data->files_salt, data->icv_salt);
    }
 
-   return scePfsUtilGetSecret(data->secret, data->klicensee, data->files_salt, data->pmi_bcl_flag, data->icv_salt, data->key_id);
+   return scePfsUtilGetSecret(data->secret, data->klicensee, data->files_salt, data->crypto_engine_flag, data->icv_salt, data->key_id);
 }

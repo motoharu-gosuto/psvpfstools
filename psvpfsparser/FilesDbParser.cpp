@@ -224,7 +224,7 @@ bool parseFilesDb(unsigned char* klicensee, std::ifstream& inputStream, bool isU
 
    //generate secret
    unsigned char secret[0x14];
-   scePfsUtilGetSecret(secret, klicensee, header.files_salt, img_spec_to_pmi_bcl_flag(header.image_spec), 0, 0);
+   scePfsUtilGetSecret(secret, klicensee, header.files_salt, img_spec_to_crypto_engine_flag(header.image_spec), 0, 0);
 
    //verify header
    if(!verify_header_icv(inputStream, header, secret))
