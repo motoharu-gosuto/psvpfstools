@@ -27,6 +27,44 @@
 
 #include <libcrypto/sha1.h>
 
+bool is_directory(sce_ng_pfs_file_types type)
+{
+   return type == sce_ng_pfs_file_types::normal_directory || 
+          type == sce_ng_pfs_file_types::unk_directory || 
+          type == sce_ng_pfs_file_types::acid_directory;
+}
+
+bool is_valid_file_type(sce_ng_pfs_file_types type)
+{
+   return type == sce_ng_pfs_file_types::unexisting || 
+          type == sce_ng_pfs_file_types::normal_file || 
+          type == sce_ng_pfs_file_types::normal_directory ||
+          type == sce_ng_pfs_file_types::unencrypted_system_file ||
+          type == sce_ng_pfs_file_types::encrypted_system_file ||
+          type == sce_ng_pfs_file_types::unk_directory || 
+          type == sce_ng_pfs_file_types::unencrypted_unk1 ||
+          type == sce_ng_pfs_file_types::encrypted_unk2 ||
+          type == sce_ng_pfs_file_types::acid_directory;
+}
+
+bool is_encrypted(sce_ng_pfs_file_types type)
+{
+   return type == sce_ng_pfs_file_types::encrypted_system_file ||
+          type == sce_ng_pfs_file_types::encrypted_unk2 || 
+          type == sce_ng_pfs_file_types::normal_file;
+}
+
+bool is_unencrypted(sce_ng_pfs_file_types type)
+{
+   return type == sce_ng_pfs_file_types::unencrypted_system_file ||
+          type == sce_ng_pfs_file_types::unencrypted_unk1;
+}
+
+bool is_unexisting(sce_ng_pfs_file_types type)
+{
+   return type == sce_ng_pfs_file_types::unexisting;
+}
+
 bool verify_header_icv(std::ifstream& inputStream, sce_ng_pfs_header_t& header, unsigned char* secret)
 {
    std::cout << "verifying header..." << std::endl;
@@ -277,15 +315,7 @@ bool parseFilesDb(unsigned char* klicensee, std::ifstream& inputStream, bool isU
          inputStream.read((char*)&fi.header, sizeof(sce_ng_pfs_file_info_t));
 
          //check file type
-         if(fi.header.type != sce_ng_pfs_file_types::unexisting && 
-            fi.header.type != sce_ng_pfs_file_types::normal_file && 
-            fi.header.type != sce_ng_pfs_file_types::normal_directory && 
-            fi.header.type != sce_ng_pfs_file_types::unencrypted_system_file && 
-            fi.header.type != sce_ng_pfs_file_types::encrypted_system_file && 
-            fi.header.type != sce_ng_pfs_file_types::unk_directory && 
-            fi.header.type != sce_ng_pfs_file_types::unencrypted_unk1 &&
-            fi.header.type != sce_ng_pfs_file_types::encrypted_unk2 &&
-            fi.header.type != sce_ng_pfs_file_types::acid_directory)
+         if(!is_valid_file_type(fi.header.type))
          {
             std::cout << "Unexpected file type" << std::endl;
             return false;
@@ -362,9 +392,7 @@ bool constructDirmatrix(const std::vector<sce_ng_pfs_block_t>& blocks, std::map<
    {
       for(std::uint32_t i = 0; i < block.header.nFiles; i++)
       {
-         if(block.m_infos[i].header.type != sce_ng_pfs_file_types::normal_directory && 
-            block.m_infos[i].header.type != sce_ng_pfs_file_types::unk_directory &&
-            block.m_infos[i].header.type != sce_ng_pfs_file_types::acid_directory)
+         if(!is_directory(block.m_infos[i].header.type))
             continue;
 
          std::uint32_t child = block.m_infos[i].header.idx;
@@ -405,9 +433,7 @@ bool constructFileMatrix(std::vector<sce_ng_pfs_block_t>& blocks, std::map<std::
    {
       for(std::uint32_t i = 0; i < block.header.nFiles; i++)
       {
-         if(block.m_infos[i].header.type == sce_ng_pfs_file_types::normal_directory || 
-            block.m_infos[i].header.type == sce_ng_pfs_file_types::unk_directory ||
-            block.m_infos[i].header.type == sce_ng_pfs_file_types::acid_directory)
+         if(is_directory(block.m_infos[i].header.type))
             continue;
 
          std::uint32_t child = block.m_infos[i].header.idx;
@@ -417,7 +443,7 @@ bool constructFileMatrix(std::vector<sce_ng_pfs_block_t>& blocks, std::map<std::
 
          if(block.m_infos[i].header.size == 0)
          {   
-            if(block.m_infos[i].header.type == sce_ng_pfs_file_types::unexisting)
+            if(is_unexisting(block.m_infos[i].header.type))
             {
                //std::cout << "[EMPTY] File " << fileName << " index " << child << std::endl;
                continue; // can not add unexisting files - they will conflict by index in the fileMatrix!
@@ -430,7 +456,7 @@ bool constructFileMatrix(std::vector<sce_ng_pfs_block_t>& blocks, std::map<std::
          }
          else
          {
-            if(block.m_infos[i].header.type == sce_ng_pfs_file_types::unexisting)
+            if(is_unexisting(block.m_infos[i].header.type))
             {
                //for icv.db - files that are outside of sce_sys folder always dont have correct type
                //it looks like sdslot.dat also does not have correct type
@@ -474,7 +500,7 @@ bool flattenBlocks(std::vector<sce_ng_pfs_block_t>& blocks, std::vector<sce_ng_p
       for(std::uint32_t i = 0; i < block.header.nFiles; i++)
       {
          //have to skip unexisting files
-         if(block.m_infos[i].header.type == sce_ng_pfs_file_types::unexisting)
+         if(is_unexisting(block.m_infos[i].header.type))
          {
             //adding additional check here - only empty files may have unexisting types
             if(block.m_infos[i].header.size == 0)
@@ -508,9 +534,7 @@ const std::vector<sce_ng_pfs_flat_block_t>::const_iterator findFlatBlockDir(cons
    size_t i = 0;
    for(auto& block : flatBlocks)
    {
-      if((block.m_info.header.idx == index && block.m_info.header.type == sce_ng_pfs_file_types::normal_directory) ||
-         (block.m_info.header.idx == index && block.m_info.header.type == sce_ng_pfs_file_types::unk_directory) ||
-         (block.m_info.header.idx == index && block.m_info.header.type == sce_ng_pfs_file_types::acid_directory))
+      if(block.m_info.header.idx == index && is_directory(block.m_info.header.type))
          return flatBlocks.begin() + i;
       i++;
    }
@@ -523,9 +547,7 @@ const std::vector<sce_ng_pfs_flat_block_t>::const_iterator findFlatBlockFile(con
    size_t i = 0;
    for(auto& block : flatBlocks)
    {
-      if((block.m_info.header.idx == index && block.m_info.header.type != sce_ng_pfs_file_types::normal_directory) &&
-         (block.m_info.header.idx == index && block.m_info.header.type != sce_ng_pfs_file_types::unk_directory) &&
-         (block.m_info.header.idx == index && block.m_info.header.type != sce_ng_pfs_file_types::acid_directory))
+      if(block.m_info.header.idx == index && !is_directory(block.m_info.header.type))
          return flatBlocks.begin() + i;
       i++;
    }

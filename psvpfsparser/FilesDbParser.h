@@ -210,4 +210,14 @@ public:
 
 #pragma pack(pop)
 
+bool is_directory(sce_ng_pfs_file_types type);
+
+bool is_valid_file_type(sce_ng_pfs_file_types type);
+
+bool is_encrypted(sce_ng_pfs_file_types type);
+
+bool is_unencrypted(sce_ng_pfs_file_types type);
+
+bool is_unexisting(sce_ng_pfs_file_types type);
+
 int parseFilesDb(unsigned char* klicensee, boost::filesystem::path titleIdPath, bool isUnicv, sce_ng_pfs_header_t& header, std::vector<sce_ng_pfs_file_t>& filesResult, std::vector<sce_ng_pfs_dir_t>& dirsResult);

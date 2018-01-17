@@ -849,17 +849,13 @@ int decrypt_files(boost::filesystem::path titleIdPath, boost::filesystem::path d
       }
 
       //directory and unexisting file are unexpected
-      if(file->file.m_info.header.type == sce_ng_pfs_file_types::normal_directory ||
-         file->file.m_info.header.type == sce_ng_pfs_file_types::unk_directory ||
-         file->file.m_info.header.type == sce_ng_pfs_file_types::acid_directory ||
-         file->file.m_info.header.type == sce_ng_pfs_file_types::unexisting)
+      if(is_directory(file->file.m_info.header.type) || is_unexisting(file->file.m_info.header.type))
       {
          std::cout << "Unexpected file type" << std::endl;
          return -1;
       }
       //copy unencrypted files
-      else if(file->file.m_info.header.type == sce_ng_pfs_file_types::unencrypted_system_file ||
-              file->file.m_info.header.type == sce_ng_pfs_file_types::unencrypted_unk1)
+      else if(is_unencrypted(file->file.m_info.header.type))
       {
          if(!filepath.copy_existing_file(titleIdPath, destTitleIdPath))
          {
@@ -872,9 +868,7 @@ int decrypt_files(boost::filesystem::path titleIdPath, boost::filesystem::path d
          }
       }
       //decrypt encrypted files
-      else if(file->file.m_info.header.type == sce_ng_pfs_file_types::encrypted_system_file ||
-              file->file.m_info.header.type == sce_ng_pfs_file_types::encrypted_unk2 || 
-              file->file.m_info.header.type == sce_ng_pfs_file_types::normal_file)
+      else if(is_encrypted(file->file.m_info.header.type))
       {
          if(decrypt_file(titleIdPath, destTitleIdPath, *file, filepath, klicensee, ngpfs, t, fdb->isUnicv()) < 0)
          {
