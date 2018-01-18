@@ -386,8 +386,8 @@ bool is_gamedata(std::uint16_t mode_index)
    {
       case 0x02:
       case 0x03:
-      case 0x0A:
-      case 0x0B:
+      case 0x0A: // gamedata
+      case 0x0B: // acid_dir
       case 0x0D:
       case 0x20:
       case 0x21:
@@ -535,4 +535,13 @@ bool db_type_to_is_unicv(db_types type)
    default:
       throw std::runtime_error("Invalid index");
    }
+}
+
+//pseudo function that converts ing_spec to boolean
+
+bool img_spec_to_is_unicv(std::uint16_t image_spec)
+{
+   pfs_image_types img_type = img_spec_to_img_type(image_spec);
+   std::uint16_t mode_index = img_type_to_mode_index(img_type);
+   return is_gamedata(mode_index);
 }

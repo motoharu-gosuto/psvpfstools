@@ -144,6 +144,8 @@ void is_unicv_to_img_types(bool isUnicv, std::vector<pfs_image_types>& possibleT
 
 bool db_type_to_is_unicv(db_types type);
 
+bool img_spec_to_is_unicv(std::uint16_t image_spec);
+
 //----------------------
 
 #define CRYPTO_ENGINE_CRYPTO_USE_CMAC   0x0001 //setting this flag will force decryption calls to use cmac functions instead of decryption

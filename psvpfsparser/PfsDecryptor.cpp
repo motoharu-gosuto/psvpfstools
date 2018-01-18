@@ -20,11 +20,11 @@
 #include "PfsKeyGenerator.h"
 #include "MerkleTree.hpp"
 
-std::shared_ptr<sce_junction> brutforce_hashes(std::map<sce_junction, std::vector<std::uint8_t>>& fileDatas, const unsigned char* secret, const unsigned char* signature, bool isUnicv)
+std::shared_ptr<sce_junction> brutforce_hashes(sce_ng_pfs_header_t& ngpfs, std::map<sce_junction, std::vector<std::uint8_t>>& fileDatas, const unsigned char* secret, const unsigned char* signature)
 {
    unsigned char signature_key[0x14] = {0};
 
-   if(isUnicv)
+   if(img_spec_to_is_unicv(ngpfs.image_spec))
    {
       //we will be checking only first sector of each file hence we can precalculate a signature_key
       //because both secret and sector_salt will not vary
@@ -230,9 +230,9 @@ int validate_merkle_trees(unsigned char* klicensee, sce_ng_pfs_header_t& ngpfs, 
    return 0;
 }
 
-int bruteforce_map(boost::filesystem::path titleIdPath, unsigned char* klicensee, sce_ng_pfs_header_t& ngpfs, std::shared_ptr<sce_idb_base_t> fdb, std::map<std::uint32_t, sce_junction>& pageMap, std::set<sce_junction>& emptyFiles, bool isUnicv)
+int bruteforce_map(boost::filesystem::path titleIdPath, unsigned char* klicensee, sce_ng_pfs_header_t& ngpfs, std::shared_ptr<sce_idb_base_t> fdb, std::map<std::uint32_t, sce_junction>& pageMap, std::set<sce_junction>& emptyFiles)
 {
-   if(isUnicv)
+   if(img_spec_to_is_unicv(ngpfs.image_spec))
       std::cout << "Building unicv.db -> files.db relation..." << std::endl;
    else
       std::cout << "Building icv.db -> files.db relation..." << std::endl;
@@ -312,13 +312,13 @@ int bruteforce_map(boost::filesystem::path titleIdPath, unsigned char* klicensee
 
          std::shared_ptr<sce_junction> found_path;
 
-         if(isUnicv)
+         if(img_spec_to_is_unicv(ngpfs.image_spec))
          {
             //in unicv - hash table has same order as sectors in a file
             const unsigned char* zeroSectorIcv = t->m_blocks.front().m_signatures.front().m_data.data();
 
             //try to find match by hash of zero sector
-            found_path = brutforce_hashes(fileDatas, secret, zeroSectorIcv, isUnicv); 
+            found_path = brutforce_hashes(ngpfs, fileDatas, secret, zeroSectorIcv); 
          }
          else
          {
@@ -340,7 +340,7 @@ int bruteforce_map(boost::filesystem::path titleIdPath, unsigned char* klicensee
                const unsigned char* zeroSectorIcv = t->m_blocks.front().m_signatures.at(ctx.second).m_data.data();
 
                //try to find match by hash of zero sector
-               found_path = brutforce_hashes(fileDatas, secret, zeroSectorIcv, isUnicv);
+               found_path = brutforce_hashes(ngpfs, fileDatas, secret, zeroSectorIcv);
             }
             catch(std::runtime_error& e)
             {
@@ -363,7 +363,7 @@ int bruteforce_map(boost::filesystem::path titleIdPath, unsigned char* klicensee
    }
 
    //in icv - additional step checks that hash table corresponds to merkle tree
-   if(!isUnicv)
+   if(!img_spec_to_is_unicv(ngpfs.image_spec))
    {
       if(validate_merkle_trees(klicensee, ngpfs, pageMap, merkleTrees) < 0)
          return -1;
@@ -765,9 +765,9 @@ int decrypt_unicv_file(boost::filesystem::path titleIdPath, boost::filesystem::p
    return 0;
 }
 
-int decrypt_file(boost::filesystem::path titleIdPath, boost::filesystem::path destination_root, const sce_ng_pfs_file_t& file, const sce_junction& filepath, unsigned char* klicensee, sce_ng_pfs_header_t& ngpfs, std::shared_ptr<sce_iftbl_base_t> table, bool isUnicv)
+int decrypt_file(boost::filesystem::path titleIdPath, boost::filesystem::path destination_root, const sce_ng_pfs_file_t& file, const sce_junction& filepath, unsigned char* klicensee, sce_ng_pfs_header_t& ngpfs, std::shared_ptr<sce_iftbl_base_t> table)
 {
-   if(isUnicv)
+   if(img_spec_to_is_unicv(ngpfs.image_spec))
       return decrypt_unicv_file(titleIdPath, destination_root, file, filepath, klicensee, ngpfs, table);
    else
       return decrypt_icv_file(titleIdPath, destination_root, file, filepath, klicensee, ngpfs, table);
@@ -870,7 +870,7 @@ int decrypt_files(boost::filesystem::path titleIdPath, boost::filesystem::path d
       //decrypt encrypted files
       else if(is_encrypted(file->file.m_info.header.type))
       {
-         if(decrypt_file(titleIdPath, destTitleIdPath, *file, filepath, klicensee, ngpfs, t, fdb->isUnicv()) < 0)
+         if(decrypt_file(titleIdPath, destTitleIdPath, *file, filepath, klicensee, ngpfs, t) < 0)
          {
             std::cout << "Failed to decrypt: " << filepath << std::endl;
             return -1;

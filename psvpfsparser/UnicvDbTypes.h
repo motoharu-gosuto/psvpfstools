@@ -565,9 +565,6 @@ public:
 
 protected:
    bool read_table_item(std::ifstream& inputStream, std::uint64_t& index, std::uint32_t icv_salt);
-
-public:
-   virtual bool isUnicv() const = 0;
 };
 
 //this is a root object for unicv.db - it contains SCEIRODB header and list of SCEIFTBL file table blocks
@@ -578,11 +575,6 @@ private:
 
 public:
    bool read(boost::filesystem::path filepath);
-
-   bool isUnicv() const override
-   {
-      return true;
-   }
 };
 
 //this is a root object for icv.db - it contains list of SCEICVDB and SCEINULL blocks. there is no additional header
@@ -590,11 +582,6 @@ class sce_icvdb_t : public sce_idb_base_t
 {
 public:
    bool read(boost::filesystem::path filepath);
-
-   bool isUnicv() const override
-   {
-      return false;
-   }
 };
 
 #pragma pack(pop)
