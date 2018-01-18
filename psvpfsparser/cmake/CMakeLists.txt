@@ -5,7 +5,7 @@ message(${PROJECT})
 
 FILE (GLOB HEADER_FILES "../F00DKeyEncryptor.h"
                         "../FilesDbParser.h"
-                        "../MerkleTree.h"
+                        "../HashTree.h"
                         "../NodeIcvCalculator.h"
                         "../PfsCryptEngine.h"
                         "../PfsCryptEngineBase.h"
@@ -17,15 +17,20 @@ FILE (GLOB HEADER_FILES "../F00DKeyEncryptor.h"
                         "../SceSblSsMgrForDriver.h"
                         "../SecretGenerator.h"
                         "../UnicvDbParser.h"
+                        "../UnicvDbTypes.h"
+                        "../UnicvDbUtils.h"
                         "../Utils.h"
                         "../PsvPfsParserConfig.h"
                         "../LocalKeyGenerator.h"
-                        "../LocalKeys.h")
+                        "../LocalKeys.h"
+                        "../MerkleTree.hpp"
+                        "../IcvPrimitives.h"
+                        "../FlagOperations.h")
 source_group ("Header Files" FILES ${HEADER_FILES})
 
 FILE (GLOB SOURCE_FILES "../F00DKeyEncryptor.cpp"
                         "../FilesDbParser.cpp"
-                        "../MerkleTree.cpp"
+                        "../HashTree.cpp"
                         "../NodeIcvCalculator.cpp"
                         "../PfsCryptEngine.cpp"
                         "../PfsCryptEngineBase.cpp"
@@ -38,10 +43,14 @@ FILE (GLOB SOURCE_FILES "../F00DKeyEncryptor.cpp"
                         "../SceSblSsMgrForDriver.cpp"
                         "../SecretGenerator.cpp"
                         "../UnicvDbParser.cpp"
+                        "../UnicvDbTypes.cpp"
+                        "../UnicvDbUtils.cpp"
                         "../Utils.cpp"
                         "../PsvPfsParserConfig.cpp"
                         "../LocalKeyGenerator.cpp"
-                        "../LocalKeys.cpp")
+                        "../LocalKeys.cpp"
+                        "../IcvPrimitives.cpp"
+                        "../FlagOperations.cpp")
 source_group ("Source Files" FILES ${SOURCE_FILES})
 
 add_executable (${PROJECT} ${HEADER_FILES} ${SOURCE_FILES})

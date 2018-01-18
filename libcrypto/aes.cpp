@@ -883,7 +883,7 @@ void leftshift_onebit(unsigned char *input, unsigned char *output)
 	}
 }
 
-void xor_128(unsigned char *a, unsigned char *b, unsigned char *out)
+void xor_128(const unsigned char *a, const unsigned char *b, unsigned char *out)
 {
 	int i;
 	for (i = 0; i < 16; i++) 
@@ -918,7 +918,7 @@ void generate_subkey(aes_context *ctx, unsigned char *K1, unsigned char *K2)
     }
 }
 
-void padding (unsigned char *lastb, unsigned char *pad, int length)
+void padding (const unsigned char *lastb, unsigned char *pad, int length)
 {
 	int i;
 	for (i = 0; i < 16; i++) 
@@ -932,7 +932,7 @@ void padding (unsigned char *lastb, unsigned char *pad, int length)
 	}
 }
 
-void aes_cmac(aes_context *ctx, int length, unsigned char *input, unsigned char *output)
+void aes_cmac(aes_context *ctx, int length, const unsigned char *input, unsigned char *output)
 {
     unsigned char X[16], Y[16], M_last[16], padded[16];
     unsigned char K1[16], K2[16];

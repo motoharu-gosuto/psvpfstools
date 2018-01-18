@@ -1,62 +1,68 @@
 #include "PfsCryptEngineSelectors.h"
 
-#include <stdint.h>
+#include <cstdint>
 #include <string>
 #include <cstring>
 
 #include "PfsCryptEngineBase.h"
+#include "FlagOperations.h"
 
-//############## LEVEL 2 - CRYPTO WRAPPER SELECTORS ###############
+//this macro unwraps 64 bit sector number into byte array
+#define UINT64_TO_BYTEARRAY(x, y)                                              \
+   { (y)[7] = (unsigned char)((x) >> 56); (y)[6] = (unsigned char)((x) >> 48); \
+     (y)[5] = (unsigned char)((x) >> 40); (y)[4] = (unsigned char)((x) >> 32); \
+     (y)[3] = (unsigned char)((x) >> 24); (y)[2] = (unsigned char)((x) >> 16); \
+     (y)[1] = (unsigned char)((x) >> 8) ; (y)[0] = (unsigned char)(x); }
 
-//#### GROUP 1, GROUP 2 (hw dec/enc) ####
-
-unsigned char g_1771100[0x10] = {0};
-
-int pfs_decrypt_hw(const unsigned char* key, const unsigned char* iv_xor_key, int tweak_key0, int tweak_key1, uint32_t size, uint32_t block_size, const unsigned char* src, unsigned char* dst, uint16_t flag, uint16_t key_id)
+//this function increments byte array of size 0x10
+int UINT128_BYTEARRAY_INC(unsigned char iv[0x10])
 {
-   unsigned char iv[0x10] = {0};
-
-   //this piece of code unwraps 64 bit sector number into byte array
-   //like here https://github.com/libtom/libtomcrypt/blob/c14bcf4d302f954979f0de43f7544cf30873f5a6/src/headers/tomcrypt_macros.h#L23
-
-   int tk_tmp00 = tweak_key0; //sector_number_hi
-   int tk_tmp10 = tweak_key1; //sector_number_lo
-   
-   for(int i = 0; i < 8; i++)
+   for(int i = 0; i < 0x10; i++)
    {
-      iv[i] = tk_tmp00;
-
-      tk_tmp00 = (tk_tmp00 >> 8) | (tk_tmp10 << 24);
-      tk_tmp10 = tk_tmp10 >> 8;
+      if(iv[i] == 0xFF)
+      {
+         iv[i] = 0;
+      }
+      else
+      {
+         iv[i] = iv[i] + 1;
+         break;
+      }
    }
 
-   memset(iv + 8, 0, 8);
+   return 0;
+}
+
+//#### GROUP 1 (possible keygen aes-cbc-cts dec/aes-cbc-cts enc) ####
+//#### GROUP 2 (possible keygen aes-cmac-cts dec/aes-cmac-cts enc) (technically there is no dec/enc - this is pair of same functions since cmac) ####
+
+unsigned char g_cmac_buffer[0x10] = {0};
+
+int pfs_decrypt_unicv(const unsigned char* key, const unsigned char* tweak_mask, std::uint64_t tweak_key, std::uint32_t size, std::uint32_t block_size, const unsigned char* src, unsigned char* dst, std::uint16_t crypto_engine_flag, std::uint16_t key_id)
+{
+   unsigned char tweak[0x10] = {0};
+
+   UINT64_TO_BYTEARRAY(tweak_key, tweak); //convert std::uint64_t tweak to byte array
+
+   memset(tweak + 8, 0, 8); //set upper tweak to 0
 
    for(int i = 0; i < 0x10; i++)
-      iv[i] = iv[i] ^ iv_xor_key[i];
+      tweak[i] = tweak[i] ^ tweak_mask[i]; // xor tweak with mask (kinda mimic tweak_enc_value in xts-aes)
   
    if(size != 0)
    {
-      uint32_t offset = 0;
-      uint32_t bytes_left = size;
+      std::uint32_t offset = 0;
+      std::uint32_t bytes_left = size;
 
       do
       {
-         int tk_tmp01 = tweak_key0 + offset;
-         int tk_tmp11 = tweak_key1 + 0;
-         
-         for(int i = 0; i < 8; i++)
-         {
-            iv[i] = tk_tmp01;
-            
-            tk_tmp01 = (tk_tmp01 >> 8) | (tk_tmp11 << 24);
-            tk_tmp11 = tk_tmp11 >> 8;
-         }
+         std::uint64_t tweak_key_ofst = tweak_key + offset;
+         UINT64_TO_BYTEARRAY(tweak_key_ofst, tweak); // modify tweak (mimic xts-aes) by adding offset to the tweak
 
-         memset(iv + 8, 0, 8);
+         memset(tweak + 8, 0, 8); //set upper tweak to 0
 
          for(int i = 0; i < 0x10; i++)
-            iv[i] = iv[i] ^ iv_xor_key[i];
+            tweak[i] = tweak[i] ^ tweak_mask[i]; // xor tweak with mask (kinda mimic tweak_enc_value in xts-aes)
 
          // select block_size if we did not yet reach tail of the data. 
          // or select bytes_left which will be the size of the tail in the end
@@ -67,19 +73,19 @@ int pfs_decrypt_hw(const unsigned char* key, const unsigned char* iv_xor_key, in
          else
             size_arg = bytes_left;
 
-         if((flag & PFS_CRYPTO_USE_KEYGEN) != 0)
+         if(crypto_engine_flag & CRYPTO_ENGINE_CRYPTO_USE_KEYGEN)
          {
-            if((flag & PFS_CRYPTO_USE_CMAC) != 0)
-               AESCMACWithKeygen_base_2(key, iv, size_arg, src + offset, g_1771100, key_id);
+            if(crypto_engine_flag & CRYPTO_ENGINE_CRYPTO_USE_CMAC)
+               AESCMACDecryptWithKeygen_base(key, tweak, size_arg, src + offset, g_cmac_buffer, key_id);
             else
-               AESCBCDecryptWithKeygen_base(key, iv, size_arg, src + offset, dst + offset, key_id);
+               AESCBCDecryptWithKeygen_base(key, tweak, size_arg, src + offset, dst + offset, key_id); //cbc decrypt with tweak as iv
          }
          else
          {
-            if((flag & PFS_CRYPTO_USE_CMAC) != 0)
-               AESCMAC_base_1(key, iv, size_arg, src + offset, g_1771100);
+            if(crypto_engine_flag & CRYPTO_ENGINE_CRYPTO_USE_CMAC)
+               AESCMACDecrypt_base(key, tweak, size_arg, src + offset, g_cmac_buffer);
             else
-               AESCBCDecrypt_base(key, iv, size_arg, src + offset, dst + offset);
+               AESCBCDecrypt_base(key, tweak, size_arg, src + offset, dst + offset); //cbc decrypt with tweak as iv
          }
 
          offset = offset + block_size;
@@ -88,7 +94,9 @@ int pfs_decrypt_hw(const unsigned char* key, const unsigned char* iv_xor_key, in
       while(size > offset);
    }
 
-   if((flag & PFS_CRYPTO_USE_CMAC) != 0)
+   //copy result to dest buffer since cmac functions operate with global buffer
+
+   if(crypto_engine_flag & CRYPTO_ENGINE_CRYPTO_USE_CMAC)
    {
       if(dst != src)
       {
@@ -99,48 +107,31 @@ int pfs_decrypt_hw(const unsigned char* key, const unsigned char* iv_xor_key, in
    return 0;
 }
 
-int pfs_encrypt_hw(const unsigned char* key, const unsigned char* iv_xor_key, int tweak_key0, int tweak_key1, uint32_t size, uint32_t block_size, const unsigned char* src, unsigned char* dst, uint16_t flag, uint16_t key_id)
+int pfs_encrypt_unicv(const unsigned char* key, const unsigned char* tweak_mask, std::uint64_t tweak_key, std::uint32_t size, std::uint32_t block_size, const unsigned char* src, unsigned char* dst, std::uint16_t crypto_engine_flag, std::uint16_t key_id)
 {
-   unsigned char iv[0x10] = {0};
+   unsigned char tweak[0x10] = {0};
 
-   int tk_tmp00 = tweak_key0;
-   int tk_tmp10 = tweak_key1;
+   UINT64_TO_BYTEARRAY(tweak_key, tweak); //convert std::uint64_t tweak to byte array
 
-   for(int i = 0; i < 8; i++)
-   {
-      iv[i] = tk_tmp00;
-
-      tk_tmp00 = (tk_tmp00 >> 8) | (tk_tmp10 << 24);
-      tk_tmp10 = tk_tmp10 >> 8;
-   }
-
-   memset(iv + 8, 0, 8);
+   memset(tweak + 8, 0, 8); //set upper tweak to 0
 
    for(int i = 0; i < 0x10; i++)
-      iv[i] = iv[i] ^ iv_xor_key[i];
+      tweak[i] = tweak[i] ^ tweak_mask[i]; // xor tweak with mask (kinda mimic tweak_enc_value in xts-aes)
 
    if(size != 0)
    {
-      uint32_t offset = 0;
-      uint32_t bytes_left = size;
+      std::uint32_t offset = 0;
+      std::uint32_t bytes_left = size;
 
       do
       {         
-         int tk_tmp01 = tweak_key0 + offset;
-         int tk_tmp11 = tweak_key1 + 0;
+         std::uint64_t tweak_key_ofst = tweak_key + offset;
+         UINT64_TO_BYTEARRAY(tweak_key_ofst, tweak); // modify tweak (mimic xts-aes) by adding offset to the tweak
 
-         for(int i = 0; i < 8; i++)
-         {
-            iv[i] = tk_tmp01;
-
-            tk_tmp01 = (tk_tmp01 >> 8) | (tk_tmp11 << 24);
-            tk_tmp11 = tk_tmp11 >> 8;
-         }
-
-         memset(iv + 8, 0, 8);
+         memset(tweak + 8, 0, 8); //set upper tweak to 0
 
          for(int i = 0; i < 0x10; i++)
-            iv[i] = iv[i] ^ iv_xor_key[i];
+            tweak[i] = tweak[i] ^ tweak_mask[i]; // xor tweak with mask (kinda mimic tweak_enc_value in xts-aes)
 
          // select block_size if we did not yet reach tail of the data. 
          // or select bytes_left which will be the size of the tail in the end
@@ -151,19 +142,19 @@ int pfs_encrypt_hw(const unsigned char* key, const unsigned char* iv_xor_key, in
          else
             size_arg = bytes_left;
 
-         if((flag & PFS_CRYPTO_USE_KEYGEN) != 0)
+         if(crypto_engine_flag & CRYPTO_ENGINE_CRYPTO_USE_KEYGEN)
          {
-            if((flag & PFS_CRYPTO_USE_CMAC) != 0)
-               AESCMACWithKeygen_base_1(key, iv, size_arg, src + offset, g_1771100, key_id);
+            if(crypto_engine_flag & CRYPTO_ENGINE_CRYPTO_USE_CMAC)
+               AESCMACEncryptWithKeygen_base(key, tweak, size_arg, src + offset, g_cmac_buffer, key_id);
             else
-               AESCBCEncryptWithKeygen_base(key, iv, size_arg, src + offset, dst + offset, key_id);
+               AESCBCEncryptWithKeygen_base(key, tweak, size_arg, src + offset, dst + offset, key_id); //cbc encrypt with tweak as iv
          }
          else
          {
-            if((flag & PFS_CRYPTO_USE_CMAC) != 0)
-               AESCMAC_base_2(key, iv, size_arg, src + offset, g_1771100);
+            if(crypto_engine_flag & CRYPTO_ENGINE_CRYPTO_USE_CMAC)
+               AESCMACEncrypt_base(key, tweak, size_arg, src + offset, g_cmac_buffer);
             else
-               AESCBCEncrypt_base(key, iv, size_arg, src + offset, dst + offset);
+               AESCBCEncrypt_base(key, tweak, size_arg, src + offset, dst + offset); //cbc encrypt with tweak as iv
          }
 
          offset = offset + block_size;
@@ -172,7 +163,9 @@ int pfs_encrypt_hw(const unsigned char* key, const unsigned char* iv_xor_key, in
       while(size > offset);
    }
 
-   if((flag & PFS_CRYPTO_USE_CMAC) != 0)
+   //copy result to dest buffer since cmac functions operate with global buffer
+
+   if(crypto_engine_flag & CRYPTO_ENGINE_CRYPTO_USE_CMAC)
    {
       if(dst != src)
       {
@@ -183,38 +176,26 @@ int pfs_encrypt_hw(const unsigned char* key, const unsigned char* iv_xor_key, in
    return 0;
 }
 
-//#### GROUP 3, GROUP 4 (sw dec/enc) ####
+//#### GROUP 3 (no keygen xts-aes dec/xts-aes enc) ####
+//#### GROUP 4 (no keygen xts-cmac dec/xts-cmac enc) (technically there is no dec/enc - this is pair of same functions since cmac) ####
 
-int pfs_decrypt_sw(const unsigned char* key, const unsigned char* subkey_key, uint32_t keysize, int tweak_key0, int tweak_key1, uint32_t size, uint32_t block_size, const unsigned char* src, unsigned char* dst, uint16_t flag)
+//looks like this method can decrypt multiple blocks when size > block_size
+//assuming that it adds 1 to tweak_key when decrypting each next block
+//in practice though it looks like this method is only used to decrypt single block
+
+int pfs_decrypt_icv(const unsigned char* key, const unsigned char* tweak_enc_key, std::uint32_t keysize, std::uint64_t tweak_key, std::uint32_t size, std::uint32_t block_size, const unsigned char* src, unsigned char* dst, std::uint16_t crypto_engine_flag)
 {
-   unsigned char iv[0x10] = {0};
+   unsigned char tweak[0x10] = {0};
 
-   if(((block_size | size) << 0x1C) != 0)
+   if((block_size <= 0xF) || (size <= 0xF)) //block_size and size should be at least one block
       return 0x80140609;
 
-   if(size <= 0xF)
-      return 0x80140609;
- 
-   /*
-   if((((int)src | (int)dst) << 0x1E) != 0)
-      return 0x8014060E;
-   */
+   UINT64_TO_BYTEARRAY(tweak_key, tweak); //convert std::uint64_t tweak to byte array
 
-   int tk_tmp00 = tweak_key0;
-   int tk_tmp10 = tweak_key1;
+   memset(tweak + 8, 0, 8); //set upper tweak to 0
 
-   for(int i = 0; i < 8; i++)
-   {
-      iv[i] = tk_tmp00;
-
-      tk_tmp00 = (tk_tmp00 >> 8) | (tk_tmp10 << 24);
-      tk_tmp10 = tk_tmp10 >> 8;
-   }
-
-   memset(iv + 8, 0, 8);
-
-   uint32_t offset = 0;
-   uint32_t bytes_left = size;
+   std::uint32_t offset = 0;
+   std::uint32_t bytes_left = size;
 
    do
    {
@@ -228,33 +209,24 @@ int pfs_decrypt_sw(const unsigned char* key, const unsigned char* subkey_key, ui
          size_arg = bytes_left;
 
       int result0 = 0;
-      if((flag & PFS_CRYPTO_USE_CMAC) != 0)
-         result0 = AESCMACSw_base_2(iv, key, subkey_key, keysize, size_arg, src + offset, g_1771100);
+      if(crypto_engine_flag & CRYPTO_ENGINE_CRYPTO_USE_CMAC)
+         result0 = XTSCMACDecrypt_base(tweak, key, tweak_enc_key, keysize, size_arg, src + offset, g_cmac_buffer);
       else
-         result0 = AESCMACDecryptSw_base(iv, key, subkey_key, keysize, size_arg, src + offset, dst + offset);
+         result0 = XTSAESDecrypt_base(tweak, key, tweak_enc_key, keysize, size_arg, src + offset, dst + offset); //xts-aes decrypt
 
       if(result0 != 0)
          return result0;
 
-      for(int i = 0; i < 0x10; i++)
-      {
-         if(iv[i] == 0xFF)
-         {
-            iv[i] = 0;
-         }
-         else
-         {
-            iv[i] = iv[i] + 1;
-            break;
-         }
-      }
+      UINT128_BYTEARRAY_INC(tweak); // increment tweak by 1 (not relevant ? since this function is only used to decrypt single block of data)
 
       offset = offset + block_size;
       bytes_left = bytes_left - block_size;
    }
    while(size > offset);
 
-   if((flag & PFS_CRYPTO_USE_CMAC) != 0)
+   //copy result to dest buffer since cmac functions operate with global buffer
+
+   if(crypto_engine_flag & CRYPTO_ENGINE_CRYPTO_USE_CMAC)
    {
       if(dst != src)
       {
@@ -265,36 +237,23 @@ int pfs_decrypt_sw(const unsigned char* key, const unsigned char* subkey_key, ui
    return 0;
 }
 
-int pfs_encrypt_sw(const unsigned char* key, const unsigned char* subkey_key, uint32_t keysize, int tweak_key0, int tweak_key1, uint32_t size, uint32_t block_size, const unsigned char* src, unsigned char* dst, uint16_t flag)
+//looks like this method can encrypt multiple blocks when size > block_size
+//assuming that it adds 1 to tweak_key when encrypting each next block
+//in practice though it looks like this method is only used to decrypt single block
+
+int pfs_encrypt_icv(const unsigned char* key, const unsigned char* tweak_enc_key, std::uint32_t keysize, std::uint64_t tweak_key, std::uint32_t size, std::uint32_t block_size, const unsigned char* src, unsigned char* dst, std::uint16_t crypto_engine_flag)
 {
-   unsigned char iv[0x10] = {0};
+   unsigned char tweak[0x10] = {0};
 
-   if(((block_size | size) << 0x1C) != 0)
+   if((block_size <= 0xF) || (size <= 0xF)) //block_size and size should be at least one block
       return 0x80140609;
 
-   if(size <= 0xF)
-      return 0x80140609;
+   UINT64_TO_BYTEARRAY(tweak_key, tweak); //block_size and size should be at least one block
 
-   /*
-   if((((int)src | (int)dst) << 0x1E) != 0)
-      return 0x8014060E;
-   */
-
-   int tk_tmp00 = tweak_key0;
-   int tk_tmp10 = tweak_key1;
-
-   for(int i = 0; i < 8; i++)
-   {
-      iv[i] = tk_tmp00;
-
-      tk_tmp00 = (tk_tmp00 >> 8) | (tk_tmp10 << 24);
-      tk_tmp10 = tk_tmp10 >> 8;
-   }
-
-   memset(iv + 8, 0, 8);
+   memset(tweak + 8, 0, 8); //set upper tweak to 0
    
-   uint32_t offset = 0;
-   uint32_t bytes_left = size;
+   std::uint32_t offset = 0;
+   std::uint32_t bytes_left = size;
    
    do
    {
@@ -308,33 +267,24 @@ int pfs_encrypt_sw(const unsigned char* key, const unsigned char* subkey_key, ui
          size_arg = bytes_left;
 
       int result0 = 0;
-      if((flag & PFS_CRYPTO_USE_CMAC) != 0)
-         result0 = AESCMACSw_base_1(iv, key, subkey_key, keysize, size_arg, src + offset, g_1771100);
+      if(crypto_engine_flag & CRYPTO_ENGINE_CRYPTO_USE_CMAC)
+         result0 = XTSCMACEncrypt_base(tweak, key, tweak_enc_key, keysize, size_arg, src + offset, g_cmac_buffer);
       else
-         result0 = AESCMACEncryptSw_base(iv, key, subkey_key, keysize, size_arg, src + offset, dst + offset);
+         result0 = XTSAESEncrypt_base(tweak, key, tweak_enc_key, keysize, size_arg, src + offset, dst + offset); //xts-aes encrypt
       
       if(result0 != 0)
          return result0;
 
-      for(int i = 0; i < 0x10; i++)
-      {
-         if(iv[i] == 0xFF)
-         {
-            iv[i] = 0;
-         }
-         else
-         {
-            iv[i] = iv[i] + 1;
-            break;
-         }
-      }
+      UINT128_BYTEARRAY_INC(tweak); // increment tweak by 1 (not relevant ? since this function is only used to decrypt single block of data)
 
       offset = offset + block_size;
       bytes_left = bytes_left - block_size;
    }
    while(size > offset);
 
-   if((flag & PFS_CRYPTO_USE_CMAC) != 0)
+   //copy result to dest buffer since cmac functions operate with global buffer
+
+   if(crypto_engine_flag & CRYPTO_ENGINE_CRYPTO_USE_CMAC)
    {
       if(dst != src)
       {

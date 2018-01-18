@@ -8,7 +8,7 @@
 
 #include <libcrypto/sha1.h>
 
-unsigned char* c_node_icvs(unsigned char* raw_data, int order)
+unsigned char* c_node_icvs(unsigned char* raw_data, std::uint32_t order)
 {
   int offset = 0x48 * order + 0x10 * order - 0x38;
   return raw_data + offset;
@@ -29,15 +29,15 @@ int icv_contract_hmac(unsigned char* iv, const unsigned char* key, const unsigne
 }
 
 //should return page size
-int node_size(int index)
+std::uint32_t node_size(std::uint32_t index)
 {
   return 0x6C * index - 0x38;
 }
 
 //get order of the page (max number of hashes per page)
-int order_max_avail(uint32_t pagesize)
+std::uint32_t order_max_avail(std::uint32_t pagesize)
 {
-  int index;
+  std::uint32_t index;
   //calculate max possible index until data size does not fit the page
   for(index = 1; pagesize > node_size(index); index++);
   //substract one entry if last entry overflows the page
@@ -48,7 +48,7 @@ int order_max_avail(uint32_t pagesize)
 
 int calculate_node_icv(sce_ng_pfs_header_t& ngh, unsigned char* secret, sce_ng_pfs_block_header_t* node_header, unsigned char* raw_data, unsigned char* icv)
 {
-   int order = order_max_avail(ngh.pageSize); //get order of the page (max number of hashes per page)
+   std::uint32_t order = order_max_avail(ngh.pageSize); //get order of the page (max number of hashes per page)
 
    if(ngh.version == 5)
    {
@@ -60,13 +60,13 @@ int calculate_node_icv(sce_ng_pfs_header_t& ngh, unsigned char* secret, sce_ng_p
    if(node_header == 0)
       return -1;
 
-   uint32_t nEntries = node_header->nFiles;
+   std::uint32_t nEntries = node_header->nFiles;
    if (node_header->type > 0)
       nEntries++;
 
    memset(icv, 0, 0x14);
 
-   for (int index = 0; index < nEntries; index++)
+   for (std::uint32_t index = 0; index < nEntries; index++)
    {
       unsigned char* icvs_base = c_node_icvs(raw_data, order);
       icv_contract_hmac(icv, secret, icv, icvs_base + index * 0x14);

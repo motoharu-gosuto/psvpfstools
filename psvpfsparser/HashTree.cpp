@@ -1,20 +1,20 @@
-#include "MerkleTree.h"
+#include "HashTree.h"
 
 #include "FilesDbParser.h"
 
 #include "Utils.h"
 
-int64_t page2off(uint32_t page, uint32_t pageSize)
+int64_t page2off(std::uint32_t page, std::uint32_t pageSize)
 {
    return page * pageSize + pageSize;
 }
 
-uint32_t off2page(int64_t offset, uint32_t pageSize)
+std::uint32_t off2page(std::int64_t offset, std::uint32_t pageSize)
 {
-   return (offset - pageSize) / pageSize;
+   return static_cast<std::uint32_t>((offset - pageSize) / pageSize);
 }
 
-bool validate_merkle_tree(int level, uint32_t page, const std::vector<sce_ng_pfs_block_t>& blocks, const std::multimap<uint32_t, page_icv_data>& page_icvs)
+bool validate_hash_tree(int level, std::uint32_t page, const std::vector<sce_ng_pfs_block_t>& blocks, const std::multimap<std::uint32_t, page_icv_data>& page_icvs)
 {
    const sce_ng_pfs_block_t& current_block = blocks[page]; //it should be safe to use page directly as index
 
@@ -38,7 +38,7 @@ bool validate_merkle_tree(int level, uint32_t page, const std::vector<sce_ng_pfs
 
             print_bytes(it->second.icv, 0x14);
 
-            validate_merkle_tree(level + 1, it->second.page, blocks, page_icvs);
+            validate_hash_tree(level + 1, it->second.page, blocks, page_icvs);
             found = true;
             break;
          }

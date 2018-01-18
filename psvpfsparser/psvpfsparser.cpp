@@ -69,25 +69,34 @@ int execute(PsvPfsParserConfig& cfg)
       return -1;
    }
 
+   bool isUnicv = false;
+   if(get_isUnicv(titleIdPath, isUnicv) < 0)
+      return -1;
+
    sce_ng_pfs_header_t header;
    std::vector<sce_ng_pfs_file_t> files;
    std::vector<sce_ng_pfs_dir_t> dirs;
-   if(parseFilesDb(klicensee, titleIdPath, header, files, dirs) < 0)
+   if(parseFilesDb(klicensee, titleIdPath, isUnicv, header, files, dirs) < 0)
       return -1;
 
-   scei_rodb_t unicv;
+   std::shared_ptr<sce_idb_base_t> unicv;
    if(parseUnicvDb(titleIdPath, unicv) < 0)
       return -1;
 
-   std::map<uint32_t, std::string> pageMap;
-   std::set<std::string> emptyFiles;
+   std::map<std::uint32_t, sce_junction> pageMap;
+   std::set<sce_junction> emptyFiles;
    if(bruteforce_map(titleIdPath, klicensee, header, unicv, pageMap, emptyFiles) < 0)
       return -1;
 
    if(decrypt_files(titleIdPath, destTitleIdPath, klicensee, header, files, dirs, unicv, pageMap, emptyFiles) < 0)
       return -1;
 
-	return 0;
+   std::cout << "keystone sanity check..." << std::endl;
+
+   if(get_keystone(destTitleIdPath) < 0)
+      return -1;
+
+   return 0;
 }
 
 int main(int argc, char* argv[])
