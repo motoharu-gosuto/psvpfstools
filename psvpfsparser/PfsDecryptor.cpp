@@ -466,9 +466,9 @@ int init_crypt_ctx(CryptEngineWorkCtx* work_ctx, unsigned char* klicensee, sce_n
    g_sub_ctx.nBlocksTail = 0;
 
    if(db_type_to_is_unicv(drv_ctx.db_type))
-      g_sub_ctx.nBlocks = block.get_header()->get_nSignatures();
+      g_sub_ctx.nBlocks = block.get_header()->get_nSignatures(); //for unicv - number of hashes is equal to number of sectors, so can use get_nSignatures
    else
-      g_sub_ctx.nBlocks = table->get_header()->get_numSectors();
+      g_sub_ctx.nBlocks = table->get_header()->get_numSectors(); //for icv - there are more hashes than sectors (because of merkle tree), so have to use get_numSectors
 
    g_sub_ctx.sector_base = sector_base;
    g_sub_ctx.dest_offset = 0;

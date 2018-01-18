@@ -166,6 +166,7 @@ bool sig_tbl_header_merlke_t::validate_tail(std::shared_ptr<sce_iftbl_base_t> ff
 
    uint32_t* unk_value_base = (uint32_t*)(data_copy.data() + (data_copy.size() - 0x5C));
 
+   //there should be one 0xFFFFFFFF value per sector
    for(std::uint32_t i = 0; i < fft->get_header()->get_numSectors(); i++)
    {
       if(*(unk_value_base + i) != 0xFFFFFFFF)
@@ -174,9 +175,10 @@ bool sig_tbl_header_merlke_t::validate_tail(std::shared_ptr<sce_iftbl_base_t> ff
          return false;
       }
 
-      *(unk_value_base + i) = 0;
+      *(unk_value_base + i) = 0; //clear that value
    }
 
+   //after 0xFFFFFFFF values are cleared - everything should be zeroes (including all other data)
    if(!isZeroVector(data_copy))
    {
       std::cout << "Invalid zero vector" << std::endl;
