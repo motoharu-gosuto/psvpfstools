@@ -138,7 +138,8 @@ int walk_tree(std::shared_ptr<merkle_tree<T> > mkt, typename merkle_node_walker<
    std::vector<std::shared_ptr<merkle_tree_node<T> > > children_temp;
 
    children.push_back(mkt->root);
-   wlk(mkt->root, ctx);
+   if(wlk(mkt->root, ctx) < 0)
+      return 0;
 
    //this is a non recoursive algorithm that iterates through merkle tree
    //level by level going from left to right, from top to bottom
@@ -146,13 +147,15 @@ int walk_tree(std::shared_ptr<merkle_tree<T> > mkt, typename merkle_node_walker<
    {
       for(auto c : children)
       {
-         wlk(c->m_left, ctx);
+         if(wlk(c->m_left, ctx) < 0)
+            return 0;
          children_temp.push_back(c->m_left);
          nNodes++;
          if(nNodes == mkt->nNodes)
             throw std::runtime_error("Not a full binary tree");
 
-         wlk(c->m_right, ctx);
+         if(wlk(c->m_right, ctx) < 0)
+            return 0;
          children_temp.push_back(c->m_right);
          nNodes++;
          if(nNodes == mkt->nNodes)

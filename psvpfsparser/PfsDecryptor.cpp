@@ -67,12 +67,13 @@ int find_zero_sector_index(std::shared_ptr<merkle_tree_node<icv> > node, void* c
       if(node->m_index == 0)
       {
          ctx_pair->second = ctx_pair->first; //save global counter to result
+         return -1;
       }
       else
       {
          ctx_pair->first++; //increase global counter
+         return 0;
       }
-      return 0;
    }
    else
    {
