@@ -94,7 +94,7 @@ int F00DKeyEncryptor::execute_url(std::string url)
 
 int F00DKeyEncryptor::parse_key_base(unsigned const char* key, unsigned char* dest, int key_size, std::string jkey, std::string jdrv_key)
 {
-   int nbytes = key_size / 8;
+   std::uint32_t nbytes = key_size / 8;
 
    unsigned char key_check[0x20];
    string_to_byte_array(jkey, nbytes, key_check);
@@ -138,7 +138,7 @@ int F00DKeyEncryptor::encrypt_key(unsigned const char* key, int key_size, unsign
    auto kit = m_keyCache.find(keyStr);
    if(kit != m_keyCache.end())
    {
-      int nbytes = key_size / 8;
+      std::uint32_t nbytes = key_size / 8;
       string_to_byte_array(kit->second, nbytes, drv_key);
       return 0;
    }

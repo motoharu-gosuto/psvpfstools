@@ -168,7 +168,7 @@ int validate_merkle_trees(unsigned char* klicensee, sce_ng_pfs_header_t& ngpfs, 
       std::uint32_t sectorSize = table->get_header()->get_fileSectorSize();
       std::uintmax_t fileSize = junction.file_size(); 
 
-      std::uint32_t nSectors = fileSize / sectorSize;
+      std::uint32_t nSectors = static_cast<std::uint32_t>(fileSize / sectorSize);
       std::uint32_t tailSize = fileSize % sectorSize;
 
       std::map<std::uint32_t, icv> sectorHashMap;
@@ -284,7 +284,7 @@ int bruteforce_map(boost::filesystem::path titleIdPath, unsigned char* klicensee
       }
       else
       {
-         const auto& fdt = fileDatas.insert(std::make_pair(sp, std::vector<std::uint8_t>(fsz_limited)));
+         const auto& fdt = fileDatas.insert(std::make_pair(sp, std::vector<std::uint8_t>(static_cast<std::vector<std::uint8_t>::size_type>(fsz_limited))));
 
          std::ifstream in;
          if(!sp.open(in))
@@ -563,7 +563,7 @@ int decrypt_icv_file(boost::filesystem::path titleIdPath, boost::filesystem::pat
    //if number of sectors is less than or same to number that fits into single signature page
    if(table->get_header()->get_numHashes() <= table->get_header()->get_binTreeNumMaxAvail())
    {
-      std::vector<std::uint8_t> buffer(fileSize);
+      std::vector<std::uint8_t> buffer(static_cast<std::vector<std::uint8_t>::size_type>(fileSize));
       inputStream.read((char*)buffer.data(), fileSize);
          
       std::uint32_t tail_size = fileSize % table->get_header()->get_fileSectorSize();
@@ -632,7 +632,7 @@ int decrypt_unicv_file(boost::filesystem::path titleIdPath, boost::filesystem::p
    //if number of sectors is less than or same to number that fits into single signature page
    if(table->get_header()->get_numSectors() <= table->get_header()->get_binTreeNumMaxAvail())
    {
-      std::vector<std::uint8_t> buffer(fileSize);
+      std::vector<std::uint8_t> buffer(static_cast<std::vector<std::uint8_t>::size_type>(fileSize));
       inputStream.read((char*)buffer.data(), fileSize);
          
       std::uint32_t tail_size = fileSize % table->get_header()->get_fileSectorSize();
@@ -660,7 +660,7 @@ int decrypt_unicv_file(boost::filesystem::path titleIdPath, boost::filesystem::p
    {
       std::uintmax_t bytes_left = fileSize;
 
-      std::uintmax_t sector_base = 0;
+      std::uint32_t sector_base = 0;
 
       //go through each block of sectors
       for(auto& b : table->m_blocks)
@@ -676,7 +676,7 @@ int decrypt_unicv_file(boost::filesystem::path titleIdPath, boost::filesystem::p
                return -1;
             }
 
-            std::vector<std::uint8_t> buffer(bytes_left);
+            std::vector<std::uint8_t> buffer(static_cast<std::vector<std::uint8_t>::size_type>(bytes_left));
             inputStream.read((char*)buffer.data(), bytes_left);
 
             std::uint32_t tail_size = bytes_left % table->get_header()->get_fileSectorSize();
@@ -706,7 +706,7 @@ int decrypt_unicv_file(boost::filesystem::path titleIdPath, boost::filesystem::p
             //if this is a last block and last sector is not fully filled
             if(bytes_left < full_block_size)
             {
-               std::vector<std::uint8_t> buffer(bytes_left);
+               std::vector<std::uint8_t> buffer(static_cast<std::vector<std::uint8_t>::size_type>(bytes_left));
                inputStream.read((char*)buffer.data(), bytes_left);
 
                std::uint32_t tail_size = bytes_left % table->get_header()->get_fileSectorSize();

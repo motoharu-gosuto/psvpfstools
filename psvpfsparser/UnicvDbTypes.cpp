@@ -120,10 +120,10 @@ bool sig_tbl_header_base_t::read(std::ifstream& inputStream, std::shared_ptr<sce
    //instead of skipping it is validated here that it contains only zeroes
    std::uint64_t cp = inputStream.tellg();
    std::uint64_t dsize = cp % fft->get_header()->get_pageSize(); //calc size of data that was read
-   std::int64_t tail = fft->get_header()->get_pageSize() - dsize; //calc size of tail data
+   std::uint64_t tail = fft->get_header()->get_pageSize() - dsize; //calc size of tail data
 
    //read tail data
-   std::vector<std::uint8_t> data(tail);
+   std::vector<std::uint8_t> data(static_cast<std::vector<std::uint8_t>::size_type>(tail));
    inputStream.read((char*)data.data(), tail);
 
    //fast way would be to use seek
@@ -428,10 +428,10 @@ bool sce_iftbl_cvdb_proxy_t::read(std::ifstream& inputStream, std::uint64_t& ind
    //instead of skipping it is validated here that it contains only zeroes
    std::uint64_t cp = inputStream.tellg(); //get current pos
    std::uint64_t dsize = cp % m_header->get_pageSize(); //calc size of data that was read
-   std::int64_t tail = m_header->get_pageSize() - dsize; //calc size of tail data
+   std::uint64_t tail = m_header->get_pageSize() - dsize; //calc size of tail data
 
    //read tail
-   std::vector<std::uint8_t> tailData(tail);
+   std::vector<std::uint8_t> tailData(static_cast<std::vector<std::uint8_t>::size_type>(tail));
    inputStream.read((char*)tailData.data(), tail);
 
    //validate tail

@@ -11,7 +11,7 @@ int64_t page2off(std::uint32_t page, std::uint32_t pageSize)
 
 std::uint32_t off2page(std::int64_t offset, std::uint32_t pageSize)
 {
-   return (offset - pageSize) / pageSize;
+   return static_cast<std::uint32_t>((offset - pageSize) / pageSize);
 }
 
 bool validate_hash_tree(int level, std::uint32_t page, const std::vector<sce_ng_pfs_block_t>& blocks, const std::multimap<std::uint32_t, page_icv_data>& page_icvs)
