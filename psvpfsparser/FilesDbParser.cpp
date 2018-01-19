@@ -130,7 +130,7 @@ bool verify_header_icv(std::ifstream& inputStream, sce_ng_pfs_header_t& header, 
    return true;
 }
 
-bool validate_header(const sce_ng_pfs_header_t& header, int64_t dataSize, bool isUnicv)
+bool validate_header(const sce_ng_pfs_header_t& header, uint32_t dataSize, bool isUnicv)
 {
    //confirm tail size
    if(dataSize != header.tailSize)
@@ -239,7 +239,7 @@ bool parseFilesDb(unsigned char* klicensee, std::ifstream& inputStream, bool isU
    int64_t dataSize = cunksEndPos - chunksBeginPos;
 
    //validate header
-   if(!validate_header(header, dataSize, isUnicv))
+   if(!validate_header(header, static_cast<std::uint32_t>(dataSize), isUnicv))
       return false;
 
    //seek back to the beginning of tail

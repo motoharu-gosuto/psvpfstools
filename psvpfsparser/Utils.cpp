@@ -36,7 +36,7 @@ std::string byte_array_to_string(const unsigned char* source, int nBytes)
 
    for(int i = 0, j = 0 ; j < nBytes; i = i + 2, j++)
    {
-      sprintf_s(result.data() + i, 3, "%02x", source[j]);
+      sprintf(result.data() + i, "%02x", source[j]);
    }
 
    return std::string(result.data(), nBytes * 2);

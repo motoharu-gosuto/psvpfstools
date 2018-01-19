@@ -254,7 +254,7 @@ int depth_mapper(std::shared_ptr<merkle_tree_node<T> > node, void* ctx)
    auto depthEntryIt = nodeDepthMap->find(node->m_depth);
    if(depthEntryIt == nodeDepthMap->end())
    {
-      auto insRes = nodeDepthMap->insert(std::make_pair(node->m_depth, depth_mapper_context<T>::value_type()));
+      auto insRes = nodeDepthMap->insert(std::make_pair(node->m_depth, typename depth_mapper_context<T>::value_type()));
       depthEntryIt = insRes.first;
    }
 
@@ -282,11 +282,11 @@ template<typename T>
 int bottom_top_walk_combine(std::shared_ptr<merkle_tree<T> > mkt, typename node_combiner<T>::type* wlk, void* ctx)
 {
    //build depth slice
-   depth_mapper_context<T>::type nodeDepthMap;
+   typename depth_mapper_context<T>::type nodeDepthMap;
    map_by_depth(mkt, nodeDepthMap);
 
    //walk from bottom to top
-   for(depth_mapper_context<T>::type::const_reverse_iterator it = nodeDepthMap.rbegin(); it != nodeDepthMap.rend(); ++it)
+   for(typename depth_mapper_context<T>::type::const_reverse_iterator it = nodeDepthMap.rbegin(); it != nodeDepthMap.rend(); ++it)
    {
       //walk through each node
       for(auto item : it->second)

@@ -2,6 +2,7 @@
 
 #include <stdexcept>
 #include <vector>
+#include <cstring>
 
 //set of methods to distinguish between ro and rw db by checking image spec
 
