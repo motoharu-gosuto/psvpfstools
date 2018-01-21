@@ -98,6 +98,23 @@ If you want to use different version of Visual Studio - change toolset parameter
 If you need different type of build - look at such options as variant, link, runtime-link.
 Build type complete will build all library variations.
 
+Win7 static linking release x32
+```
+b2 toolset=msvc-11.0 address-model=32 link=static variant=release stage
+```
+Win7 static linking release x64
+```
+b2 toolset=msvc-11.0 address-model=64 link=static variant=release stage
+```
+WinXP static linking release x32
+```
+b2 toolset=msvc-11.0_xp address-model=32 link=static variant=release stage
+```
+WinXP static linking release x64
+```
+b2 toolset=msvc-11.0_xp address-model=64 link=static variant=release stage
+```
+
 For additional reference - consult with this page for windows build:
 http://www.boost.org/doc/libs/1_65_1/more/getting_started/windows.html
 
