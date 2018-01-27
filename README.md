@@ -100,19 +100,19 @@ Build type complete will build all library variations.
 
 Win7 static linking release x32
 ```
-b2 toolset=msvc-11.0 address-model=32 link=static variant=release stage
+b2 toolset=msvc-11.0 address-model=32 link=static variant=release stage install --prefix=<path>
 ```
 Win7 static linking release x64
 ```
-b2 toolset=msvc-11.0 address-model=64 link=static variant=release stage
+b2 toolset=msvc-11.0 address-model=64 link=static variant=release stage install --prefix=<path>
 ```
 WinXP static linking release x32
 ```
-b2 toolset=msvc-11.0_xp address-model=32 link=static variant=release stage
+b2 toolset=msvc-11.0_xp address-model=32 link=static variant=release stage install --prefix=<path>
 ```
 WinXP static linking release x64
 ```
-b2 toolset=msvc-11.0_xp address-model=64 link=static variant=release stage
+b2 toolset=msvc-11.0_xp address-model=64 link=static variant=release stage install --prefix=<path>
 ```
 
 For additional reference - consult with this page for windows build:
