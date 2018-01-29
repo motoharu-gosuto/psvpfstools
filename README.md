@@ -176,6 +176,8 @@ Options:
 - devnoname120 for hmac_sha256 crypto primitives.
 - SilicaAndPina for pointing at trophy and savedata pfs.
 - CelesteBlue for indicating possibility of sealedkey usage as local key.
+- tomazzz369 for testing and providing XP build
+- MRGhidini for testing and integration into Psvimgtools-Easy-FrontEnd
 
 ## Other thanks
 - Chris Venter. For libb64. Integrated as source.
