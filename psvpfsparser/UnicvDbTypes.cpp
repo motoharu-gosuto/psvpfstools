@@ -566,9 +566,18 @@ bool sce_irodb_t::read(boost::filesystem::path filepath)
 
    std::cout << "Total blocks: " << std::dec << nBlocks << std::endl;
 
+   std::vector<std::uint8_t> blankPage(m_dbHeader.get_blockSize());
+
    //read all blocks
    for(std::uint64_t index = 0; index < nBlocks; index++)
    {
+      //try to skip blank pages
+      inputStream.read((char*)blankPage.data(), m_dbHeader.get_blockSize());
+      if(isZeroVector(blankPage))
+         continue;
+
+      inputStream.seekg(-(std::int32_t)m_dbHeader.get_blockSize(), std::ios::cur);
+
       //read single block
       if(!read_table_item(inputStream, index, 0))
          return false;
