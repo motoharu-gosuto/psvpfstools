@@ -154,6 +154,7 @@ Go to cmake folder and execute build.sh. It will create build folder and configu
 
 ## run
 When decrypting unicv.db: use -k or -z option to provide klicensee data.
+
 When decrypting icv.db: dont use -k and -z. klicensee data will be taken automatically from sealedkey file.
 
 Options:
