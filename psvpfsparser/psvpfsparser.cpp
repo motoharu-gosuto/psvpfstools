@@ -15,7 +15,7 @@
 #include "UnicvDbParser.h"
 #include "FilesDbParser.h"
 #include "PfsDecryptor.h"
-#include "F00DKeyEncryptor.h"
+#include "F00DUrlKeyEncryptor.h"
 #include "PsvPfsParserConfig.h"
 #include "LocalKeyGenerator.h"
 

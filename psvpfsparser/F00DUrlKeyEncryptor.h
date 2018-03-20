@@ -5,7 +5,7 @@
 #include <string>
 #include <map>
 
-class F00DKeyEncryptor
+class F00DUrlKeyEncryptor
 {
 private:
    std::string m_response;
@@ -28,6 +28,6 @@ public:
    int encrypt_key(const unsigned char* key, int key_size, unsigned char* drv_key);
 };
 
-F00DKeyEncryptor* get_F00D_encryptor();
+F00DUrlKeyEncryptor* get_F00D_encryptor();
 
 void set_F00D_url(std::string url);

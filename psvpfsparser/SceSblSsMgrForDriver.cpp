@@ -1,6 +1,6 @@
 #include "SceSblSsMgrForDriver.h"
 
-#include "F00DKeyEncryptor.h"
+#include "F00DUrlKeyEncryptor.h"
 
 #include <libcrypto/aes.h>
 #include <libcrypto/sha1.h>
@@ -13,7 +13,7 @@ int SceSblSsMgrForDriver_sceSblSsMgrAESCBCDecryptWithKeygenForDriver(const unsig
    if(key_id != 0)
       throw std::runtime_error("Unexpected key_id");
 
-   F00DKeyEncryptor* ec = get_F00D_encryptor();
+   F00DUrlKeyEncryptor* ec = get_F00D_encryptor();
    unsigned char drv_key[0x20] = {0}; //use max possible buffer
    if(ec->encrypt_key(key, key_size, drv_key) < 0)
       return -1;
@@ -32,7 +32,7 @@ int SceSblSsMgrForDriver_sceSblSsMgrAESCBCEncryptWithKeygenForDriver(const unsig
    if(key_id != 0)
       throw std::runtime_error("Unexpected key_id");
 
-   F00DKeyEncryptor* ec = get_F00D_encryptor();
+   F00DUrlKeyEncryptor* ec = get_F00D_encryptor();
    unsigned char drv_key[0x20] = {0}; //use max possible buffer
    if(ec->encrypt_key(key, key_size, drv_key) < 0)
       return -1;
@@ -51,7 +51,7 @@ int SceSblSsMgrForDriver_sceSblSsMgrAESECBEncryptWithKeygenForDriver(const unsig
    if(key_id != 0)
       throw std::runtime_error("Unexpected key_id");
 
-   F00DKeyEncryptor* ec = get_F00D_encryptor();
+   F00DUrlKeyEncryptor* ec = get_F00D_encryptor();
    unsigned char drv_key[0x20] = {0}; //use max possible buffer
    if(ec->encrypt_key(key, key_size, drv_key) < 0)
       return -1;
@@ -165,7 +165,7 @@ int SceSblSsMgrForDriver_sceSblSsMgrAESCMACWithKeygenForDriver(const unsigned ch
    if(command_bit != 0)
       throw std::runtime_error("unsupported command_bit");
 
-   F00DKeyEncryptor* ec = get_F00D_encryptor();
+   F00DUrlKeyEncryptor* ec = get_F00D_encryptor();
    unsigned char drv_key[0x20] = {0}; //use max possible buffer
    if(ec->encrypt_key(key, key_size, drv_key) < 0)
       return -1;

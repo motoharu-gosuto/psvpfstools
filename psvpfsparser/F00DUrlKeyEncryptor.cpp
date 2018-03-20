@@ -1,4 +1,4 @@
-#include "F00DKeyEncryptor.h"
+#include "F00DUrlKeyEncryptor.h"
 
 #include <stdio.h>
 #include <curl/curl.h>
@@ -11,9 +11,9 @@
 
 #include "Utils.h"
 
-static F00DKeyEncryptor g_F00D_encryptor;
+static F00DUrlKeyEncryptor g_F00D_encryptor;
 
-F00DKeyEncryptor* get_F00D_encryptor()
+F00DUrlKeyEncryptor* get_F00D_encryptor()
 {
    return &g_F00D_encryptor;
 }
@@ -25,7 +25,7 @@ void set_F00D_url(std::string url)
    g_F00D_url = url;
 }
 
-std::string F00DKeyEncryptor::create_url(unsigned const char* key, int key_size)
+std::string F00DUrlKeyEncryptor::create_url(unsigned const char* key, int key_size)
 {
    std::stringstream ss;
 
@@ -40,17 +40,17 @@ std::string F00DKeyEncryptor::create_url(unsigned const char* key, int key_size)
    return ss.str();
 }
 
-size_t F00DKeyEncryptor::write_callback(char* ptr, size_t size, size_t nmemb, void* userdata)
+size_t F00DUrlKeyEncryptor::write_callback(char* ptr, size_t size, size_t nmemb, void* userdata)
 {
    size_t realsize = size * nmemb;
 
-   F00DKeyEncryptor* inst = (F00DKeyEncryptor*)userdata;
+   F00DUrlKeyEncryptor* inst = (F00DUrlKeyEncryptor*)userdata;
    inst->m_response = std::string(ptr);
 
    return realsize;
 }
 
-int F00DKeyEncryptor::execute_url(std::string url)
+int F00DUrlKeyEncryptor::execute_url(std::string url)
 {
    CURL *curl;
    CURLcode res;
@@ -95,7 +95,7 @@ int F00DKeyEncryptor::execute_url(std::string url)
    return -1;
 }
 
-int F00DKeyEncryptor::parse_key_base(unsigned const char* key, unsigned char* dest, int key_size, std::string jkey, std::string jdrv_key)
+int F00DUrlKeyEncryptor::parse_key_base(unsigned const char* key, unsigned char* dest, int key_size, std::string jkey, std::string jdrv_key)
 {
    std::uint32_t nbytes = key_size / 8;
 
@@ -112,7 +112,7 @@ int F00DKeyEncryptor::parse_key_base(unsigned const char* key, unsigned char* de
    return 0;
 }
 
-int F00DKeyEncryptor::parse_key(unsigned const char* key, unsigned char* dest, int key_size)
+int F00DUrlKeyEncryptor::parse_key(unsigned const char* key, unsigned char* dest, int key_size)
 {
    std::string json(m_response);
    boost::trim(json);
@@ -129,7 +129,7 @@ int F00DKeyEncryptor::parse_key(unsigned const char* key, unsigned char* dest, i
    return parse_key_base(key, dest, key_size, jkey, jdrv_key);
 }
 
-int F00DKeyEncryptor::encrypt_key(unsigned const char* key, int key_size, unsigned char* drv_key)
+int F00DUrlKeyEncryptor::encrypt_key(unsigned const char* key, int key_size, unsigned char* drv_key)
 {
    if(key_size != 0x80 && 
       // key_size != 0xC0 && //TODO: need to implement padding
