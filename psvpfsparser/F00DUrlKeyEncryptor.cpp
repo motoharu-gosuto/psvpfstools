@@ -11,25 +11,16 @@
 
 #include "Utils.h"
 
-static F00DUrlKeyEncryptor g_F00D_encryptor;
-
-F00DUrlKeyEncryptor* get_F00D_encryptor()
+F00DUrlKeyEncryptor::F00DUrlKeyEncryptor(const std::string& F00D_url)
+   : m_F00D_url(F00D_url)
 {
-   return &g_F00D_encryptor;
-}
-
-std::string g_F00D_url;
-
-void set_F00D_url(std::string url)
-{
-   g_F00D_url = url;
 }
 
 std::string F00DUrlKeyEncryptor::create_url(unsigned const char* key, int key_size)
 {
    std::stringstream ss;
 
-   ss << g_F00D_url << "/?key=";
+   ss << m_F00D_url << "/?key=";
 
    int nbytes = key_size / 8;
    for(int i = 0; i < nbytes; i++)
