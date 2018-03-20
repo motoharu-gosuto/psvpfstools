@@ -72,7 +72,7 @@ int F00DUrlKeyEncryptor::execute_url(std::string url)
       {
          //fprintf(stderr, "curl_easy_perform() failed: %s\n", curl_easy_strerror(res));
 
-         //it is too time consuming to throw up an error code from all crypto functions
+         //it is too time consuming to write a code to throw up an error code from all crypto functions
          //much easier to throw an exception
          throw std::runtime_error("Unable to get response from F00D service");
       }

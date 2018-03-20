@@ -1,6 +1,7 @@
 #include "F00DKeyEncryptorFactory.h"
 
 #include "F00DUrlKeyEncryptor.h"
+#include "F00DFileKeyEncryptor.h"
 
 static std::string g_F00D_url;
 
@@ -16,6 +17,6 @@ static std::shared_ptr<IF00DKeyEncryptor> g_F00D_encryptor;
 std::shared_ptr<IF00DKeyEncryptor> get_F00D_encryptor()
 {
    if(!g_F00D_encryptor)
-      g_F00D_encryptor = std::make_shared<F00DUrlKeyEncryptor>(g_F00D_url);
+      g_F00D_encryptor = std::make_shared<F00DFileKeyEncryptor>(g_F00D_url);
    return g_F00D_encryptor;
 }
