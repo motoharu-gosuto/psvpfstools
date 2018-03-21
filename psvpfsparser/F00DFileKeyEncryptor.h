@@ -26,4 +26,6 @@ private:
 
 public:
    int encrypt_key(const unsigned char* key, int key_size, unsigned char* drv_key) override;
+
+   void print_cache(std::ostream& os, std::string sep = "\t") const override;
 };

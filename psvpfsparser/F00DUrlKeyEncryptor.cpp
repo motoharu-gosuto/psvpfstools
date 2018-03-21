@@ -148,3 +148,11 @@ int F00DUrlKeyEncryptor::encrypt_key(unsigned const char* key, int key_size, uns
       return 0;
    }
 }
+
+void F00DUrlKeyEncryptor::print_cache(std::ostream& os, std::string sep) const
+{
+   for(auto& item : m_keyCache)
+   {
+      os << item.first << sep << item.second << std::endl;
+   }
+}

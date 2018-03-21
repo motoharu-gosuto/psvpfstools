@@ -140,3 +140,11 @@ int F00DFileKeyEncryptor::encrypt_key(const unsigned char* key, int key_size, un
    string_to_byte_array(kit->second, nbytes, drv_key);
    return 0;
 }
+
+void F00DFileKeyEncryptor::print_cache(std::ostream& os, std::string sep) const
+{
+   for(auto& item : m_keyCache)
+   {
+      os << item.first << sep << item.second << std::endl;
+   }
+}

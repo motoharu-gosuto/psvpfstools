@@ -96,6 +96,9 @@ int execute(PsvPfsParserConfig& cfg)
    if(get_keystone(destTitleIdPath) < 0)
       return -1;
 
+   std::cout << "F00D cache:" << std::endl;
+   iF00D->print_cache(std::cout);
+
    return 0;
 }
 
