@@ -30,6 +30,54 @@ On Vita - there are 3 hardware implementations of crypto functions:
 You can read more about crypto functions here:
 https://wiki.henkaku.xyz/vita/SceSblSsMgr#SceSblSsMgrForDriver
 
+## F00D service cache ##
+
+Instead of using F00D service directly it is now possible to use a cache file that is created beforehand.
+
+To use it pass path to the file with --f00d_cache option.
+
+When using --f00d_url option you will get an `F00D cache` output that you can copy to a cache file.
+
+Two types of files are allowed: 
+
+* flat files with delimiters like " ", "\t", ","
+* json files
+
+### Format of flat files ###
+
+* titleid (only for information, not used)
+* klicensee
+* encrypted key
+
+```
+PCSE00000 00000000000000000000000000000000 00000000000000000000000000000000
+PCSE11111 11111111111111111111111111111111 11111111111111111111111111111111
+PCSE22222 22222222222222222222222222222222 22222222222222222222222222222222
+```
+
+### Format of json files ###
+
+```
+{
+   "PCSE00000" : 
+   {
+      "key" : "00000000000000000000000000000000",
+      "value" : "00000000000000000000000000000000"
+   },
+   "PCSE11111" :
+   {
+      "key" : "11111111111111111111111111111111",
+      "value" : "11111111111111111111111111111111"
+   },
+   "PCSE22222" :
+   {
+      "key" : "22222222222222222222222222222222",
+      "value" : "22222222222222222222222222222222"
+   }
+}
+
+```
+
 ## What exactly can be decrypted?
 
 Tool now supports both icv.db and unicv.db formats.
@@ -169,6 +217,8 @@ Options:
   -z [ --zRIF ] arg         zRIF string.
   
   -f [ --f00d_url ] arg     Url of F00D service.
+  
+  -c [ --f00d_cache] arg    Path to flat or json file with F00D cache.
   
 ## Special thanks  
 - Proxima. For initial docs on DMAC5, contributing code for keystone and sealedkey checks, providing F00D service and help with crypto theory. 
