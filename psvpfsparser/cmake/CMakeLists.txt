@@ -5,6 +5,7 @@ message(${PROJECT})
 
 FILE (GLOB HEADER_FILES "../ICryptoOperations.h"
                         "../DefaultCryptoOperations.h"
+                        "../CryptoOperationsFactory.h"
                         "../IF00DKeyEncryptor.h"
                         "../F00DUrlKeyEncryptor.h"
                         "../F00DFileKeyEncryptor.h"
@@ -34,6 +35,7 @@ FILE (GLOB HEADER_FILES "../ICryptoOperations.h"
 source_group ("Header Files" FILES ${HEADER_FILES})
 
 FILE (GLOB SOURCE_FILES "../DefaultCryptoOperations.cpp"
+                        "../CryptoOperationsFactory.cpp"
                         "../F00DUrlKeyEncryptor.cpp"
                         "../F00DFileKeyEncryptor.cpp"
                         "../F00DKeyEncryptorFactory.cpp"
