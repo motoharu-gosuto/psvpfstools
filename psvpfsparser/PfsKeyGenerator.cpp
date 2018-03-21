@@ -122,7 +122,7 @@ int scePfsUtilGetGDKeys2(unsigned char* dec_key, unsigned char* tweak_enc_key, c
 
 //[TESTED]
 //this function is used to derive keys for gamedata and savedata
-int setup_crypt_packet_keys(CryptEngineData* data, const derive_keys_ctx* drv_ctx)
+int setup_crypt_packet_keys(std::shared_ptr<IF00DKeyEncryptor> iF00D, CryptEngineData* data, const derive_keys_ctx* drv_ctx)
 {
    if(is_gamedata(data->mode_index))
    {
@@ -141,5 +141,5 @@ int setup_crypt_packet_keys(CryptEngineData* data, const derive_keys_ctx* drv_ct
       scePfsUtilGetSDKeys(data->dec_key, data->tweak_enc_key, data->klicensee, data->files_salt, data->icv_salt);
    }
 
-   return scePfsUtilGetSecret(data->secret, data->klicensee, data->files_salt, data->crypto_engine_flag, data->icv_salt, data->key_id);
+   return scePfsUtilGetSecret(iF00D, data->secret, data->klicensee, data->files_salt, data->crypto_engine_flag, data->icv_salt, data->key_id);
 }

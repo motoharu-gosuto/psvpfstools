@@ -1,6 +1,6 @@
 #include "SceSblSsMgrForDriver.h"
 
-#include "F00DKeyEncryptorFactory.h"
+#include <stdexcept>
 
 #include <libcrypto/aes.h>
 #include <libcrypto/sha1.h>
@@ -8,14 +8,13 @@
 //##### WITH KEYGEN CRYPTO FUNCTIONS #####
 
 //this function is tested and works
-int SceSblSsMgrForDriver_sceSblSsMgrAESCBCDecryptWithKeygenForDriver(const unsigned char* src, unsigned char* dst, int size, const unsigned char* key, int key_size, unsigned char* iv, std::uint16_t key_id, int mask_enable)
+int SceSblSsMgrForDriver_sceSblSsMgrAESCBCDecryptWithKeygenForDriver(std::shared_ptr<IF00DKeyEncryptor> iF00D, const unsigned char* src, unsigned char* dst, int size, const unsigned char* key, int key_size, unsigned char* iv, std::uint16_t key_id, int mask_enable)
 {
    if(key_id != 0)
       throw std::runtime_error("Unexpected key_id");
 
-   std::shared_ptr<IF00DKeyEncryptor> ec = get_F00D_encryptor();
    unsigned char drv_key[0x20] = {0}; //use max possible buffer
-   if(ec->encrypt_key(key, key_size, drv_key) < 0)
+   if(iF00D->encrypt_key(key, key_size, drv_key) < 0)
       return -1;
 
    aes_context aes_ctx;
@@ -27,14 +26,13 @@ int SceSblSsMgrForDriver_sceSblSsMgrAESCBCDecryptWithKeygenForDriver(const unsig
 }
 
 //this function is tested and works
-int SceSblSsMgrForDriver_sceSblSsMgrAESCBCEncryptWithKeygenForDriver(const unsigned char* src, unsigned char* dst, int size, const unsigned char* key, int key_size, unsigned char* iv, std::uint16_t key_id, int mask_enable)
+int SceSblSsMgrForDriver_sceSblSsMgrAESCBCEncryptWithKeygenForDriver(std::shared_ptr<IF00DKeyEncryptor> iF00D, const unsigned char* src, unsigned char* dst, int size, const unsigned char* key, int key_size, unsigned char* iv, std::uint16_t key_id, int mask_enable)
 {
    if(key_id != 0)
       throw std::runtime_error("Unexpected key_id");
 
-   std::shared_ptr<IF00DKeyEncryptor> ec = get_F00D_encryptor();
    unsigned char drv_key[0x20] = {0}; //use max possible buffer
-   if(ec->encrypt_key(key, key_size, drv_key) < 0)
+   if(iF00D->encrypt_key(key, key_size, drv_key) < 0)
       return -1;
 
    aes_context aes_ctx;
@@ -46,14 +44,13 @@ int SceSblSsMgrForDriver_sceSblSsMgrAESCBCEncryptWithKeygenForDriver(const unsig
 }
 
 //this function is tested and works
-int SceSblSsMgrForDriver_sceSblSsMgrAESECBEncryptWithKeygenForDriver(const unsigned char* src, unsigned char* dst, int size, const unsigned char* key, int key_size, std::uint16_t key_id, int mask_enable)
+int SceSblSsMgrForDriver_sceSblSsMgrAESECBEncryptWithKeygenForDriver(std::shared_ptr<IF00DKeyEncryptor> iF00D, const unsigned char* src, unsigned char* dst, int size, const unsigned char* key, int key_size, std::uint16_t key_id, int mask_enable)
 {
    if(key_id != 0)
       throw std::runtime_error("Unexpected key_id");
 
-   std::shared_ptr<IF00DKeyEncryptor> ec = get_F00D_encryptor();
    unsigned char drv_key[0x20] = {0}; //use max possible buffer
-   if(ec->encrypt_key(key, key_size, drv_key) < 0)
+   if(iF00D->encrypt_key(key, key_size, drv_key) < 0)
       return -1;
 
    int nBlocks = size / 0x10;
@@ -149,7 +146,7 @@ int SceSblSsMgrForDriver_sceSblSsMgrAESCMACForDriver(const unsigned char* src, u
 }
 
 //not tested
-int SceSblSsMgrForDriver_sceSblSsMgrAESCMACWithKeygenForDriver(const unsigned char* src, unsigned char dst[0x10], int size, const unsigned char* key, int key_size, unsigned char* iv, std::uint16_t key_id, int mask_enable, int command_bit)
+int SceSblSsMgrForDriver_sceSblSsMgrAESCMACWithKeygenForDriver(std::shared_ptr<IF00DKeyEncryptor> iF00D, const unsigned char* src, unsigned char dst[0x10], int size, const unsigned char* key, int key_size, unsigned char* iv, std::uint16_t key_id, int mask_enable, int command_bit)
 {
    throw std::runtime_error("not tested");
 
@@ -165,9 +162,8 @@ int SceSblSsMgrForDriver_sceSblSsMgrAESCMACWithKeygenForDriver(const unsigned ch
    if(command_bit != 0)
       throw std::runtime_error("unsupported command_bit");
 
-   std::shared_ptr<IF00DKeyEncryptor> ec = get_F00D_encryptor();
    unsigned char drv_key[0x20] = {0}; //use max possible buffer
-   if(ec->encrypt_key(key, key_size, drv_key) < 0)
+   if(iF00D->encrypt_key(key, key_size, drv_key) < 0)
       return -1;
 
    aes_context aes_ctx;

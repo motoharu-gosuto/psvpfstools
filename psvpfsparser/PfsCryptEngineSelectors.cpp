@@ -38,7 +38,7 @@ int UINT128_BYTEARRAY_INC(unsigned char iv[0x10])
 
 unsigned char g_cmac_buffer[0x10] = {0};
 
-int pfs_decrypt_unicv(const unsigned char* key, const unsigned char* tweak_mask, std::uint64_t tweak_key, std::uint32_t size, std::uint32_t block_size, const unsigned char* src, unsigned char* dst, std::uint16_t crypto_engine_flag, std::uint16_t key_id)
+int pfs_decrypt_unicv(std::shared_ptr<IF00DKeyEncryptor> iF00D, const unsigned char* key, const unsigned char* tweak_mask, std::uint64_t tweak_key, std::uint32_t size, std::uint32_t block_size, const unsigned char* src, unsigned char* dst, std::uint16_t crypto_engine_flag, std::uint16_t key_id)
 {
    unsigned char tweak[0x10] = {0};
 
@@ -76,9 +76,9 @@ int pfs_decrypt_unicv(const unsigned char* key, const unsigned char* tweak_mask,
          if(crypto_engine_flag & CRYPTO_ENGINE_CRYPTO_USE_KEYGEN)
          {
             if(crypto_engine_flag & CRYPTO_ENGINE_CRYPTO_USE_CMAC)
-               AESCMACDecryptWithKeygen_base(key, tweak, size_arg, src + offset, g_cmac_buffer, key_id);
+               AESCMACDecryptWithKeygen_base(iF00D, key, tweak, size_arg, src + offset, g_cmac_buffer, key_id);
             else
-               AESCBCDecryptWithKeygen_base(key, tweak, size_arg, src + offset, dst + offset, key_id); //cbc decrypt with tweak as iv
+               AESCBCDecryptWithKeygen_base(iF00D, key, tweak, size_arg, src + offset, dst + offset, key_id); //cbc decrypt with tweak as iv
          }
          else
          {
@@ -107,7 +107,7 @@ int pfs_decrypt_unicv(const unsigned char* key, const unsigned char* tweak_mask,
    return 0;
 }
 
-int pfs_encrypt_unicv(const unsigned char* key, const unsigned char* tweak_mask, std::uint64_t tweak_key, std::uint32_t size, std::uint32_t block_size, const unsigned char* src, unsigned char* dst, std::uint16_t crypto_engine_flag, std::uint16_t key_id)
+int pfs_encrypt_unicv(std::shared_ptr<IF00DKeyEncryptor> iF00D, const unsigned char* key, const unsigned char* tweak_mask, std::uint64_t tweak_key, std::uint32_t size, std::uint32_t block_size, const unsigned char* src, unsigned char* dst, std::uint16_t crypto_engine_flag, std::uint16_t key_id)
 {
    unsigned char tweak[0x10] = {0};
 
@@ -145,9 +145,9 @@ int pfs_encrypt_unicv(const unsigned char* key, const unsigned char* tweak_mask,
          if(crypto_engine_flag & CRYPTO_ENGINE_CRYPTO_USE_KEYGEN)
          {
             if(crypto_engine_flag & CRYPTO_ENGINE_CRYPTO_USE_CMAC)
-               AESCMACEncryptWithKeygen_base(key, tweak, size_arg, src + offset, g_cmac_buffer, key_id);
+               AESCMACEncryptWithKeygen_base(iF00D, key, tweak, size_arg, src + offset, g_cmac_buffer, key_id);
             else
-               AESCBCEncryptWithKeygen_base(key, tweak, size_arg, src + offset, dst + offset, key_id); //cbc encrypt with tweak as iv
+               AESCBCEncryptWithKeygen_base(iF00D, key, tweak, size_arg, src + offset, dst + offset, key_id); //cbc encrypt with tweak as iv
          }
          else
          {

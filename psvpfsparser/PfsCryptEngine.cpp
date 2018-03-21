@@ -156,7 +156,7 @@ void verify_icv(CryptEngineWorkCtx* crypt_ctx, std::uint16_t mode_index, unsigne
 
 //----------------------
 
-int cbc_dec(CryptEngineWorkCtx* crypt_ctx, unsigned char* buffer)
+int cbc_dec(std::shared_ptr<IF00DKeyEncryptor> iF00D, CryptEngineWorkCtx* crypt_ctx, unsigned char* buffer)
 {
    // variable mapping
 
@@ -175,7 +175,7 @@ int cbc_dec(CryptEngineWorkCtx* crypt_ctx, unsigned char* buffer)
    do
    {
       int size_arg = ((crypt_ctx->subctx->data->block_size < bytes_left) ? crypt_ctx->subctx->data->block_size : bytes_left);
-      pfs_decrypt_unicv(key, tweak_enc_key, tweak_key + offset, size_arg, crypt_ctx->subctx->data->block_size, buffer + offset, buffer + offset, crypt_ctx->subctx->data->crypto_engine_flag, crypt_ctx->subctx->data->key_id);
+      pfs_decrypt_unicv(iF00D, key, tweak_enc_key, tweak_key + offset, size_arg, crypt_ctx->subctx->data->block_size, buffer + offset, buffer + offset, crypt_ctx->subctx->data->crypto_engine_flag, crypt_ctx->subctx->data->key_id);
 
       bytes_left = bytes_left - crypt_ctx->subctx->data->block_size;
       offset = offset + crypt_ctx->subctx->data->block_size;
@@ -213,7 +213,7 @@ int xts_dec(CryptEngineWorkCtx* crypt_ctx, unsigned char* buffer)
 }
 
 //[TESTED both branches]
-void decrypt_simple(CryptEngineWorkCtx* crypt_ctx, std::uint16_t mode_index, unsigned char* buffer)
+void decrypt_simple(std::shared_ptr<IF00DKeyEncryptor> iF00D, CryptEngineWorkCtx* crypt_ctx, std::uint16_t mode_index, unsigned char* buffer)
 {
    if(is_noenc(crypt_ctx))
    {
@@ -235,7 +235,7 @@ void decrypt_simple(CryptEngineWorkCtx* crypt_ctx, std::uint16_t mode_index, uns
 
    if(is_gamedata(mode_index))
    {
-      cbc_dec(crypt_ctx, buffer);
+      cbc_dec(iF00D, crypt_ctx, buffer);
    }
    else
    {
@@ -248,7 +248,7 @@ void decrypt_simple(CryptEngineWorkCtx* crypt_ctx, std::uint16_t mode_index, uns
 
 //----------------------
 
-void decrypt_complex(CryptEngineWorkCtx* crypt_ctx, std::uint16_t mode_index, unsigned char* buffer)
+void decrypt_complex(std::shared_ptr<IF00DKeyEncryptor> iF00D, CryptEngineWorkCtx* crypt_ctx, std::uint16_t mode_index, unsigned char* buffer)
 {
    throw std::runtime_error("Untested decryption branch work_3_step1");
 
@@ -278,7 +278,7 @@ void decrypt_complex(CryptEngineWorkCtx* crypt_ctx, std::uint16_t mode_index, un
             }
             else
             {
-               pfs_decrypt_unicv(key, tweak_enc_key, head_tweak_key, crypt_ctx->subctx->data->block_size, crypt_ctx->subctx->data->block_size, buffer, buffer, crypt_ctx->subctx->data->crypto_engine_flag, crypt_ctx->subctx->data->key_id);
+               pfs_decrypt_unicv(iF00D, key, tweak_enc_key, head_tweak_key, crypt_ctx->subctx->data->block_size, crypt_ctx->subctx->data->block_size, buffer, buffer, crypt_ctx->subctx->data->crypto_engine_flag, crypt_ctx->subctx->data->key_id);
             }
          }
       }  
@@ -320,7 +320,7 @@ void decrypt_complex(CryptEngineWorkCtx* crypt_ctx, std::uint16_t mode_index, un
          else
          {
             int size_arg = (crypt_ctx->subctx->data->block_size <= crypt_ctx->subctx->tail_size) ? crypt_ctx->subctx->data->block_size : crypt_ctx->subctx->tail_size;
-            pfs_decrypt_unicv(key, tweak_enc_key, tail_tweak_key, size_arg, crypt_ctx->subctx->data->block_size, tail_buffer, tail_buffer, crypt_ctx->subctx->data->crypto_engine_flag, crypt_ctx->subctx->data->key_id);
+            pfs_decrypt_unicv(iF00D, key, tweak_enc_key, tail_tweak_key, size_arg, crypt_ctx->subctx->data->block_size, tail_buffer, tail_buffer, crypt_ctx->subctx->data->crypto_engine_flag, crypt_ctx->subctx->data->key_id);
          }
       }
    }
@@ -381,7 +381,7 @@ void decrypt_complex(CryptEngineWorkCtx* crypt_ctx, std::uint16_t mode_index, un
       do
       {
          int size_arg = (crypt_ctx->subctx->data->block_size <= bytes_left) ? crypt_ctx->subctx->data->block_size : bytes_left;
-         pfs_decrypt_unicv(key, tweak_enc_key, tweak_key + offset, size_arg, crypt_ctx->subctx->data->block_size, output_src + offset, output_dst + offset, crypt_ctx->subctx->data->crypto_engine_flag, crypt_ctx->subctx->data->key_id);
+         pfs_decrypt_unicv(iF00D, key, tweak_enc_key, tweak_key + offset, size_arg, crypt_ctx->subctx->data->block_size, output_src + offset, output_dst + offset, crypt_ctx->subctx->data->crypto_engine_flag, crypt_ctx->subctx->data->key_id);
 
          offset = offset + crypt_ctx->subctx->data->block_size;
          bytes_left = bytes_left - crypt_ctx->subctx->data->block_size;
@@ -396,7 +396,7 @@ void decrypt_complex(CryptEngineWorkCtx* crypt_ctx, std::uint16_t mode_index, un
 
 //----------------------
 
-void crypt_for_read(CryptEngineWorkCtx* crypt_ctx)
+void crypt_for_read(std::shared_ptr<IF00DKeyEncryptor> iF00D, CryptEngineWorkCtx* crypt_ctx)
 {
    unsigned char* work_buffer;
    if(is_gamedata(crypt_ctx->subctx->data->mode_index))
@@ -414,12 +414,12 @@ void crypt_for_read(CryptEngineWorkCtx* crypt_ctx)
    if(crypt_ctx->subctx->nBlocksTail == 0)
    {
       //single decryption loop - decrypts area of nBlocks blocks
-      decrypt_simple(crypt_ctx, crypt_ctx->subctx->data->mode_index, work_buffer);
+      decrypt_simple(iF00D, crypt_ctx, crypt_ctx->subctx->data->mode_index, work_buffer);
    }
    else
    {
       //two decryption calls and one decryption loop - looks like decrypts nBlocks of data from offset. not sure
-      decrypt_complex(crypt_ctx, crypt_ctx->subctx->data->mode_index, work_buffer);
+      decrypt_complex(iF00D, crypt_ctx, crypt_ctx->subctx->data->mode_index, work_buffer);
    }
 }
 
@@ -428,7 +428,7 @@ void crypt_for_write(CryptEngineWorkCtx * crypt_ctx, CryptEngineSubctx* r10)
    throw std::runtime_error("Untested decryption branch crypt_engine_work_2_4");
 }
 
-void pfs_decrypt(CryptEngineWorkCtx *work_ctx)
+void pfs_decrypt(std::shared_ptr<IF00DKeyEncryptor> iF00D, CryptEngineWorkCtx *work_ctx)
 {
    switch(work_ctx->subctx->opt_code)
    {
@@ -436,7 +436,7 @@ void pfs_decrypt(CryptEngineWorkCtx *work_ctx)
       crypt_for_write(work_ctx, work_ctx->subctx);
       break;
    case CRYPT_ENGINE_READ:
-      crypt_for_read(work_ctx);
+      crypt_for_read(iF00D, work_ctx);
       break;
    case CRYPT_ENGINE_TRUNC:
       crypt_for_write(work_ctx, work_ctx->subctx);

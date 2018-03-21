@@ -3,20 +3,13 @@
 #include "F00DUrlKeyEncryptor.h"
 #include "F00DFileKeyEncryptor.h"
 
-static std::string g_F00D_url;
-
-void set_F00D_url(std::string url)
+std::shared_ptr<IF00DKeyEncryptor> F00DKeyEncryptorFactory::create(F00DEncryptorTypes type, std::string arg)
 {
-   g_F00D_url = url;
-}
-
-static std::shared_ptr<IF00DKeyEncryptor> g_F00D_encryptor;
-
-//this function should be protected by mutex
-//it is not relevant though since singleton will be soon removed
-std::shared_ptr<IF00DKeyEncryptor> get_F00D_encryptor()
-{
-   if(!g_F00D_encryptor)
-      g_F00D_encryptor = std::make_shared<F00DFileKeyEncryptor>(g_F00D_url);
-   return g_F00D_encryptor;
+   switch(type)
+   {
+   case F00DEncryptorTypes::url:
+      return std::make_shared<F00DUrlKeyEncryptor>(arg);
+   case F00DEncryptorTypes::file:
+      return std::make_shared<F00DFileKeyEncryptor>(arg);
+   }
 }

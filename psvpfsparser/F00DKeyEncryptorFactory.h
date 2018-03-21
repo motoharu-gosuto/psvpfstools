@@ -5,6 +5,14 @@
 
 #include "IF00DKeyEncryptor.h"
 
-std::shared_ptr<IF00DKeyEncryptor> get_F00D_encryptor();
+enum class F00DEncryptorTypes
+{
+   url,
+   file
+};
 
-void set_F00D_url(std::string url);
+class F00DKeyEncryptorFactory
+{
+public:
+   static std::shared_ptr<IF00DKeyEncryptor> create(F00DEncryptorTypes type, std::string arg);
+};

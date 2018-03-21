@@ -212,7 +212,7 @@ bool validate_header(const sce_ng_pfs_header_t& header, uint32_t dataSize, bool 
    return true;
 }
 
-bool parseFilesDb(unsigned char* klicensee, std::ifstream& inputStream, bool isUnicv, sce_ng_pfs_header_t& header, std::vector<sce_ng_pfs_block_t>& blocks)
+bool parseFilesDb(std::shared_ptr<IF00DKeyEncryptor> iF00D, unsigned char* klicensee, std::ifstream& inputStream, bool isUnicv, sce_ng_pfs_header_t& header, std::vector<sce_ng_pfs_block_t>& blocks)
 {
    inputStream.read((char*)&header, sizeof(sce_ng_pfs_header_t));
 
@@ -224,7 +224,7 @@ bool parseFilesDb(unsigned char* klicensee, std::ifstream& inputStream, bool isU
 
    //generate secret
    unsigned char secret[0x14];
-   scePfsUtilGetSecret(secret, klicensee, header.files_salt, img_spec_to_crypto_engine_flag(header.image_spec), 0, 0);
+   scePfsUtilGetSecret(iF00D, secret, klicensee, header.files_salt, img_spec_to_crypto_engine_flag(header.image_spec), 0, 0);
 
    //verify header
    if(!verify_header_icv(inputStream, header, secret))
@@ -870,7 +870,7 @@ int match_file_lists(const std::vector<sce_ng_pfs_file_t>& filesResult, const st
 }
 
 //parses files.db and flattens it into file list
-int parseFilesDb(unsigned char* klicensee, boost::filesystem::path titleIdPath, bool isUnicv, sce_ng_pfs_header_t& header, std::vector<sce_ng_pfs_file_t>& filesResult, std::vector<sce_ng_pfs_dir_t>& dirsResult)
+int parseFilesDb(std::shared_ptr<IF00DKeyEncryptor> iF00D, unsigned char* klicensee, boost::filesystem::path titleIdPath, bool isUnicv, sce_ng_pfs_header_t& header, std::vector<sce_ng_pfs_file_t>& filesResult, std::vector<sce_ng_pfs_dir_t>& dirsResult)
 {
    std::cout << "parsing  files.db..." << std::endl;
 
@@ -893,7 +893,7 @@ int parseFilesDb(unsigned char* klicensee, boost::filesystem::path titleIdPath, 
 
    //parse data into raw structures
    std::vector<sce_ng_pfs_block_t> blocks;
-   if(!parseFilesDb(klicensee, inputStream, isUnicv, header, blocks))
+   if(!parseFilesDb(iF00D, klicensee, inputStream, isUnicv, header, blocks))
       return -1;
 
    //build child index -> parent index relationship map
