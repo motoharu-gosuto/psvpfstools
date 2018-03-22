@@ -4,7 +4,7 @@ project (${PROJECT})
 message(${PROJECT})
 
 FILE (GLOB HEADER_FILES "../ICryptoOperations.h"
-                        "../DefaultCryptoOperations.h"
+                        "../LibTomCryptCryptoOperations.h"
                         "../CryptoOperationsFactory.h"
                         "../IF00DKeyEncryptor.h"
                         "../F00DUrlKeyEncryptor.h"
@@ -34,7 +34,7 @@ FILE (GLOB HEADER_FILES "../ICryptoOperations.h"
                         "../FlagOperations.h")
 source_group ("Header Files" FILES ${HEADER_FILES})
 
-FILE (GLOB SOURCE_FILES "../DefaultCryptoOperations.cpp"
+FILE (GLOB SOURCE_FILES "../LibTomCryptCryptoOperations.cpp"
                         "../CryptoOperationsFactory.cpp"
                         "../F00DUrlKeyEncryptor.cpp"
                         "../F00DFileKeyEncryptor.cpp"
