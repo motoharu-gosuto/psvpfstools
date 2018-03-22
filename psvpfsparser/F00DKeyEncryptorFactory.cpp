@@ -11,5 +11,7 @@ std::shared_ptr<IF00DKeyEncryptor> F00DKeyEncryptorFactory::create(F00DEncryptor
       return std::make_shared<F00DUrlKeyEncryptor>(arg);
    case F00DEncryptorTypes::file:
       return std::make_shared<F00DFileKeyEncryptor>(arg);
+   default:
+      throw std::runtime_error("unexpected F00DEncryptorTypes value");
    }
 }
