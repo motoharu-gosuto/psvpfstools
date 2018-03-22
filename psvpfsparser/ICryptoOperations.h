@@ -14,6 +14,7 @@ public:
    
    virtual int aes_cmac(const unsigned char* src, unsigned char* dst, int size, const unsigned char* key, int key_size) const = 0;
    
-   virtual int sha1(const unsigned char *source, int size, unsigned char* result) const = 0;
-   virtual int hmac_sha1(const unsigned char* key, int key_len, const unsigned char* data, int data_len, unsigned char* digest) const = 0;
+   virtual int sha1(const unsigned char* src, unsigned char* dst, int size) const = 0;
+   virtual int hmac_sha1(const unsigned char* src, unsigned char* dst, int size, const unsigned char* key, int key_size) const = 0;
+   virtual int hmac_sha256(const unsigned char* src, unsigned char* dst, int size, const unsigned char* key, int key_size) const = 0;
 };

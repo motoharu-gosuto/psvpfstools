@@ -2,13 +2,14 @@
 
 #include <libcrypto/aes.h>
 #include <libcrypto/sha1.h>
+#include <libcrypto/sha256.h>
 
 int DefaultCryptoOperations::aes_cbc_encrypt(const unsigned char* src, unsigned char* dst, int size, const unsigned char* key, int key_size, unsigned char* iv) const
 {
    aes_context aes_ctx;
    memset(&aes_ctx, 0, sizeof(aes_ctx));
    aes_setkey_enc(&aes_ctx, key, key_size);
-   int res = aes_crypt_cbc(&aes_ctx, AES_ENCRYPT, size, iv, src,dst);
+   int res = aes_crypt_cbc(&aes_ctx, AES_ENCRYPT, size, iv, src, dst);
    return res == 0 ? 0 : -1;
 }
 
@@ -17,7 +18,7 @@ int DefaultCryptoOperations::aes_cbc_decrypt(const unsigned char* src, unsigned 
    aes_context aes_ctx;
    memset(&aes_ctx, 0, sizeof(aes_ctx));
    aes_setkey_dec(&aes_ctx, key, key_size);
-   int res = aes_crypt_cbc(&aes_ctx, AES_DECRYPT, size, iv, src,dst);
+   int res = aes_crypt_cbc(&aes_ctx, AES_DECRYPT, size, iv, src, dst);
    return res == 0 ? 0 : -1;
 }
 
@@ -75,14 +76,19 @@ int DefaultCryptoOperations::aes_cmac(const unsigned char* src, unsigned char* d
    return 0;
 }
    
-int DefaultCryptoOperations::sha1(const unsigned char *source, int size, unsigned char* result) const
+int DefaultCryptoOperations::sha1(const unsigned char* src, unsigned char* dst, int size) const
 {
-   ::sha1(source, size, result);
+   ::sha1(src, size, dst);
    return 0;
 }
 
-int DefaultCryptoOperations::hmac_sha1(const unsigned char* key, int key_len, const unsigned char* data, int data_len, unsigned char* digest) const
+int DefaultCryptoOperations::hmac_sha1(const unsigned char* src, unsigned char* dst, int size, const unsigned char* key, int key_size) const
 {
-   ::sha1_hmac(key, key_len, data, data_len, digest);
+   ::sha1_hmac(key, key_size, src, size, dst);
    return 0;
+}
+
+int DefaultCryptoOperations::hmac_sha256(const unsigned char* src, unsigned char* dst, int size, const unsigned char* key, int key_size) const
+{
+   return ::hmac_sha256(key, key_size, src, size, dst);
 }
