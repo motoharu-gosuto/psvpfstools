@@ -29,8 +29,7 @@ configure_zlib()
 
 SET(EXECUTABLES psvpfsparser)
 SET(LIBRARIES libb64
-              libzRIF
-              libcrypto)
+              libzRIF)
 
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 

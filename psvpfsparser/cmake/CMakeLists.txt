@@ -68,7 +68,7 @@ set_property(TARGET ${PROJECT} PROPERTY FOLDER "executables")
 set(EXECUTABLE_OUTPUT_PATH "${CMAKE_SOURCE_DIR}/output/${CMAKE_BUILD_TYPE}")
 install(TARGETS ${PROJECT} RUNTIME DESTINATION bin)
 
-target_link_libraries (${PROJECT} ${Boost_LIBRARIES} ${CURL_LIBRARIES} libzRIF libb64 libcrypto ${ZLIB_LIBRARIES})
+target_link_libraries (${PROJECT} ${Boost_LIBRARIES} ${CURL_LIBRARIES} libzRIF libb64 ${ZLIB_LIBRARIES})
 
 include_directories(..)
 include_directories(../..)
