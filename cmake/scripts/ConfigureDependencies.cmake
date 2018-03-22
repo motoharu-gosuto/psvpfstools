@@ -75,3 +75,22 @@ message("Zlib library is not found")
 endif()
 
 endmacro(configure_zlib)
+
+macro(configure_libtomcrypt)
+
+if (MSVC)
+set(LIBTOMCRYPT_INCLUDE_DIR "$ENV{LIBTOMCRYPT_INCLUDE_DIR}")
+set(LIBTOMCRYPT_LIBRARY "$ENV{LIBTOMCRYPT_LIBRARY}")
+endif()
+
+find_package(LIBTOMCRYPT REQUIRED)
+
+if(LIBTOMCRYPT_FOUND)
+message("Found libtomcrypt library")
+message("Using LIBTOMCRYPT_INCLUDE_DIRS: ${LIBTOMCRYPT_INCLUDE_DIRS}")
+message("Using LIBTOMCRYPT_LIBRARIES: ${LIBTOMCRYPT_LIBRARIES}")
+else()
+message("libtomcrypt library is not found")
+endif()
+
+endmacro(configure_libtomcrypt)

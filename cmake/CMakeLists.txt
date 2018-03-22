@@ -26,6 +26,7 @@ include(scripts/ConfigureDependencies.cmake)
 configure_boost()
 configure_curl()
 configure_zlib()
+configure_libtomcrypt()
 
 SET(EXECUTABLES psvpfsparser)
 SET(LIBRARIES libb64
