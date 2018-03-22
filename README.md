@@ -131,8 +131,8 @@ nmake -f makefile.msvc PREFIX=C:\libtomcrypt\build install
 This will build default target which contains tomcrypt.lib and install everything to corresponding build directory.
 
 You have to set these environment variables for cmake:
-- TOMCRYPT_INCLUDE_DIR=C:\libtomcrypt\build\include
-- TOMCRYPT_LIBRARY=C:\libtomcrypt\build\lib\tomcrypt.lib
+- LIBTOMCRYPT_INCLUDE_DIR=C:\libtomcrypt\build\include
+- LIBTOMCRYPT_LIBRARY=C:\libtomcrypt\build\lib\tomcrypt.lib
 
 ### curl
 
