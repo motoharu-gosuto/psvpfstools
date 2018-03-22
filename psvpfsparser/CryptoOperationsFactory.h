@@ -6,7 +6,6 @@
 
 enum class CryptoOperationsTypes
 {
-   default,
    libtomcrypt
 };
 
