@@ -22,7 +22,7 @@
 
 int execute(PsvPfsParserConfig& cfg)
 {
-   std::shared_ptr<ICryptoOperations> cryptops = CryptoOperationsFactory::create(CryptoOperationsTypes::default);
+   std::shared_ptr<ICryptoOperations> cryptops = CryptoOperationsFactory::create(CryptoOperationsTypes::libtomcrypt);
    std::shared_ptr<IF00DKeyEncryptor> iF00D = F00DKeyEncryptorFactory::create(cfg.f00d_enc_type, cfg.f00d_arg); 
 
    //trim slashes in source path
