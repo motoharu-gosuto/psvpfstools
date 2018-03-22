@@ -2,14 +2,14 @@
 
 #include <stdexcept>
 
-#include <libcrypto/aes.h>
-#include <libcrypto/sha1.h>
-
 //##### WITH KEYGEN CRYPTO FUNCTIONS #####
 
 //this function is tested and works
-int SceSblSsMgrForDriver_sceSblSsMgrAESCBCDecryptWithKeygenForDriver(std::shared_ptr<IF00DKeyEncryptor> iF00D, const unsigned char* src, unsigned char* dst, int size, const unsigned char* key, int key_size, unsigned char* iv, std::uint16_t key_id, int mask_enable)
+int SceSblSsMgrForDriver_sceSblSsMgrAESCBCDecryptWithKeygenForDriver(std::shared_ptr<ICryptoOperations> cryptops, std::shared_ptr<IF00DKeyEncryptor> iF00D, const unsigned char* src, unsigned char* dst, int size, const unsigned char* key, int key_size, unsigned char* iv, std::uint16_t key_id, int mask_enable)
 {
+   if(mask_enable != 1)
+      throw std::runtime_error("Unexpected mask_enable");
+
    if(key_id != 0)
       throw std::runtime_error("Unexpected key_id");
 
@@ -17,17 +17,15 @@ int SceSblSsMgrForDriver_sceSblSsMgrAESCBCDecryptWithKeygenForDriver(std::shared
    if(iF00D->encrypt_key(key, key_size, drv_key) < 0)
       return -1;
 
-   aes_context aes_ctx;
-   memset(&aes_ctx, 0, sizeof(aes_ctx));
-   aes_setkey_dec(&aes_ctx, drv_key, key_size);
-   aes_crypt_cbc(&aes_ctx, AES_DECRYPT, size, iv, src,dst);
-
-   return 0;
+   return cryptops->aes_cbc_decrypt(src, dst, size, drv_key, key_size, iv);
 }
 
 //this function is tested and works
-int SceSblSsMgrForDriver_sceSblSsMgrAESCBCEncryptWithKeygenForDriver(std::shared_ptr<IF00DKeyEncryptor> iF00D, const unsigned char* src, unsigned char* dst, int size, const unsigned char* key, int key_size, unsigned char* iv, std::uint16_t key_id, int mask_enable)
+int SceSblSsMgrForDriver_sceSblSsMgrAESCBCEncryptWithKeygenForDriver(std::shared_ptr<ICryptoOperations> cryptops, std::shared_ptr<IF00DKeyEncryptor> iF00D, const unsigned char* src, unsigned char* dst, int size, const unsigned char* key, int key_size, unsigned char* iv, std::uint16_t key_id, int mask_enable)
 {
+   if(mask_enable != 1)
+      throw std::runtime_error("Unexpected mask_enable");
+
    if(key_id != 0)
       throw std::runtime_error("Unexpected key_id");
 
@@ -35,17 +33,15 @@ int SceSblSsMgrForDriver_sceSblSsMgrAESCBCEncryptWithKeygenForDriver(std::shared
    if(iF00D->encrypt_key(key, key_size, drv_key) < 0)
       return -1;
 
-   aes_context aes_ctx;
-   memset(&aes_ctx, 0, sizeof(aes_ctx));
-   aes_setkey_enc(&aes_ctx, drv_key, key_size);
-   aes_crypt_cbc(&aes_ctx, AES_ENCRYPT, size, iv, src,dst);
-
-   return 0;
+   return cryptops->aes_cbc_encrypt(src, dst, size, drv_key, key_size, iv);
 }
 
 //this function is tested and works
-int SceSblSsMgrForDriver_sceSblSsMgrAESECBEncryptWithKeygenForDriver(std::shared_ptr<IF00DKeyEncryptor> iF00D, const unsigned char* src, unsigned char* dst, int size, const unsigned char* key, int key_size, std::uint16_t key_id, int mask_enable)
+int SceSblSsMgrForDriver_sceSblSsMgrAESECBEncryptWithKeygenForDriver(std::shared_ptr<ICryptoOperations> cryptops, std::shared_ptr<IF00DKeyEncryptor> iF00D, const unsigned char* src, unsigned char* dst, int size, const unsigned char* key, int key_size, std::uint16_t key_id, int mask_enable)
 {
+   if(mask_enable != 1)
+      throw std::runtime_error("Unexpected mask_enable");
+
    if(key_id != 0)
       throw std::runtime_error("Unexpected key_id");
 
@@ -53,46 +49,46 @@ int SceSblSsMgrForDriver_sceSblSsMgrAESECBEncryptWithKeygenForDriver(std::shared
    if(iF00D->encrypt_key(key, key_size, drv_key) < 0)
       return -1;
 
-   int nBlocks = size / 0x10;
-   int tailSize = size % 0x10;
-
-   if(tailSize > 0)
-      throw std::runtime_error("Data has to be padded in aes ecb");
-
-   aes_context aes_ctx;
-   memset(&aes_ctx, 0, sizeof(aes_ctx));
-   aes_setkey_enc(&aes_ctx, drv_key, key_size);
-
-   for(int i = 0; i < nBlocks; i++)
-   {
-      aes_crypt_ecb(&aes_ctx, AES_ENCRYPT, src + i * 0x10, dst + i * 0x10);
-   }
-
-   return 0;
+   return cryptops->aes_ecb_encrypt(src, dst, size, drv_key, key_size);
 }
 
 //##### NORMAL CRYPTO FUNCTIONS #####
 
 // aes-cbc
 
-//not implemented
-int SceSblSsMgrForDriver_sceSblSsMgrAESCBCDecryptForDriver(const unsigned char* src, unsigned char* dst, int size, const unsigned char* key, int key_size, unsigned char* iv, int mask_enable)
+//not tested
+int SceSblSsMgrForDriver_sceSblSsMgrAESCBCDecryptForDriver(std::shared_ptr<ICryptoOperations> cryptops, const unsigned char* src, unsigned char* dst, int size, const unsigned char* key, int key_size, unsigned char* iv, int mask_enable)
 {
-   throw std::runtime_error("not implemented");
+   throw std::runtime_error("not tested");
+
+   if(mask_enable != 1)
+      throw std::runtime_error("Unexpected mask_enable");
+
+   return cryptops->aes_cbc_decrypt(src, dst, size, key, key_size, iv);
 }
 
-//not implemented
-int SceSblSsMgrForDriver_sceSblSsMgrAESCBCEncryptForDriver(const unsigned char* src, unsigned char* dst, int size, const unsigned char* key, int key_size, unsigned char* iv, int mask_enable)
+//not tested
+int SceSblSsMgrForDriver_sceSblSsMgrAESCBCEncryptForDriver(std::shared_ptr<ICryptoOperations> cryptops, const unsigned char* src, unsigned char* dst, int size, const unsigned char* key, int key_size, unsigned char* iv, int mask_enable)
 {
-   throw std::runtime_error("not implemented");
+   throw std::runtime_error("not tested");
+
+   if(mask_enable != 1)
+      throw std::runtime_error("Unexpected mask_enable");
+
+   return cryptops->aes_cbc_encrypt(src, dst, size, key, key_size, iv);
 }
 
 // aes-ecb
 
-//not implemented
-int SceSblSsMgrForDriver_sceSblSsMgrAESECBEncryptForDriver(const unsigned char* src, unsigned char* dst, int size, const unsigned char* key, int key_size, int mask_enable)
+//not tested
+int SceSblSsMgrForDriver_sceSblSsMgrAESECBEncryptForDriver(std::shared_ptr<ICryptoOperations> cryptops, const unsigned char* src, unsigned char* dst, int size, const unsigned char* key, int key_size, int mask_enable)
 {
-   throw std::runtime_error("not implemented");
+   throw std::runtime_error("not tested");
+
+   if(mask_enable != 1)
+      throw std::runtime_error("Unexpected mask_enable");
+
+   return cryptops->aes_ecb_encrypt(src, dst, size, key, key_size);
 }
 
 //ECB works on block data - which means that data has to be padded (most likely with zeroes)
@@ -100,30 +96,18 @@ int SceSblSsMgrForDriver_sceSblSsMgrAESECBEncryptForDriver(const unsigned char* 
 //Maybe that is why crypto primitives for icv files in CryptEngine only process data in blocks and not handling tail?
 
 //this function is tested and works
-int SceSblSsMgrForDriver_sceSblSsMgrAESECBDecryptForDriver(const unsigned char* src, unsigned char* dst, int size, const unsigned char* key, int key_size, int mask_enable)
+int SceSblSsMgrForDriver_sceSblSsMgrAESECBDecryptForDriver(std::shared_ptr<ICryptoOperations> cryptops, const unsigned char* src, unsigned char* dst, int size, const unsigned char* key, int key_size, int mask_enable)
 {
-   int nBlocks = size / 0x10;
-   int tailSize = size % 0x10;
+   if(mask_enable != 1)
+      throw std::runtime_error("Unexpected mask_enable");
 
-   if(tailSize > 0)
-      throw std::runtime_error("Data has to be padded in aes ecb");
-
-   aes_context aes_ctx;
-   memset(&aes_ctx, 0, sizeof(aes_ctx));
-   aes_setkey_dec(&aes_ctx, key, key_size);
-
-   for(int i = 0; i < nBlocks; i++)
-   {
-      aes_crypt_ecb(&aes_ctx, AES_DECRYPT, src + i * 0x10, dst + i * 0x10);
-   }
-
-   return 0;
+   return cryptops->aes_ecb_decrypt(src, dst, size, key, key_size);
 }
 
 //##### CMAC FUNCTIONS #####
 
 //not tested
-int SceSblSsMgrForDriver_sceSblSsMgrAESCMACForDriver(const unsigned char* src, unsigned char dst[0x10], int size, const unsigned char* key, int key_size, unsigned char* iv, int mask_enable, int command_bit)
+int SceSblSsMgrForDriver_sceSblSsMgrAESCMACForDriver(std::shared_ptr<ICryptoOperations> cryptops, const unsigned char* src, unsigned char dst[0x10], int size, const unsigned char* key, int key_size, unsigned char* iv, int mask_enable, int command_bit)
 {
    throw std::runtime_error("not tested");
 
@@ -136,17 +120,11 @@ int SceSblSsMgrForDriver_sceSblSsMgrAESCMACForDriver(const unsigned char* src, u
    if(command_bit != 0)
       throw std::runtime_error("unsupported command_bit");
 
-   aes_context aes_ctx;
-   memset(&aes_ctx, 0, sizeof(aes_ctx));
-   aes_setkey_enc(&aes_ctx, key, key_size);
-
-   aes_cmac(&aes_ctx, size, src, dst);
-
-   return 0;
+   return cryptops->aes_cmac(src, dst, size, key, key_size);
 }
 
 //not tested
-int SceSblSsMgrForDriver_sceSblSsMgrAESCMACWithKeygenForDriver(std::shared_ptr<IF00DKeyEncryptor> iF00D, const unsigned char* src, unsigned char dst[0x10], int size, const unsigned char* key, int key_size, unsigned char* iv, std::uint16_t key_id, int mask_enable, int command_bit)
+int SceSblSsMgrForDriver_sceSblSsMgrAESCMACWithKeygenForDriver(std::shared_ptr<ICryptoOperations> cryptops, std::shared_ptr<IF00DKeyEncryptor> iF00D, const unsigned char* src, unsigned char dst[0x10], int size, const unsigned char* key, int key_size, unsigned char* iv, std::uint16_t key_id, int mask_enable, int command_bit)
 {
    throw std::runtime_error("not tested");
 
@@ -166,19 +144,13 @@ int SceSblSsMgrForDriver_sceSblSsMgrAESCMACWithKeygenForDriver(std::shared_ptr<I
    if(iF00D->encrypt_key(key, key_size, drv_key) < 0)
       return -1;
 
-   aes_context aes_ctx;
-   memset(&aes_ctx, 0, sizeof(aes_ctx));
-   aes_setkey_enc(&aes_ctx, drv_key, key_size);
-
-   aes_cmac(&aes_ctx, size, src, dst);
-
-   return 0;
+   return cryptops->aes_cmac(src, dst, size, drv_key, key_size);
 }
 
 //##### NORMAL HASH FUNCTIONS #####
 
 //this function is tested and works
-int SceSblSsMgrForDriver_sceSblSsMgrHMACSHA1ForDriver(const unsigned char* src, unsigned char* dst, int size, const unsigned char* key, unsigned char* iv, int mask_enable, int command_bit)
+int SceSblSsMgrForDriver_sceSblSsMgrHMACSHA1ForDriver(std::shared_ptr<ICryptoOperations> cryptops, const unsigned char* src, unsigned char* dst, int size, const unsigned char* key, unsigned char* iv, int mask_enable, int command_bit)
 {
    if(iv != 0)
       throw std::runtime_error("unsupported iv");
@@ -189,7 +161,5 @@ int SceSblSsMgrForDriver_sceSblSsMgrHMACSHA1ForDriver(const unsigned char* src, 
    if(command_bit != 0)
       throw std::runtime_error("unsupported command_bit");
 
-   sha1_hmac(key, 0x14, src, size, dst);
-
-   return 0;
+   return cryptops->hmac_sha1(src, dst, size, key, 0x14);
 }

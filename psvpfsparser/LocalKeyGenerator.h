@@ -1,8 +1,11 @@
 #pragma once
 
 #include <cstdint>
+#include <memory>
 
 #include <boost/filesystem.hpp>
+
+#include "ICryptoOperations.h"
 
 #pragma pack(push, 1)
 
@@ -37,6 +40,6 @@ typedef struct keystone_t
 
 #pragma pack(pop)
 
-int get_sealedkey(boost::filesystem::path titleIdPath, unsigned char* dec_key);
+int get_sealedkey(std::shared_ptr<ICryptoOperations> cryptops, boost::filesystem::path titleIdPath, unsigned char* dec_key);
 
-int get_keystone(boost::filesystem::path titleIdPath, char* passcode = 0);
+int get_keystone(std::shared_ptr<ICryptoOperations> cryptops, boost::filesystem::path titleIdPath, char* passcode = 0);

@@ -38,7 +38,7 @@ int UINT128_BYTEARRAY_INC(unsigned char iv[0x10])
 
 unsigned char g_cmac_buffer[0x10] = {0};
 
-int pfs_decrypt_unicv(std::shared_ptr<IF00DKeyEncryptor> iF00D, const unsigned char* key, const unsigned char* tweak_mask, std::uint64_t tweak_key, std::uint32_t size, std::uint32_t block_size, const unsigned char* src, unsigned char* dst, std::uint16_t crypto_engine_flag, std::uint16_t key_id)
+int pfs_decrypt_unicv(std::shared_ptr<ICryptoOperations> cryptops, std::shared_ptr<IF00DKeyEncryptor> iF00D, const unsigned char* key, const unsigned char* tweak_mask, std::uint64_t tweak_key, std::uint32_t size, std::uint32_t block_size, const unsigned char* src, unsigned char* dst, std::uint16_t crypto_engine_flag, std::uint16_t key_id)
 {
    unsigned char tweak[0x10] = {0};
 
@@ -76,16 +76,16 @@ int pfs_decrypt_unicv(std::shared_ptr<IF00DKeyEncryptor> iF00D, const unsigned c
          if(crypto_engine_flag & CRYPTO_ENGINE_CRYPTO_USE_KEYGEN)
          {
             if(crypto_engine_flag & CRYPTO_ENGINE_CRYPTO_USE_CMAC)
-               AESCMACDecryptWithKeygen_base(iF00D, key, tweak, size_arg, src + offset, g_cmac_buffer, key_id);
+               AESCMACDecryptWithKeygen_base(cryptops, iF00D, key, tweak, size_arg, src + offset, g_cmac_buffer, key_id);
             else
-               AESCBCDecryptWithKeygen_base(iF00D, key, tweak, size_arg, src + offset, dst + offset, key_id); //cbc decrypt with tweak as iv
+               AESCBCDecryptWithKeygen_base(cryptops, iF00D, key, tweak, size_arg, src + offset, dst + offset, key_id); //cbc decrypt with tweak as iv
          }
          else
          {
             if(crypto_engine_flag & CRYPTO_ENGINE_CRYPTO_USE_CMAC)
-               AESCMACDecrypt_base(key, tweak, size_arg, src + offset, g_cmac_buffer);
+               AESCMACDecrypt_base(cryptops, key, tweak, size_arg, src + offset, g_cmac_buffer);
             else
-               AESCBCDecrypt_base(key, tweak, size_arg, src + offset, dst + offset); //cbc decrypt with tweak as iv
+               AESCBCDecrypt_base(cryptops, key, tweak, size_arg, src + offset, dst + offset); //cbc decrypt with tweak as iv
          }
 
          offset = offset + block_size;
@@ -107,7 +107,7 @@ int pfs_decrypt_unicv(std::shared_ptr<IF00DKeyEncryptor> iF00D, const unsigned c
    return 0;
 }
 
-int pfs_encrypt_unicv(std::shared_ptr<IF00DKeyEncryptor> iF00D, const unsigned char* key, const unsigned char* tweak_mask, std::uint64_t tweak_key, std::uint32_t size, std::uint32_t block_size, const unsigned char* src, unsigned char* dst, std::uint16_t crypto_engine_flag, std::uint16_t key_id)
+int pfs_encrypt_unicv(std::shared_ptr<ICryptoOperations> cryptops, std::shared_ptr<IF00DKeyEncryptor> iF00D, const unsigned char* key, const unsigned char* tweak_mask, std::uint64_t tweak_key, std::uint32_t size, std::uint32_t block_size, const unsigned char* src, unsigned char* dst, std::uint16_t crypto_engine_flag, std::uint16_t key_id)
 {
    unsigned char tweak[0x10] = {0};
 
@@ -145,16 +145,16 @@ int pfs_encrypt_unicv(std::shared_ptr<IF00DKeyEncryptor> iF00D, const unsigned c
          if(crypto_engine_flag & CRYPTO_ENGINE_CRYPTO_USE_KEYGEN)
          {
             if(crypto_engine_flag & CRYPTO_ENGINE_CRYPTO_USE_CMAC)
-               AESCMACEncryptWithKeygen_base(iF00D, key, tweak, size_arg, src + offset, g_cmac_buffer, key_id);
+               AESCMACEncryptWithKeygen_base(cryptops, iF00D, key, tweak, size_arg, src + offset, g_cmac_buffer, key_id);
             else
-               AESCBCEncryptWithKeygen_base(iF00D, key, tweak, size_arg, src + offset, dst + offset, key_id); //cbc encrypt with tweak as iv
+               AESCBCEncryptWithKeygen_base(cryptops, iF00D, key, tweak, size_arg, src + offset, dst + offset, key_id); //cbc encrypt with tweak as iv
          }
          else
          {
             if(crypto_engine_flag & CRYPTO_ENGINE_CRYPTO_USE_CMAC)
-               AESCMACEncrypt_base(key, tweak, size_arg, src + offset, g_cmac_buffer);
+               AESCMACEncrypt_base(cryptops, key, tweak, size_arg, src + offset, g_cmac_buffer);
             else
-               AESCBCEncrypt_base(key, tweak, size_arg, src + offset, dst + offset); //cbc encrypt with tweak as iv
+               AESCBCEncrypt_base(cryptops, key, tweak, size_arg, src + offset, dst + offset); //cbc encrypt with tweak as iv
          }
 
          offset = offset + block_size;
@@ -183,7 +183,7 @@ int pfs_encrypt_unicv(std::shared_ptr<IF00DKeyEncryptor> iF00D, const unsigned c
 //assuming that it adds 1 to tweak_key when decrypting each next block
 //in practice though it looks like this method is only used to decrypt single block
 
-int pfs_decrypt_icv(const unsigned char* key, const unsigned char* tweak_enc_key, std::uint32_t keysize, std::uint64_t tweak_key, std::uint32_t size, std::uint32_t block_size, const unsigned char* src, unsigned char* dst, std::uint16_t crypto_engine_flag)
+int pfs_decrypt_icv(std::shared_ptr<ICryptoOperations> cryptops, const unsigned char* key, const unsigned char* tweak_enc_key, std::uint32_t keysize, std::uint64_t tweak_key, std::uint32_t size, std::uint32_t block_size, const unsigned char* src, unsigned char* dst, std::uint16_t crypto_engine_flag)
 {
    unsigned char tweak[0x10] = {0};
 
@@ -210,9 +210,9 @@ int pfs_decrypt_icv(const unsigned char* key, const unsigned char* tweak_enc_key
 
       int result0 = 0;
       if(crypto_engine_flag & CRYPTO_ENGINE_CRYPTO_USE_CMAC)
-         result0 = XTSCMACDecrypt_base(tweak, key, tweak_enc_key, keysize, size_arg, src + offset, g_cmac_buffer);
+         result0 = XTSCMACDecrypt_base(cryptops, tweak, key, tweak_enc_key, keysize, size_arg, src + offset, g_cmac_buffer);
       else
-         result0 = XTSAESDecrypt_base(tweak, key, tweak_enc_key, keysize, size_arg, src + offset, dst + offset); //xts-aes decrypt
+         result0 = XTSAESDecrypt_base(cryptops, tweak, key, tweak_enc_key, keysize, size_arg, src + offset, dst + offset); //xts-aes decrypt
 
       if(result0 != 0)
          return result0;
@@ -241,7 +241,7 @@ int pfs_decrypt_icv(const unsigned char* key, const unsigned char* tweak_enc_key
 //assuming that it adds 1 to tweak_key when encrypting each next block
 //in practice though it looks like this method is only used to decrypt single block
 
-int pfs_encrypt_icv(const unsigned char* key, const unsigned char* tweak_enc_key, std::uint32_t keysize, std::uint64_t tweak_key, std::uint32_t size, std::uint32_t block_size, const unsigned char* src, unsigned char* dst, std::uint16_t crypto_engine_flag)
+int pfs_encrypt_icv(std::shared_ptr<ICryptoOperations> cryptops, const unsigned char* key, const unsigned char* tweak_enc_key, std::uint32_t keysize, std::uint64_t tweak_key, std::uint32_t size, std::uint32_t block_size, const unsigned char* src, unsigned char* dst, std::uint16_t crypto_engine_flag)
 {
    unsigned char tweak[0x10] = {0};
 
@@ -268,9 +268,9 @@ int pfs_encrypt_icv(const unsigned char* key, const unsigned char* tweak_enc_key
 
       int result0 = 0;
       if(crypto_engine_flag & CRYPTO_ENGINE_CRYPTO_USE_CMAC)
-         result0 = XTSCMACEncrypt_base(tweak, key, tweak_enc_key, keysize, size_arg, src + offset, g_cmac_buffer);
+         result0 = XTSCMACEncrypt_base(cryptops, tweak, key, tweak_enc_key, keysize, size_arg, src + offset, g_cmac_buffer);
       else
-         result0 = XTSAESEncrypt_base(tweak, key, tweak_enc_key, keysize, size_arg, src + offset, dst + offset); //xts-aes encrypt
+         result0 = XTSAESEncrypt_base(cryptops, tweak, key, tweak_enc_key, keysize, size_arg, src + offset, dst + offset); //xts-aes encrypt
       
       if(result0 != 0)
          return result0;

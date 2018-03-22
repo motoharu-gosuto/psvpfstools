@@ -25,8 +25,6 @@
 #include "HashTree.h"
 #include "FlagOperations.h"
 
-#include <libcrypto/sha1.h>
-
 bool is_directory(sce_ng_pfs_file_types type)
 {
    return type == sce_ng_pfs_file_types::normal_directory || 
@@ -65,7 +63,7 @@ bool is_unexisting(sce_ng_pfs_file_types type)
    return type == sce_ng_pfs_file_types::unexisting;
 }
 
-bool verify_header_icv(std::ifstream& inputStream, sce_ng_pfs_header_t& header, unsigned char* secret)
+bool verify_header_icv(std::shared_ptr<ICryptoOperations> cryptops, std::ifstream& inputStream, sce_ng_pfs_header_t& header, unsigned char* secret)
 {
    std::cout << "verifying header..." << std::endl;
 
@@ -79,7 +77,7 @@ bool verify_header_icv(std::ifstream& inputStream, sce_ng_pfs_header_t& header, 
    memset(header.header_icv, 0, 0x14);
    memset(header.rsa_sig0, 0, 0x100);
 
-   sha1_hmac(secret, 0x14, header.magic, 0x160, header.header_icv);
+   cryptops->hmac_sha1(header.magic, header.header_icv, 0x160, secret, 0x14);
 
    if(memcmp(header.header_icv, icv_hmac_sig_copy, 0x14) != 0)
    {
@@ -110,7 +108,7 @@ bool verify_header_icv(std::ifstream& inputStream, sce_ng_pfs_header_t& header, 
    inputStream.read((char*)&root_node_header, sizeof(sce_ng_pfs_block_header_t));
 
    unsigned char root_icv[0x14];
-   if(calculate_node_icv(header, secret, &root_node_header, root_block_raw_data.data(), root_icv) < 0)
+   if(calculate_node_icv(cryptops, header, secret, &root_node_header, root_block_raw_data.data(), root_icv) < 0)
    {
       std::cout << "failed to calculate root icv" << std::endl;
       return false;
@@ -212,7 +210,7 @@ bool validate_header(const sce_ng_pfs_header_t& header, uint32_t dataSize, bool 
    return true;
 }
 
-bool parseFilesDb(std::shared_ptr<IF00DKeyEncryptor> iF00D, unsigned char* klicensee, std::ifstream& inputStream, bool isUnicv, sce_ng_pfs_header_t& header, std::vector<sce_ng_pfs_block_t>& blocks)
+bool parseFilesDb(std::shared_ptr<ICryptoOperations> cryptops, std::shared_ptr<IF00DKeyEncryptor> iF00D, unsigned char* klicensee, std::ifstream& inputStream, bool isUnicv, sce_ng_pfs_header_t& header, std::vector<sce_ng_pfs_block_t>& blocks)
 {
    inputStream.read((char*)&header, sizeof(sce_ng_pfs_header_t));
 
@@ -224,10 +222,10 @@ bool parseFilesDb(std::shared_ptr<IF00DKeyEncryptor> iF00D, unsigned char* klice
 
    //generate secret
    unsigned char secret[0x14];
-   scePfsUtilGetSecret(iF00D, secret, klicensee, header.files_salt, img_spec_to_crypto_engine_flag(header.image_spec), 0, 0);
+   scePfsUtilGetSecret(cryptops, iF00D, secret, klicensee, header.files_salt, img_spec_to_crypto_engine_flag(header.image_spec), 0, 0);
 
    //verify header
-   if(!verify_header_icv(inputStream, header, secret))
+   if(!verify_header_icv(cryptops, inputStream, header, secret))
       return false;
    
    //save current position
@@ -360,7 +358,7 @@ bool parseFilesDb(std::shared_ptr<IF00DKeyEncryptor> iF00D, unsigned char* klice
       icv.offset = currentBlockPos;
       icv.page = off2page(currentBlockPos, header.pageSize);
 
-      if(calculate_node_icv( header, secret, &block.header, raw_block_data.data(), icv.icv) < 0)
+      if(calculate_node_icv(cryptops, header, secret, &block.header, raw_block_data.data(), icv.icv) < 0)
       {
          std::cout << "failed to calculate icv" << std::endl;
          return false;
@@ -870,7 +868,7 @@ int match_file_lists(const std::vector<sce_ng_pfs_file_t>& filesResult, const st
 }
 
 //parses files.db and flattens it into file list
-int parseFilesDb(std::shared_ptr<IF00DKeyEncryptor> iF00D, unsigned char* klicensee, boost::filesystem::path titleIdPath, bool isUnicv, sce_ng_pfs_header_t& header, std::vector<sce_ng_pfs_file_t>& filesResult, std::vector<sce_ng_pfs_dir_t>& dirsResult)
+int parseFilesDb(std::shared_ptr<ICryptoOperations> cryptops, std::shared_ptr<IF00DKeyEncryptor> iF00D, unsigned char* klicensee, boost::filesystem::path titleIdPath, bool isUnicv, sce_ng_pfs_header_t& header, std::vector<sce_ng_pfs_file_t>& filesResult, std::vector<sce_ng_pfs_dir_t>& dirsResult)
 {
    std::cout << "parsing  files.db..." << std::endl;
 
@@ -893,7 +891,7 @@ int parseFilesDb(std::shared_ptr<IF00DKeyEncryptor> iF00D, unsigned char* klicen
 
    //parse data into raw structures
    std::vector<sce_ng_pfs_block_t> blocks;
-   if(!parseFilesDb(iF00D, klicensee, inputStream, isUnicv, header, blocks))
+   if(!parseFilesDb(cryptops, iF00D, klicensee, inputStream, isUnicv, header, blocks))
       return -1;
 
    //build child index -> parent index relationship map

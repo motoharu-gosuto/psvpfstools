@@ -10,8 +10,6 @@
 #include <boost/lexical_cast.hpp>
 #include <boost/algorithm/string.hpp>
 
-#include <libcrypto/sha1.h>
-
 #include "Utils.h"
 #include "SecretGenerator.h"
 #include "UnicvDbParser.h"
@@ -20,7 +18,7 @@
 #include "PfsKeyGenerator.h"
 #include "MerkleTree.hpp"
 
-std::shared_ptr<sce_junction> brutforce_hashes(sce_ng_pfs_header_t& ngpfs, std::map<sce_junction, std::vector<std::uint8_t>>& fileDatas, const unsigned char* secret, const unsigned char* signature)
+std::shared_ptr<sce_junction> brutforce_hashes(std::shared_ptr<ICryptoOperations> cryptops, sce_ng_pfs_header_t& ngpfs, std::map<sce_junction, std::vector<std::uint8_t>>& fileDatas, const unsigned char* secret, const unsigned char* signature)
 {
    unsigned char signature_key[0x14] = {0};
 
@@ -29,7 +27,7 @@ std::shared_ptr<sce_junction> brutforce_hashes(sce_ng_pfs_header_t& ngpfs, std::
       //we will be checking only first sector of each file hence we can precalculate a signature_key
       //because both secret and sector_salt will not vary
       int sector_salt = 0; //sector number is most likely a salt which is logically correct in terms of xts-aes
-      sha1_hmac(secret, 0x14, (unsigned char*)&sector_salt, 4, signature_key);
+      cryptops->hmac_sha1((unsigned char*)&sector_salt, signature_key, 4, secret, 0x14);
    }
    else
    {
@@ -43,7 +41,7 @@ std::shared_ptr<sce_junction> brutforce_hashes(sce_ng_pfs_header_t& ngpfs, std::
    {
       //calculate sector signature
       unsigned char realSignature[0x14] = {0};
-      sha1_hmac(signature_key, 0x14, f.second.data(), f.second.size(), realSignature);
+      cryptops->hmac_sha1(f.second.data(), realSignature, f.second.size(), signature_key, 0x14);
 
       //try to match the signatures
       if(memcmp(signature, realSignature, 0x14) == 0)
@@ -104,10 +102,13 @@ int combine_hash(std::shared_ptr<merkle_tree_node<icv> > result, std::shared_ptr
    memcpy(bytes28, left->m_context.m_data.data(), 0x14);
    memcpy(bytes28 + 0x14, right->m_context.m_data.data(), 0x14);
 
-   unsigned char* secret = (unsigned char*)ctx;
+   std::pair<std::shared_ptr<ICryptoOperations>, unsigned char*>* ctx_cast = (std::pair<std::shared_ptr<ICryptoOperations>, unsigned char*>*)ctx;
+   
+   std::shared_ptr<ICryptoOperations> cryptops = ctx_cast->first;
+   unsigned char* secret = ctx_cast->second;
 
    result->m_context.m_data.resize(0x14);
-   sha1_hmac(secret, 0x14, bytes28, 0x28, result->m_context.m_data.data());
+   cryptops->hmac_sha1(bytes28, result->m_context.m_data.data(), 0x28, secret, 0x14);
 
    return 0;
 }
@@ -139,7 +140,7 @@ int compare_hash_tables(const std::vector<icv>& left, const std::vector<icv>& ri
 //then we can read the file and hash it into merkle tree
 //then merkle tree is collected into hash table
 //then hash table is compared to the hash table from icv table entry
-int validate_merkle_trees(std::shared_ptr<IF00DKeyEncryptor> iF00D, unsigned char* klicensee, sce_ng_pfs_header_t& ngpfs, std::map<std::uint32_t, sce_junction>& pageMap, std::vector<std::pair<std::shared_ptr<sce_iftbl_base_t>, std::shared_ptr<merkle_tree<icv> > > >& merkleTrees)
+int validate_merkle_trees(std::shared_ptr<ICryptoOperations> cryptops, std::shared_ptr<IF00DKeyEncryptor> iF00D, unsigned char* klicensee, sce_ng_pfs_header_t& ngpfs, std::map<std::uint32_t, sce_junction>& pageMap, std::vector<std::pair<std::shared_ptr<sce_iftbl_base_t>, std::shared_ptr<merkle_tree<icv> > > >& merkleTrees)
 {
    std::cout << "Validating merkle trees..." << std::endl;
 
@@ -150,7 +151,7 @@ int validate_merkle_trees(std::shared_ptr<IF00DKeyEncryptor> iF00D, unsigned cha
 
       //calculate secret
       unsigned char secret[0x14];
-      scePfsUtilGetSecret(iF00D, secret, klicensee, ngpfs.files_salt, img_spec_to_crypto_engine_flag(ngpfs.image_spec), table->get_icv_salt(), 0);
+      scePfsUtilGetSecret(cryptops, iF00D, secret, klicensee, ngpfs.files_salt, img_spec_to_crypto_engine_flag(ngpfs.image_spec), table->get_icv_salt(), 0);
 
       //find junction
       auto junctionIt = pageMap.find(table->get_icv_salt());
@@ -183,7 +184,7 @@ int validate_merkle_trees(std::shared_ptr<IF00DKeyEncryptor> iF00D, unsigned cha
          inputStream.read((char*)raw_data.data(), sectorSize);
 
          currentIcv.m_data.resize(0x14);
-         sha1_hmac(secret, 0x14, raw_data.data(), sectorSize, currentIcv.m_data.data());
+         cryptops->hmac_sha1(raw_data.data(), currentIcv.m_data.data(), sectorSize, secret, 0x14);
       }
 
       if(tailSize > 0)
@@ -194,7 +195,7 @@ int validate_merkle_trees(std::shared_ptr<IF00DKeyEncryptor> iF00D, unsigned cha
          inputStream.read((char*)raw_data.data(), tailSize);
 
          currentIcv.m_data.resize(0x14);
-         sha1_hmac(secret, 0x14, raw_data.data(), tailSize, currentIcv.m_data.data());
+         cryptops->hmac_sha1(raw_data.data(), currentIcv.m_data.data(), tailSize, secret, 0x14);
       }
 
       try
@@ -206,7 +207,8 @@ int validate_merkle_trees(std::shared_ptr<IF00DKeyEncryptor> iF00D, unsigned cha
          walk_tree(mkt, assign_hash, &sectorHashMap);
 
          //calculate node hashes
-         bottom_top_walk_combine(mkt, combine_hash, secret);
+         auto combine_ctx = std::make_pair(cryptops, secret);
+         bottom_top_walk_combine(mkt, combine_hash, &combine_ctx);
 
          //collect hashes into table
          std::vector<icv> hashTable;
@@ -231,7 +233,7 @@ int validate_merkle_trees(std::shared_ptr<IF00DKeyEncryptor> iF00D, unsigned cha
    return 0;
 }
 
-int bruteforce_map(std::shared_ptr<IF00DKeyEncryptor> iF00D,  boost::filesystem::path titleIdPath, unsigned char* klicensee, sce_ng_pfs_header_t& ngpfs, std::shared_ptr<sce_idb_base_t> fdb, std::map<std::uint32_t, sce_junction>& pageMap, std::set<sce_junction>& emptyFiles)
+int bruteforce_map(std::shared_ptr<ICryptoOperations> cryptops, std::shared_ptr<IF00DKeyEncryptor> iF00D, boost::filesystem::path titleIdPath, unsigned char* klicensee, sce_ng_pfs_header_t& ngpfs, std::shared_ptr<sce_idb_base_t> fdb, std::map<std::uint32_t, sce_junction>& pageMap, std::set<sce_junction>& emptyFiles)
 {
    if(img_spec_to_is_unicv(ngpfs.image_spec))
       std::cout << "Building unicv.db -> files.db relation..." << std::endl;
@@ -309,7 +311,7 @@ int bruteforce_map(std::shared_ptr<IF00DKeyEncryptor> iF00D,  boost::filesystem:
       {
          //generate secret - one secret per unicv.db page is required
          unsigned char secret[0x14];
-         scePfsUtilGetSecret(iF00D, secret, klicensee, ngpfs.files_salt, img_spec_to_crypto_engine_flag(ngpfs.image_spec), t->get_icv_salt(), 0);
+         scePfsUtilGetSecret(cryptops, iF00D, secret, klicensee, ngpfs.files_salt, img_spec_to_crypto_engine_flag(ngpfs.image_spec), t->get_icv_salt(), 0);
 
          std::shared_ptr<sce_junction> found_path;
 
@@ -319,7 +321,7 @@ int bruteforce_map(std::shared_ptr<IF00DKeyEncryptor> iF00D,  boost::filesystem:
             const unsigned char* zeroSectorIcv = t->m_blocks.front().m_signatures.front().m_data.data();
 
             //try to find match by hash of zero sector
-            found_path = brutforce_hashes(ngpfs, fileDatas, secret, zeroSectorIcv); 
+            found_path = brutforce_hashes(cryptops, ngpfs, fileDatas, secret, zeroSectorIcv); 
          }
          else
          {
@@ -341,7 +343,7 @@ int bruteforce_map(std::shared_ptr<IF00DKeyEncryptor> iF00D,  boost::filesystem:
                const unsigned char* zeroSectorIcv = t->m_blocks.front().m_signatures.at(ctx.second).m_data.data();
 
                //try to find match by hash of zero sector
-               found_path = brutforce_hashes(ngpfs, fileDatas, secret, zeroSectorIcv);
+               found_path = brutforce_hashes(cryptops, ngpfs, fileDatas, secret, zeroSectorIcv);
             }
             catch(std::runtime_error& e)
             {
@@ -366,7 +368,7 @@ int bruteforce_map(std::shared_ptr<IF00DKeyEncryptor> iF00D,  boost::filesystem:
    //in icv - additional step checks that hash table corresponds to merkle tree
    if(!img_spec_to_is_unicv(ngpfs.image_spec))
    {
-      if(validate_merkle_trees(iF00D, klicensee, ngpfs, pageMap, merkleTrees) < 0)
+      if(validate_merkle_trees(cryptops, iF00D, klicensee, ngpfs, pageMap, merkleTrees) < 0)
          return -1;
    }
 
@@ -430,7 +432,7 @@ CryptEngineData g_data;
 CryptEngineSubctx g_sub_ctx;
 std::vector<std::uint8_t> g_signatureTable;
 
-int init_crypt_ctx(std::shared_ptr<IF00DKeyEncryptor> iF00D, CryptEngineWorkCtx* work_ctx, unsigned char* klicensee, sce_ng_pfs_header_t& ngpfs, const sce_ng_pfs_file_t& file, std::shared_ptr<sce_iftbl_base_t> table, sig_tbl_t& block, std::uint32_t sector_base, std::uint32_t tail_size, unsigned char* source)
+int init_crypt_ctx(std::shared_ptr<ICryptoOperations> cryptops, std::shared_ptr<IF00DKeyEncryptor> iF00D, CryptEngineWorkCtx* work_ctx, unsigned char* klicensee, sce_ng_pfs_header_t& ngpfs, const sce_ng_pfs_file_t& file, std::shared_ptr<sce_iftbl_base_t> table, sig_tbl_t& block, std::uint32_t sector_base, std::uint32_t tail_size, unsigned char* source)
 {     
    memset(&g_data, 0, sizeof(CryptEngineData));
    g_data.klicensee = klicensee;
@@ -455,7 +457,7 @@ int init_crypt_ctx(std::shared_ptr<IF00DKeyEncryptor> iF00D, CryptEngineWorkCtx*
    else
       memset(drv_ctx.dbseed, 0, 0x14);
 
-   setup_crypt_packet_keys(iF00D, &g_data, &drv_ctx); //derive dec_key, tweak_enc_key, secret
+   setup_crypt_packet_keys(cryptops, iF00D, &g_data, &drv_ctx); //derive dec_key, tweak_enc_key, secret
 
    //--------------------------------
    
@@ -535,7 +537,7 @@ int init_crypt_ctx(std::shared_ptr<IF00DKeyEncryptor> iF00D, CryptEngineWorkCtx*
    return 0;
 }
 
-int decrypt_icv_file(std::shared_ptr<IF00DKeyEncryptor> iF00D, boost::filesystem::path titleIdPath, boost::filesystem::path destination_root, const sce_ng_pfs_file_t& file, const sce_junction& filepath, unsigned char* klicensee, sce_ng_pfs_header_t& ngpfs, std::shared_ptr<sce_iftbl_base_t> table)
+int decrypt_icv_file(std::shared_ptr<ICryptoOperations> cryptops, std::shared_ptr<IF00DKeyEncryptor> iF00D, boost::filesystem::path titleIdPath, boost::filesystem::path destination_root, const sce_ng_pfs_file_t& file, const sce_junction& filepath, unsigned char* klicensee, sce_ng_pfs_header_t& ngpfs, std::shared_ptr<sce_iftbl_base_t> table)
 {
    //create new file
 
@@ -572,10 +574,10 @@ int decrypt_icv_file(std::shared_ptr<IF00DKeyEncryptor> iF00D, boost::filesystem
          tail_size = table->get_header()->get_fileSectorSize();
          
       CryptEngineWorkCtx work_ctx;
-      if(init_crypt_ctx(iF00D, &work_ctx, klicensee, ngpfs, file, table, table->m_blocks.front(), 0, tail_size, buffer.data()) < 0)
+      if(init_crypt_ctx(cryptops, iF00D, &work_ctx, klicensee, ngpfs, file, table, table->m_blocks.front(), 0, tail_size, buffer.data()) < 0)
          return -1;
 
-      pfs_decrypt(iF00D, &work_ctx);
+      pfs_decrypt(cryptops, iF00D, &work_ctx);
 
       if(work_ctx.error < 0)
       {
@@ -604,7 +606,7 @@ int decrypt_icv_file(std::shared_ptr<IF00DKeyEncryptor> iF00D, boost::filesystem
    return 0;
 }
 
-int decrypt_unicv_file(std::shared_ptr<IF00DKeyEncryptor> iF00D, boost::filesystem::path titleIdPath, boost::filesystem::path destination_root, const sce_ng_pfs_file_t& file, const sce_junction& filepath, unsigned char* klicensee, sce_ng_pfs_header_t& ngpfs, std::shared_ptr<sce_iftbl_base_t> table)
+int decrypt_unicv_file(std::shared_ptr<ICryptoOperations> cryptops, std::shared_ptr<IF00DKeyEncryptor> iF00D, boost::filesystem::path titleIdPath, boost::filesystem::path destination_root, const sce_ng_pfs_file_t& file, const sce_junction& filepath, unsigned char* klicensee, sce_ng_pfs_header_t& ngpfs, std::shared_ptr<sce_iftbl_base_t> table)
 {
    //create new file
 
@@ -641,10 +643,10 @@ int decrypt_unicv_file(std::shared_ptr<IF00DKeyEncryptor> iF00D, boost::filesyst
          tail_size = table->get_header()->get_fileSectorSize();
          
       CryptEngineWorkCtx work_ctx;
-      if(init_crypt_ctx(iF00D, &work_ctx, klicensee, ngpfs, file, table, table->m_blocks.front(), 0, tail_size, buffer.data()) < 0)
+      if(init_crypt_ctx(cryptops, iF00D, &work_ctx, klicensee, ngpfs, file, table, table->m_blocks.front(), 0, tail_size, buffer.data()) < 0)
          return -1;
 
-      pfs_decrypt(iF00D, &work_ctx);
+      pfs_decrypt(cryptops, iF00D, &work_ctx);
 
       if(work_ctx.error < 0)
       {
@@ -685,10 +687,10 @@ int decrypt_unicv_file(std::shared_ptr<IF00DKeyEncryptor> iF00D, boost::filesyst
                tail_size = table->get_header()->get_fileSectorSize();
          
             CryptEngineWorkCtx work_ctx;
-            if(init_crypt_ctx(iF00D, &work_ctx, klicensee, ngpfs, file, table, b, sector_base, tail_size, buffer.data()) < 0)
+            if(init_crypt_ctx(cryptops, iF00D, &work_ctx, klicensee, ngpfs, file, table, b, sector_base, tail_size, buffer.data()) < 0)
                return -1;
 
-            pfs_decrypt(iF00D, &work_ctx);
+            pfs_decrypt(cryptops, iF00D, &work_ctx);
 
             if(work_ctx.error < 0)
             {
@@ -715,10 +717,10 @@ int decrypt_unicv_file(std::shared_ptr<IF00DKeyEncryptor> iF00D, boost::filesyst
                   tail_size = table->get_header()->get_fileSectorSize();
 
                CryptEngineWorkCtx work_ctx;
-               if(init_crypt_ctx(iF00D, &work_ctx, klicensee, ngpfs, file, table, b, sector_base, tail_size, buffer.data()) < 0)
+               if(init_crypt_ctx(cryptops, iF00D, &work_ctx, klicensee, ngpfs, file, table, b, sector_base, tail_size, buffer.data()) < 0)
                   return -1;
 
-               pfs_decrypt(iF00D, &work_ctx);
+               pfs_decrypt(cryptops, iF00D, &work_ctx);
 
                if(work_ctx.error < 0)
                {
@@ -737,10 +739,10 @@ int decrypt_unicv_file(std::shared_ptr<IF00DKeyEncryptor> iF00D, boost::filesyst
                inputStream.read((char*)buffer.data(), full_block_size);
 
                CryptEngineWorkCtx work_ctx;
-               if(init_crypt_ctx(iF00D, &work_ctx, klicensee, ngpfs, file, table, b, sector_base, table->get_header()->get_fileSectorSize(), buffer.data()) < 0)
+               if(init_crypt_ctx(cryptops, iF00D, &work_ctx, klicensee, ngpfs, file, table, b, sector_base, table->get_header()->get_fileSectorSize(), buffer.data()) < 0)
                   return -1;
 
-               pfs_decrypt(iF00D, &work_ctx);
+               pfs_decrypt(cryptops, iF00D, &work_ctx);
 
                if(work_ctx.error < 0)
                {
@@ -766,12 +768,12 @@ int decrypt_unicv_file(std::shared_ptr<IF00DKeyEncryptor> iF00D, boost::filesyst
    return 0;
 }
 
-int decrypt_file(std::shared_ptr<IF00DKeyEncryptor> iF00D, boost::filesystem::path titleIdPath, boost::filesystem::path destination_root, const sce_ng_pfs_file_t& file, const sce_junction& filepath, unsigned char* klicensee, sce_ng_pfs_header_t& ngpfs, std::shared_ptr<sce_iftbl_base_t> table)
+int decrypt_file(std::shared_ptr<ICryptoOperations> cryptops, std::shared_ptr<IF00DKeyEncryptor> iF00D, boost::filesystem::path titleIdPath, boost::filesystem::path destination_root, const sce_ng_pfs_file_t& file, const sce_junction& filepath, unsigned char* klicensee, sce_ng_pfs_header_t& ngpfs, std::shared_ptr<sce_iftbl_base_t> table)
 {
    if(img_spec_to_is_unicv(ngpfs.image_spec))
-      return decrypt_unicv_file(iF00D, titleIdPath, destination_root, file, filepath, klicensee, ngpfs, table);
+      return decrypt_unicv_file(cryptops, iF00D, titleIdPath, destination_root, file, filepath, klicensee, ngpfs, table);
    else
-      return decrypt_icv_file(iF00D, titleIdPath, destination_root, file, filepath, klicensee, ngpfs, table);
+      return decrypt_icv_file(cryptops, iF00D, titleIdPath, destination_root, file, filepath, klicensee, ngpfs, table);
 }
 
 std::vector<sce_ng_pfs_file_t>::const_iterator find_file_by_path(std::vector<sce_ng_pfs_file_t>& files, const sce_junction& p)
@@ -784,7 +786,7 @@ std::vector<sce_ng_pfs_file_t>::const_iterator find_file_by_path(std::vector<sce
    return files.end();
 }
 
-int decrypt_files(std::shared_ptr<IF00DKeyEncryptor> iF00D, boost::filesystem::path titleIdPath, boost::filesystem::path destTitleIdPath, unsigned char* klicensee, sce_ng_pfs_header_t& ngpfs, std::vector<sce_ng_pfs_file_t>& files, std::vector<sce_ng_pfs_dir_t>& dirs, std::shared_ptr<sce_idb_base_t> fdb, std::map<std::uint32_t, sce_junction>& pageMap, std::set<sce_junction>& emptyFiles)
+int decrypt_files(std::shared_ptr<ICryptoOperations> cryptops, std::shared_ptr<IF00DKeyEncryptor> iF00D, boost::filesystem::path titleIdPath, boost::filesystem::path destTitleIdPath, unsigned char* klicensee, sce_ng_pfs_header_t& ngpfs, std::vector<sce_ng_pfs_file_t>& files, std::vector<sce_ng_pfs_dir_t>& dirs, std::shared_ptr<sce_idb_base_t> fdb, std::map<std::uint32_t, sce_junction>& pageMap, std::set<sce_junction>& emptyFiles)
 {
    std::cout << "Creating directories..." << std::endl;
 
@@ -871,7 +873,7 @@ int decrypt_files(std::shared_ptr<IF00DKeyEncryptor> iF00D, boost::filesystem::p
       //decrypt encrypted files
       else if(is_encrypted(file->file.m_info.header.type))
       {
-         if(decrypt_file(iF00D, titleIdPath, destTitleIdPath, *file, filepath, klicensee, ngpfs, t) < 0)
+         if(decrypt_file(cryptops, iF00D, titleIdPath, destTitleIdPath, *file, filepath, klicensee, ngpfs, t) < 0)
          {
             std::cout << "Failed to decrypt: " << filepath << std::endl;
             return -1;
