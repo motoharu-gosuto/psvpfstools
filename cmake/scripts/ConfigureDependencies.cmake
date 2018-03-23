@@ -89,6 +89,8 @@ if(LIBTOMCRYPT_FOUND)
 message("Found libtomcrypt library")
 message("Using LIBTOMCRYPT_INCLUDE_DIRS: ${LIBTOMCRYPT_INCLUDE_DIRS}")
 message("Using LIBTOMCRYPT_LIBRARIES: ${LIBTOMCRYPT_LIBRARIES}")
+
+add_definitions(-DLTC_NO_PROTOTYPES)
 else()
 message("libtomcrypt library is not found")
 endif()
