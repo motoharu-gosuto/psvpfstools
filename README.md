@@ -103,27 +103,24 @@ https://github.com/motoharu-gosuto/psvpfstools/issues
 ### libtomcrypt
 
 #### Windows (example)
-First you have to build libtommath: https://github.com/libtom/libtommath
-
-- Start Visual Studio command prompt
-- Navigate to libtommath directory
-- Locate `makefile.msvc` file and edit it - remove `/Fo$@` according to: https://groups.google.com/forum/#!msg/comp.os.ms-windows.programmer.win32/JYoUvSNU0Uc/_JOKS7vek0sJ
-- Execute the following commands:
-
-```
-nmake -f makefile.msvc
-```
-
-This will build target which contains tommath.lib.
-
-Having built libtommath you can now build libtomcrypt.
+To build libtomcrypt execute the following steps:
 
 - Start Visual Studio command prompt
 - Navigate to libtomcrypt directory
 - Execute the following commands:
 
+debug build:
 ```
-nmake -f makefile.msvc CFLAGS="/DUSE_LTM /DLTM_DESC /IC:\libtommath" EXTRALIBS=C:\libtommath\tommath.lib default
+nmake -f makefile.msvc clean
+nmake -f makefile.msvc CFLAGS="/MDd /DLTC_NO_PROTOTYPES" default
+mkdir build
+nmake -f makefile.msvc PREFIX=C:\libtomcrypt\build install
+```
+
+release build:
+```
+nmake -f makefile.msvc clean
+nmake -f makefile.msvc CFLAGS="/MD /DLTC_NO_PROTOTYPES" default
 mkdir build
 nmake -f makefile.msvc PREFIX=C:\libtomcrypt\build install
 ```
