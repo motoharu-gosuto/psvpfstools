@@ -25,34 +25,7 @@
 #include "HashTree.h"
 #include "FlagOperations.h"
 
-int get_isUnicv(boost::filesystem::path titleIdPath, bool& isUnicv)
-{
-   boost::filesystem::path root(titleIdPath);
-
-   boost::filesystem::path filepath = root / "sce_pfs" / "unicv.db";
-
-   if(!boost::filesystem::exists(filepath))
-   {
-      boost::filesystem::path filepath2 = root / "sce_pfs" / "icv.db";
-      if(!boost::filesystem::exists(filepath2) || !boost::filesystem::is_directory(filepath2))
-      {
-         std::cout << "failed to find unicv.db file or icv.db folder" << std::endl;
-
-         isUnicv = false;
-         return -1;
-      }
-      else
-      {
-         isUnicv = false;
-         return 0;
-      }
-   }
-   else
-   {
-      isUnicv = true;
-      return 0;
-   }
-}
+//------------ type functions -----------------
 
 bool is_directory(sce_ng_pfs_file_types type)
 {
@@ -91,6 +64,35 @@ bool is_unexisting(sce_ng_pfs_file_types type)
 {
    return type == sce_ng_pfs_file_types::unexisting;
 }
+
+std::string fileTypeToString(sce_ng_pfs_file_types ft)
+{
+   switch(ft)
+   {
+   case sce_ng_pfs_file_types::unexisting:
+      return "unexisting";
+   case sce_ng_pfs_file_types::normal_file:
+      return "normal_file";
+   case sce_ng_pfs_file_types::normal_directory:
+      return "normal_directory";
+   case sce_ng_pfs_file_types::sys_directory:
+      return "sys_directory";
+   case sce_ng_pfs_file_types::acid_directory:
+      return "acid_dir";
+   case sce_ng_pfs_file_types::unencrypted_system_file_rw:
+      return "unencrypted_system_file_rw";
+   case sce_ng_pfs_file_types::encrypted_system_file_rw:
+      return "encrypted_system_file_rw";
+   case sce_ng_pfs_file_types::unencrypted_system_file_ro:
+      return "unencrypted_system_file_ro";
+   case sce_ng_pfs_file_types::encrypted_system_file_ro:
+      return "encrypted_system_file_ro";
+   default:
+      return "unknown";
+   }
+}
+
+//------------ implementation -----------------
 
 bool FilesDbParser::verify_header_icv(std::ifstream& inputStream, const unsigned char* secret)
 {
@@ -157,6 +159,35 @@ bool FilesDbParser::verify_header_icv(std::ifstream& inputStream, const unsigned
    return true;
 }
 
+int FilesDbParser::get_isUnicv(bool& isUnicv)
+{
+   boost::filesystem::path root(m_titleIdPath);
+
+   boost::filesystem::path filepath = root / "sce_pfs" / "unicv.db";
+
+   if(!boost::filesystem::exists(filepath))
+   {
+      boost::filesystem::path filepath2 = root / "sce_pfs" / "icv.db";
+      if(!boost::filesystem::exists(filepath2) || !boost::filesystem::is_directory(filepath2))
+      {
+         std::cout << "failed to find unicv.db file or icv.db folder" << std::endl;
+
+         isUnicv = false;
+         return -1;
+      }
+      else
+      {
+         isUnicv = false;
+         return 0;
+      }
+   }
+   else
+   {
+      isUnicv = true;
+      return 0;
+   }
+}
+
 bool FilesDbParser::validate_header(uint32_t dataSize)
 {
    //confirm tail size
@@ -176,7 +207,7 @@ bool FilesDbParser::validate_header(uint32_t dataSize)
    //check image spec
    {
       bool isUnicv = false;
-      if(get_isUnicv(m_titleIdPath, isUnicv) < 0)
+      if(get_isUnicv(isUnicv) < 0)
          return false;
 
       std::vector<pfs_image_types> possibleTypes;
@@ -737,33 +768,6 @@ bool FilesDbParser::constructFilePaths(const std::map<std::uint32_t, std::uint32
    }
 
    return true;
-}
-
-std::string fileTypeToString(sce_ng_pfs_file_types ft)
-{
-   switch(ft)
-   {
-   case sce_ng_pfs_file_types::unexisting:
-      return "unexisting";
-   case sce_ng_pfs_file_types::normal_file:
-      return "normal_file";
-   case sce_ng_pfs_file_types::normal_directory:
-      return "normal_directory";
-   case sce_ng_pfs_file_types::sys_directory:
-      return "sys_directory";
-   case sce_ng_pfs_file_types::acid_directory:
-      return "acid_dir";
-   case sce_ng_pfs_file_types::unencrypted_system_file_rw:
-      return "unencrypted_system_file_rw";
-   case sce_ng_pfs_file_types::encrypted_system_file_rw:
-      return "encrypted_system_file_rw";
-   case sce_ng_pfs_file_types::unencrypted_system_file_ro:
-      return "unencrypted_system_file_ro";
-   case sce_ng_pfs_file_types::encrypted_system_file_ro:
-      return "encrypted_system_file_ro";
-   default:
-      return "unknown";
-   }
 }
 
 //checks that directory exists
