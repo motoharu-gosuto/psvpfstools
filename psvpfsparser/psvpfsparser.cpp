@@ -22,7 +22,7 @@
 
 int execute(std::shared_ptr<ICryptoOperations> cryptops, std::shared_ptr<IF00DKeyEncryptor> iF00D, const unsigned char* klicensee, boost::filesystem::path titleIdPath, boost::filesystem::path destTitleIdPath)
 {
-   FilesDbParser fbp(cryptops, iF00D, klicensee, titleIdPath);
+   FilesDbParser fbp(cryptops, iF00D, std::cout, klicensee, titleIdPath);
 
    if(fbp.parse() < 0)
       return -1;

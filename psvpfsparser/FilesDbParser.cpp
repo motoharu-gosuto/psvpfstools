@@ -239,11 +239,17 @@ bool validate_header(const sce_ng_pfs_header_t& header, uint32_t dataSize, bool 
    return true;
 }
 
-bool parseFilesDb(std::shared_ptr<ICryptoOperations> cryptops, std::shared_ptr<IF00DKeyEncryptor> iF00D, const unsigned char* klicensee, std::ifstream& inputStream, bool isUnicv, sce_ng_pfs_header_t& header, std::vector<sce_ng_pfs_block_t>& blocks)
+bool FilesDbParser::parseFilesDb(std::ifstream& inputStream, std::vector<sce_ng_pfs_block_t>& blocks)
 {
-   inputStream.read((char*)&header, sizeof(sce_ng_pfs_header_t));
+   bool isUnicv = false;
+   if(get_isUnicv(m_titleIdPath, isUnicv) < 0)
+      return -1;
 
-   if(std::string((char*)header.magic, 8) != MAGIC_WORD)
+   //---------------
+
+   inputStream.read((char*)&m_header, sizeof(sce_ng_pfs_header_t));
+
+   if(std::string((char*)m_header.magic, 8) != MAGIC_WORD)
    {
       std::cout << "Magic word is incorrect" << std::endl;
       return false;
@@ -251,10 +257,10 @@ bool parseFilesDb(std::shared_ptr<ICryptoOperations> cryptops, std::shared_ptr<I
 
    //generate secret
    unsigned char secret[0x14];
-   scePfsUtilGetSecret(cryptops, iF00D, secret, klicensee, header.files_salt, img_spec_to_crypto_engine_flag(header.image_spec), 0, 0);
+   scePfsUtilGetSecret(m_cryptops, m_iF00D, secret, m_klicensee, m_header.files_salt, img_spec_to_crypto_engine_flag(m_header.image_spec), 0, 0);
 
    //verify header
-   if(!verify_header_icv(cryptops, inputStream, header, secret))
+   if(!verify_header_icv(m_cryptops, inputStream, m_header, secret))
       return false;
    
    //save current position
@@ -266,14 +272,14 @@ bool parseFilesDb(std::shared_ptr<ICryptoOperations> cryptops, std::shared_ptr<I
    int64_t dataSize = cunksEndPos - chunksBeginPos;
 
    //validate header
-   if(!validate_header(header, static_cast<std::uint32_t>(dataSize), isUnicv))
+   if(!validate_header(m_header, static_cast<std::uint32_t>(dataSize), isUnicv))
       return false;
 
    //seek back to the beginning of tail
    inputStream.seekg(chunksBeginPos, std::ios_base::beg);
 
    std::multimap<std::uint32_t, page_icv_data> page_icvs;
-   std::vector<unsigned char> raw_block_data(header.pageSize);
+   std::vector<unsigned char> raw_block_data(m_header.pageSize);
 
    while(true)
    {
@@ -286,7 +292,7 @@ bool parseFilesDb(std::shared_ptr<ICryptoOperations> cryptops, std::shared_ptr<I
       sce_ng_pfs_block_t& block = blocks.back();
 
       //assign page number
-      block.page = off2page(currentBlockPos, header.pageSize);
+      block.page = off2page(currentBlockPos, m_header.pageSize);
 
       //read header
       inputStream.read((char*)&block.header, sizeof(sce_ng_pfs_block_header_t));
@@ -371,7 +377,7 @@ bool parseFilesDb(std::shared_ptr<ICryptoOperations> cryptops, std::shared_ptr<I
       }
 
       //validate next position - check that read operations we not out of bounds of current block
-      int64_t nextBlockPos = currentBlockPos + header.pageSize;
+      int64_t nextBlockPos = currentBlockPos + m_header.pageSize;
       if((int64_t)inputStream.tellg() != nextBlockPos)
       {
          std::cout << "Block overlay" << std::endl;
@@ -379,15 +385,15 @@ bool parseFilesDb(std::shared_ptr<ICryptoOperations> cryptops, std::shared_ptr<I
       }
 
       //re read block
-      inputStream.seekg(-(int64_t)header.pageSize, std::ios::cur);
-      inputStream.read((char*)raw_block_data.data(), header.pageSize);
+      inputStream.seekg(-(int64_t)m_header.pageSize, std::ios::cur);
+      inputStream.read((char*)raw_block_data.data(), m_header.pageSize);
 
       //calculate icv of the page
       page_icv_data icv;
       icv.offset = currentBlockPos;
-      icv.page = off2page(currentBlockPos, header.pageSize);
+      icv.page = off2page(currentBlockPos, m_header.pageSize);
 
-      if(calculate_node_icv(cryptops, header, secret, &block.header, raw_block_data.data(), icv.icv) < 0)
+      if(calculate_node_icv(m_cryptops, m_header, secret, &block.header, raw_block_data.data(), icv.icv) < 0)
       {
          std::cout << "failed to calculate icv" << std::endl;
          return false;
@@ -399,7 +405,7 @@ bool parseFilesDb(std::shared_ptr<ICryptoOperations> cryptops, std::shared_ptr<I
 
    std::cout << "Validating hash tree..." << std::endl;
 
-   if(!validate_hash_tree(0, header.root_icv_page_number, blocks, page_icvs))
+   if(!validate_hash_tree(0, m_header.root_icv_page_number, blocks, page_icvs))
    {
       std::cout << "Failed to validate hash tree" << std::endl;
       return false;
@@ -905,10 +911,6 @@ int FilesDbParser::parse()
       return -1;
    }
 
-   bool isUnicv = false;
-   if(get_isUnicv(m_titleIdPath, isUnicv) < 0)
-      return -1;
-
    std::cout << "parsing  files.db..." << std::endl;
 
    boost::filesystem::path root(m_titleIdPath);
@@ -930,7 +932,7 @@ int FilesDbParser::parse()
 
    //parse data into raw structures
    std::vector<sce_ng_pfs_block_t> blocks;
-   if(!parseFilesDb(m_cryptops, m_iF00D, m_klicensee, inputStream, isUnicv, m_header, blocks))
+   if(!parseFilesDb(inputStream, blocks))
       return -1;
 
    //build child index -> parent index relationship map

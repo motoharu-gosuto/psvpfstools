@@ -210,6 +210,7 @@ class FilesDbParser
 private:
    std::shared_ptr<ICryptoOperations> m_cryptops;
    std::shared_ptr<IF00DKeyEncryptor> m_iF00D;
+   std::ostream& m_output;
    unsigned char m_klicensee[0x10];
    boost::filesystem::path m_titleIdPath;
 
@@ -219,11 +220,15 @@ private:
    std::vector<sce_ng_pfs_dir_t> m_dirs;
 
 public:
-   FilesDbParser(std::shared_ptr<ICryptoOperations> cryptops, std::shared_ptr<IF00DKeyEncryptor> iF00D, const unsigned char* klicensee, boost::filesystem::path titleIdPath)
-      : m_cryptops(cryptops), m_iF00D(iF00D), m_titleIdPath(titleIdPath)
+   FilesDbParser(std::shared_ptr<ICryptoOperations> cryptops, std::shared_ptr<IF00DKeyEncryptor> iF00D, std::ostream& output, 
+                 const unsigned char* klicensee, boost::filesystem::path titleIdPath)
+      : m_cryptops(cryptops), m_iF00D(iF00D), m_output(output), m_titleIdPath(titleIdPath)
    {
       memcpy(m_klicensee, klicensee, 0x10);
    }
+
+private:
+   bool parseFilesDb(std::ifstream& inputStream, std::vector<sce_ng_pfs_block_t>& blocks);
 
 public:
    int parse();
