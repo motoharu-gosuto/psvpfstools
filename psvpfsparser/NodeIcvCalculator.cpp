@@ -44,7 +44,7 @@ std::uint32_t order_max_avail(std::uint32_t pagesize)
   return index;
 }
 
-int calculate_node_icv(std::shared_ptr<ICryptoOperations> cryptops, sce_ng_pfs_header_t& ngh, unsigned char* secret, sce_ng_pfs_block_header_t* node_header, unsigned char* raw_data, unsigned char* icv)
+int calculate_node_icv(std::shared_ptr<ICryptoOperations> cryptops, sce_ng_pfs_header_t& ngh, const unsigned char* secret, sce_ng_pfs_block_header_t* node_header, unsigned char* raw_data, unsigned char* icv)
 {
    std::uint32_t order = order_max_avail(ngh.pageSize); //get order of the page (max number of hashes per page)
 

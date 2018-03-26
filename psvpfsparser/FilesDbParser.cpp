@@ -92,7 +92,7 @@ bool is_unexisting(sce_ng_pfs_file_types type)
    return type == sce_ng_pfs_file_types::unexisting;
 }
 
-bool verify_header_icv(std::shared_ptr<ICryptoOperations> cryptops, std::ifstream& inputStream, sce_ng_pfs_header_t& header, unsigned char* secret)
+bool FilesDbParser::verify_header_icv(std::ifstream& inputStream, const unsigned char* secret)
 {
    std::cout << "verifying header..." << std::endl;
 
@@ -101,14 +101,14 @@ bool verify_header_icv(std::shared_ptr<ICryptoOperations> cryptops, std::ifstrea
    char rsa_sig0_copy[0x100];
    char icv_hmac_sig_copy[0x14];
    
-   memcpy(rsa_sig0_copy, header.rsa_sig0, 0x100);
-   memcpy(icv_hmac_sig_copy, header.header_icv, 0x14);
-   memset(header.header_icv, 0, 0x14);
-   memset(header.rsa_sig0, 0, 0x100);
+   memcpy(rsa_sig0_copy, m_header.rsa_sig0, 0x100);
+   memcpy(icv_hmac_sig_copy, m_header.header_icv, 0x14);
+   memset(m_header.header_icv, 0, 0x14);
+   memset(m_header.rsa_sig0, 0, 0x100);
 
-   cryptops->hmac_sha1(header.magic, header.header_icv, 0x160, secret, 0x14);
+   m_cryptops->hmac_sha1(m_header.magic, m_header.header_icv, 0x160, secret, 0x14);
 
-   if(memcmp(header.header_icv, icv_hmac_sig_copy, 0x14) != 0)
+   if(memcmp(m_header.header_icv, icv_hmac_sig_copy, 0x14) != 0)
    {
       std::cout << "header signature is invalid" << std::endl;
       return false;
@@ -122,12 +122,12 @@ bool verify_header_icv(std::shared_ptr<ICryptoOperations> cryptops, std::ifstrea
    int64_t chunksBeginPos = inputStream.tellg();
 
    //map page to offset
-   int64_t offset = page2off(header.root_icv_page_number, header.pageSize);
+   int64_t offset = page2off(m_header.root_icv_page_number, m_header.pageSize);
 
    //read raw data at offset
    inputStream.seekg(offset, std::ios_base::beg);
-   std::vector<unsigned char> root_block_raw_data(header.pageSize);
-   inputStream.read((char*)root_block_raw_data.data(), header.pageSize);
+   std::vector<unsigned char> root_block_raw_data(m_header.pageSize);
+   inputStream.read((char*)root_block_raw_data.data(), m_header.pageSize);
 
    //seek back to the beginning of the page
    inputStream.seekg(offset, std::ios_base::beg);
@@ -137,13 +137,13 @@ bool verify_header_icv(std::shared_ptr<ICryptoOperations> cryptops, std::ifstrea
    inputStream.read((char*)&root_node_header, sizeof(sce_ng_pfs_block_header_t));
 
    unsigned char root_icv[0x14];
-   if(calculate_node_icv(cryptops, header, secret, &root_node_header, root_block_raw_data.data(), root_icv) < 0)
+   if(calculate_node_icv(m_cryptops, m_header, secret, &root_node_header, root_block_raw_data.data(), root_icv) < 0)
    {
       std::cout << "failed to calculate root icv" << std::endl;
       return false;
    }
 
-   if(memcmp(root_icv, header.root_icv, 0x14) != 0)
+   if(memcmp(root_icv, m_header.root_icv, 0x14) != 0)
    {
       std::cout << "root icv is invalid" << std::endl;
       return false;
@@ -258,7 +258,7 @@ bool FilesDbParser::parseFilesDb(std::ifstream& inputStream, std::vector<sce_ng_
    scePfsUtilGetSecret(m_cryptops, m_iF00D, secret, m_klicensee, m_header.files_salt, img_spec_to_crypto_engine_flag(m_header.image_spec), 0, 0);
 
    //verify header
-   if(!verify_header_icv(m_cryptops, inputStream, m_header, secret))
+   if(!verify_header_icv(inputStream, secret))
       return false;
    
    //save current position

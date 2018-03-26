@@ -230,6 +230,8 @@ public:
 private:
    bool validate_header(uint32_t dataSize);
 
+   bool verify_header_icv(std::ifstream& inputStream, const unsigned char* secret);
+
    bool parseFilesDb(std::ifstream& inputStream, std::vector<sce_ng_pfs_block_t>& blocks);
 
 public:
