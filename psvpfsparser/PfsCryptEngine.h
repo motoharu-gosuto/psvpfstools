@@ -1,8 +1,11 @@
 #pragma once
 
 #include <cstdint>
+#include <memory>
 
 #include "FlagOperations.h"
+
+#include "IF00DKeyEncryptor.h"
 
 typedef int SceUID;
 
@@ -65,4 +68,4 @@ typedef struct derive_keys_ctx
 
 }derive_keys_ctx;
 
-void pfs_decrypt(CryptEngineWorkCtx *work_ctx);
+void pfs_decrypt(std::shared_ptr<IF00DKeyEncryptor> iF00D, CryptEngineWorkCtx *work_ctx);

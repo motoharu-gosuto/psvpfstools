@@ -40,7 +40,7 @@ int gen_secret(unsigned char* combo, std::uint32_t files_salt, std::uint32_t icv
 
 //[TESTED]
 //this function is used only for gamedata
-int generate_secret_np(unsigned char* secret, const unsigned char* klicensee, std::uint32_t files_salt, std::uint32_t icv_salt, std::uint16_t key_id)
+int generate_secret_np(std::shared_ptr<IF00DKeyEncryptor> iF00D, unsigned char* secret, const unsigned char* klicensee, std::uint32_t files_salt, std::uint32_t icv_salt, std::uint16_t key_id)
 {
    unsigned char drvkey[0x14] = {0};
    unsigned char iv[0x10] = {0};
@@ -50,7 +50,7 @@ int generate_secret_np(unsigned char* secret, const unsigned char* klicensee, st
 
    memcpy(iv, iv0, 0x10); //initialize iv
 
-   AESCBCEncryptWithKeygen_base(klicensee, iv, 0x14, combo, drvkey, key_id);
+   AESCBCEncryptWithKeygen_base(iF00D, klicensee, iv, 0x14, combo, drvkey, key_id);
 
    memcpy(secret, drvkey, 0x14); // copy derived key
    
@@ -82,7 +82,7 @@ int generate_secret(unsigned char* secret, const unsigned char* klicensee,  std:
 
 //[TESTED 2 branches]
 //this function is used to derive secret for gamedata and savedata
-int scePfsUtilGetSecret(unsigned char* secret, const unsigned char* klicensee, std::uint32_t files_salt, std::uint16_t crypto_engine_flag, std::uint32_t icv_salt, std::uint16_t key_id)
+int scePfsUtilGetSecret(std::shared_ptr<IF00DKeyEncryptor> iF00D, unsigned char* secret, const unsigned char* klicensee, std::uint32_t files_salt, std::uint16_t crypto_engine_flag, std::uint32_t icv_salt, std::uint16_t key_id)
 {
    if(crypto_engine_flag & CRYPTO_ENGINE_CRYPTO_USE_CMAC)
    {
@@ -93,7 +93,7 @@ int scePfsUtilGetSecret(unsigned char* secret, const unsigned char* klicensee, s
    }
    else if(crypto_engine_flag & CRYPTO_ENGINE_CRYPTO_USE_KEYGEN)
    {
-      return generate_secret_np(secret, klicensee, files_salt, icv_salt, key_id);
+      return generate_secret_np(iF00D, secret, klicensee, files_salt, icv_salt, key_id);
    }
    else
    {

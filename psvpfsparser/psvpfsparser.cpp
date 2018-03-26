@@ -15,7 +15,7 @@
 #include "UnicvDbParser.h"
 #include "FilesDbParser.h"
 #include "PfsDecryptor.h"
-#include "F00DKeyEncryptor.h"
+#include "F00DKeyEncryptorFactory.h"
 #include "PsvPfsParserConfig.h"
 #include "LocalKeyGenerator.h"
 
@@ -61,7 +61,7 @@ int execute(PsvPfsParserConfig& cfg)
          return -1;
    }
 
-   set_F00D_url(cfg.f00d_url);
+   std::shared_ptr<IF00DKeyEncryptor> iF00D = F00DKeyEncryptorFactory::create(cfg.f00d_enc_type, cfg.f00d_arg); 
 
    if(!boost::filesystem::exists(titleIdPath))
    {
@@ -76,7 +76,7 @@ int execute(PsvPfsParserConfig& cfg)
    sce_ng_pfs_header_t header;
    std::vector<sce_ng_pfs_file_t> files;
    std::vector<sce_ng_pfs_dir_t> dirs;
-   if(parseFilesDb(klicensee, titleIdPath, isUnicv, header, files, dirs) < 0)
+   if(parseFilesDb(iF00D, klicensee, titleIdPath, isUnicv, header, files, dirs) < 0)
       return -1;
 
    std::shared_ptr<sce_idb_base_t> unicv;
@@ -85,16 +85,19 @@ int execute(PsvPfsParserConfig& cfg)
 
    std::map<std::uint32_t, sce_junction> pageMap;
    std::set<sce_junction> emptyFiles;
-   if(bruteforce_map(titleIdPath, klicensee, header, unicv, pageMap, emptyFiles) < 0)
+   if(bruteforce_map(iF00D, titleIdPath, klicensee, header, unicv, pageMap, emptyFiles) < 0)
       return -1;
 
-   if(decrypt_files(titleIdPath, destTitleIdPath, klicensee, header, files, dirs, unicv, pageMap, emptyFiles) < 0)
+   if(decrypt_files(iF00D, titleIdPath, destTitleIdPath, klicensee, header, files, dirs, unicv, pageMap, emptyFiles) < 0)
       return -1;
 
    std::cout << "keystone sanity check..." << std::endl;
 
    if(get_keystone(destTitleIdPath) < 0)
       return -1;
+
+   std::cout << "F00D cache:" << std::endl;
+   iF00D->print_cache(std::cout);
 
    return 0;
 }

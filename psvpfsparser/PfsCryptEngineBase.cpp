@@ -87,7 +87,7 @@ int AESCBCDecrypt_base(const unsigned char* key, unsigned char* tweak, std::uint
 }
 
 //ok
-int AESCBCEncryptWithKeygen_base(const unsigned char* key, unsigned char* tweak, std::uint32_t size, const unsigned char* src, unsigned char* dst, std::uint16_t key_id)
+int AESCBCEncryptWithKeygen_base(std::shared_ptr<IF00DKeyEncryptor> iF00D, const unsigned char* key, unsigned char* tweak, std::uint32_t size, const unsigned char* src, unsigned char* dst, std::uint16_t key_id)
 {   
    std::uint16_t kid = key_id;
 
@@ -98,7 +98,7 @@ int AESCBCEncryptWithKeygen_base(const unsigned char* key, unsigned char* tweak,
 
    if(size_block != 0)
    {
-      int result0 = SceSblSsMgrForDriver_sceSblSsMgrAESCBCEncryptWithKeygenForDriver(src, dst, size_block, key, 0x80, tweak, kid, 1);
+      int result0 = SceSblSsMgrForDriver_sceSblSsMgrAESCBCEncryptWithKeygenForDriver(iF00D, src, dst, size_block, key, 0x80, tweak, kid, 1);
       if(result0 != 0)
          return result0;  
    }
@@ -114,7 +114,7 @@ int AESCBCEncryptWithKeygen_base(const unsigned char* key, unsigned char* tweak,
 
    //encrypt iv using klicensee
      
-   int result1 = SceSblSsMgrForDriver_sceSblSsMgrAESECBEncryptWithKeygenForDriver(tweak, tweak_enc, 0x10, key, 0x80, kid, 1);
+   int result1 = SceSblSsMgrForDriver_sceSblSsMgrAESECBEncryptWithKeygenForDriver(iF00D, tweak, tweak_enc, 0x10, key, 0x80, kid, 1);
    if(result1 != 0)
       return result1;
 
@@ -127,7 +127,7 @@ int AESCBCEncryptWithKeygen_base(const unsigned char* key, unsigned char* tweak,
 }
 
 //ok
-int AESCBCDecryptWithKeygen_base(const unsigned char* key, unsigned char* tweak, std::uint32_t size, const unsigned char* src, unsigned char* dst, std::uint16_t key_id)
+int AESCBCDecryptWithKeygen_base(std::shared_ptr<IF00DKeyEncryptor> iF00D, const unsigned char* key, unsigned char* tweak, std::uint32_t size, const unsigned char* src, unsigned char* dst, std::uint16_t key_id)
 {
    std::uint16_t kid = key_id;
 
@@ -138,7 +138,7 @@ int AESCBCDecryptWithKeygen_base(const unsigned char* key, unsigned char* tweak,
 
    if(size_block != 0)
    {
-      int result0 = SceSblSsMgrForDriver_sceSblSsMgrAESCBCDecryptWithKeygenForDriver(src, dst, size_block, key, 0x80, tweak, kid, 1);
+      int result0 = SceSblSsMgrForDriver_sceSblSsMgrAESCBCDecryptWithKeygenForDriver(iF00D, src, dst, size_block, key, 0x80, tweak, kid, 1);
       if(result0 != 0)
          return result0;
    }
@@ -154,7 +154,7 @@ int AESCBCDecryptWithKeygen_base(const unsigned char* key, unsigned char* tweak,
 
    //encrypt iv using key
 
-   int result1 = SceSblSsMgrForDriver_sceSblSsMgrAESECBEncryptWithKeygenForDriver(tweak, tweak_enc, 0x10, key, 0x80, kid, 1);
+   int result1 = SceSblSsMgrForDriver_sceSblSsMgrAESECBEncryptWithKeygenForDriver(iF00D, tweak, tweak_enc, 0x10, key, 0x80, kid, 1);
    if(result1 != 0)
       return result1;
 
@@ -254,7 +254,7 @@ int AESCMACDecrypt_base(const unsigned char* key, unsigned char* tweak, std::uin
 
 // FUNCTIONS ARE SIMILAR
 
-int AESCMACEncryptWithKeygen_base(const unsigned char* key, unsigned char* tweak, std::uint32_t size, const unsigned char* src, unsigned char dst[0x10], std::uint16_t key_id)
+int AESCMACEncryptWithKeygen_base(std::shared_ptr<IF00DKeyEncryptor> iF00D, const unsigned char* key, unsigned char* tweak, std::uint32_t size, const unsigned char* src, unsigned char dst[0x10], std::uint16_t key_id)
 {
    throw std::runtime_error("Untested function");
 
@@ -267,7 +267,7 @@ int AESCMACEncryptWithKeygen_base(const unsigned char* key, unsigned char* tweak
 
    if(size_block != 0)
    {
-      int result0 = SceSblSsMgrForDriver_sceSblSsMgrAESCMACWithKeygenForDriver(src, dst, size_block, key, 0x80, tweak, kid, 1, 0);
+      int result0 = SceSblSsMgrForDriver_sceSblSsMgrAESCMACWithKeygenForDriver(iF00D, src, dst, size_block, key, 0x80, tweak, kid, 1, 0);
       if(result0 != 0)
          return result0;
    }
@@ -283,7 +283,7 @@ int AESCMACEncryptWithKeygen_base(const unsigned char* key, unsigned char* tweak
 
    //encrypt iv using key
 
-   int result1 = SceSblSsMgrForDriver_sceSblSsMgrAESECBEncryptWithKeygenForDriver(tweak, tweak_enc, 0x10, key, 0x80, kid, 1);
+   int result1 = SceSblSsMgrForDriver_sceSblSsMgrAESECBEncryptWithKeygenForDriver(iF00D, tweak, tweak_enc, 0x10, key, 0x80, kid, 1);
    if(result1 != 0)
       return result1;
 
@@ -297,7 +297,7 @@ int AESCMACEncryptWithKeygen_base(const unsigned char* key, unsigned char* tweak
    return 0;
 }
 
-int AESCMACDecryptWithKeygen_base(const unsigned char* key, unsigned char* tweak, std::uint32_t size, const unsigned char* src, unsigned char dst[0x10], std::uint16_t key_id)
+int AESCMACDecryptWithKeygen_base(std::shared_ptr<IF00DKeyEncryptor> iF00D, const unsigned char* key, unsigned char* tweak, std::uint32_t size, const unsigned char* src, unsigned char dst[0x10], std::uint16_t key_id)
 {
    throw std::runtime_error("Untested function");
 
@@ -310,7 +310,7 @@ int AESCMACDecryptWithKeygen_base(const unsigned char* key, unsigned char* tweak
 
    if(size_block != 0)
    {
-      int result0 = SceSblSsMgrForDriver_sceSblSsMgrAESCMACWithKeygenForDriver(src, dst, size_block, key, 0x80, tweak, kid, 1, 0);
+      int result0 = SceSblSsMgrForDriver_sceSblSsMgrAESCMACWithKeygenForDriver(iF00D, src, dst, size_block, key, 0x80, tweak, kid, 1, 0);
       if(result0 != 0)
          return result0;
    }
@@ -326,7 +326,7 @@ int AESCMACDecryptWithKeygen_base(const unsigned char* key, unsigned char* tweak
 
    //encrypt iv using key
    
-   int result1 = SceSblSsMgrForDriver_sceSblSsMgrAESECBEncryptWithKeygenForDriver(tweak, tweak_enc, 0x10, key, 0x80, kid, 1);
+   int result1 = SceSblSsMgrForDriver_sceSblSsMgrAESECBEncryptWithKeygenForDriver(iF00D, tweak, tweak_enc, 0x10, key, 0x80, kid, 1);
    if(result1 != 0)
       return result1;
 

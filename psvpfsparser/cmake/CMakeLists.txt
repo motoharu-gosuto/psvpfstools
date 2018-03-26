@@ -3,7 +3,10 @@ project (${PROJECT})
 
 message(${PROJECT})
 
-FILE (GLOB HEADER_FILES "../F00DKeyEncryptor.h"
+FILE (GLOB HEADER_FILES "../IF00DKeyEncryptor.h"
+                        "../F00DUrlKeyEncryptor.h"
+                        "../F00DFileKeyEncryptor.h"
+                        "../F00DKeyEncryptorFactory.h"
                         "../FilesDbParser.h"
                         "../HashTree.h"
                         "../NodeIcvCalculator.h"
@@ -28,7 +31,9 @@ FILE (GLOB HEADER_FILES "../F00DKeyEncryptor.h"
                         "../FlagOperations.h")
 source_group ("Header Files" FILES ${HEADER_FILES})
 
-FILE (GLOB SOURCE_FILES "../F00DKeyEncryptor.cpp"
+FILE (GLOB SOURCE_FILES "../F00DUrlKeyEncryptor.cpp"
+                        "../F00DFileKeyEncryptor.cpp"
+                        "../F00DKeyEncryptorFactory.cpp"
                         "../FilesDbParser.cpp"
                         "../HashTree.cpp"
                         "../NodeIcvCalculator.cpp"
