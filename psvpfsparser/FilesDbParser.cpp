@@ -585,7 +585,7 @@ const std::vector<sce_ng_pfs_flat_block_t>::const_iterator findFlatBlockFile(con
    return flatBlocks.end();
 }
 
-bool constructDirPaths(boost::filesystem::path rootPath, std::map<std::uint32_t, std::uint32_t>& dirMatrix, const std::vector<sce_ng_pfs_flat_block_t>& flatBlocks, std::vector<sce_ng_pfs_dir_t>& dirsResult)
+bool FilesDbParser::constructDirPaths(std::map<std::uint32_t, std::uint32_t>& dirMatrix, const std::vector<sce_ng_pfs_flat_block_t>& flatBlocks)
 {
    std::cout << "Building dir paths..." << std::endl;
 
@@ -640,7 +640,7 @@ bool constructDirPaths(boost::filesystem::path rootPath, std::map<std::uint32_t,
       std::string dirName((const char*)dirFlatBlock->file.fileName);
 
       //construct full path
-      boost::filesystem::path path = rootPath;
+      boost::filesystem::path path = m_titleIdPath;
       for(auto& dname : boost::adaptors::reverse(dirNames))
       {
          path /= dname;
@@ -650,8 +650,8 @@ bool constructDirPaths(boost::filesystem::path rootPath, std::map<std::uint32_t,
       //use generic string here to normalize the path !
       sce_junction p(path.generic_string());
 
-      dirsResult.push_back(sce_ng_pfs_dir_t(p));
-      sce_ng_pfs_dir_t& ft = dirsResult.back();
+      m_dirs.push_back(sce_ng_pfs_dir_t(p));
+      sce_ng_pfs_dir_t& ft = m_dirs.back();
       ft.dir = *dirFlatBlock;
       ft.dirs = dirFlatBlocks;
    }
@@ -665,7 +665,7 @@ bool constructDirPaths(boost::filesystem::path rootPath, std::map<std::uint32_t,
 //fileMatrix - connection matrix for files [input]
 //flatBlocks - flat list of blocks in files.db [input]
 //filesResult - list of filepaths linked to file flat block and directory flat blocks
-bool constructFilePaths(boost::filesystem::path rootPath, std::map<std::uint32_t, std::uint32_t>& dirMatrix, const std::map<std::uint32_t, std::uint32_t>& fileMatrix, const std::vector<sce_ng_pfs_flat_block_t>& flatBlocks, std::vector<sce_ng_pfs_file_t>& filesResult)
+bool FilesDbParser::constructFilePaths(std::map<std::uint32_t, std::uint32_t>& dirMatrix, const std::map<std::uint32_t, std::uint32_t>& fileMatrix, const std::vector<sce_ng_pfs_flat_block_t>& flatBlocks)
 {
    std::cout << "Building file paths..." << std::endl;
 
@@ -720,7 +720,7 @@ bool constructFilePaths(boost::filesystem::path rootPath, std::map<std::uint32_t
       std::string fileName((const char*)fileFlatBlock->file.fileName);
 
       //construct full path
-      boost::filesystem::path path = rootPath;
+      boost::filesystem::path path = m_titleIdPath;
       for(auto& dname : boost::adaptors::reverse(dirNames))
       {
          path /= dname;
@@ -730,8 +730,8 @@ bool constructFilePaths(boost::filesystem::path rootPath, std::map<std::uint32_t
       //use generic string here to normalize the path !
       sce_junction p(path.generic_string());
 
-      filesResult.push_back(sce_ng_pfs_file_t(p));
-      sce_ng_pfs_file_t& ft = filesResult.back();
+      m_files.push_back(sce_ng_pfs_file_t(p));
+      sce_ng_pfs_file_t& ft = m_files.back();
       ft.file = *fileFlatBlock;
       ft.dirs = dirFlatBlocks;
    }
@@ -911,9 +911,7 @@ int FilesDbParser::parse()
 
    std::cout << "parsing  files.db..." << std::endl;
 
-   boost::filesystem::path root(m_titleIdPath);
-
-   boost::filesystem::path filepath = root / "sce_pfs" / "files.db";
+   boost::filesystem::path filepath = m_titleIdPath / "sce_pfs" / "files.db";
    if(!boost::filesystem::exists(filepath))
    {
       std::cout << "failed to find files.db file" << std::endl;
@@ -950,17 +948,17 @@ int FilesDbParser::parse()
 
    //convert flat blocks to file paths (sometimes there are empty directories that have to be created)
    //in normal scenario without this call - they will be ignored
-   if(!constructDirPaths(root, dirMatrix, flatBlocks, m_dirs))
+   if(!constructDirPaths(dirMatrix, flatBlocks))
       return -1;
 
    //convert flat blocks to file paths
-   if(!constructFilePaths(root, dirMatrix, fileMatrix, flatBlocks, m_files))
+   if(!constructFilePaths(dirMatrix, fileMatrix, flatBlocks))
       return -1;
 
    //get the list of real filesystem paths
    std::set<boost::filesystem::path> files;
    std::set<boost::filesystem::path> directories;
-   getFileListNoPfs(root, files, directories);
+   getFileListNoPfs(m_titleIdPath, files, directories);
 
    //link result dirs to real filesystem
    if(!linkDirpaths(m_dirs, directories))

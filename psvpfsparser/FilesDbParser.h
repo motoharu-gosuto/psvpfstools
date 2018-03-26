@@ -234,6 +234,11 @@ private:
 
    bool parseFilesDb(std::ifstream& inputStream, std::vector<sce_ng_pfs_block_t>& blocks);
 
+private:
+   bool constructDirPaths(std::map<std::uint32_t, std::uint32_t>& dirMatrix, const std::vector<sce_ng_pfs_flat_block_t>& flatBlocks);
+
+   bool constructFilePaths(std::map<std::uint32_t, std::uint32_t>& dirMatrix, const std::map<std::uint32_t, std::uint32_t>& fileMatrix, const std::vector<sce_ng_pfs_flat_block_t>& flatBlocks);
+
 public:
    int parse();
 
