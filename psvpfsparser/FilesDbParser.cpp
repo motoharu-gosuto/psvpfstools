@@ -591,7 +591,7 @@ bool FilesDbParser::flattenBlocks(const std::vector<sce_ng_pfs_block_t>& blocks,
 }
 
 //find directory flat block by index
-const std::vector<sce_ng_pfs_flat_block_t>::const_iterator findFlatBlockDir(const std::vector<sce_ng_pfs_flat_block_t>& flatBlocks, std::uint32_t index)
+const std::vector<sce_ng_pfs_flat_block_t>::const_iterator FilesDbParser::findFlatBlockDir(const std::vector<sce_ng_pfs_flat_block_t>& flatBlocks, std::uint32_t index)
 {
    size_t i = 0;
    for(auto& block : flatBlocks)
@@ -604,7 +604,7 @@ const std::vector<sce_ng_pfs_flat_block_t>::const_iterator findFlatBlockDir(cons
 }
 
 //find file flat block by index
-const std::vector<sce_ng_pfs_flat_block_t>::const_iterator findFlatBlockFile(const std::vector<sce_ng_pfs_flat_block_t>& flatBlocks, std::uint32_t index)
+const std::vector<sce_ng_pfs_flat_block_t>::const_iterator FilesDbParser::findFlatBlockFile(const std::vector<sce_ng_pfs_flat_block_t>& flatBlocks, std::uint32_t index)
 {
    size_t i = 0;
    for(auto& block : flatBlocks)

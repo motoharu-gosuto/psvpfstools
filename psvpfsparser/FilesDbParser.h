@@ -228,11 +228,11 @@ public:
    }
 
 private:
+   bool verify_header_icv(std::ifstream& inputStream, const unsigned char* secret);
+
    int get_isUnicv(bool& isUnicv);
 
    bool validate_header(uint32_t dataSize);
-
-   bool verify_header_icv(std::ifstream& inputStream, const unsigned char* secret);
 
    bool parseFilesDb(std::ifstream& inputStream, std::vector<sce_ng_pfs_block_t>& blocks);
 
@@ -242,6 +242,10 @@ private:
    bool constructFileMatrix(std::vector<sce_ng_pfs_block_t>& blocks, std::map<std::uint32_t, std::uint32_t>& fileMatrix);
 
    bool flattenBlocks(const std::vector<sce_ng_pfs_block_t>& blocks, std::vector<sce_ng_pfs_flat_block_t>& flatBlocks);
+
+   const std::vector<sce_ng_pfs_flat_block_t>::const_iterator findFlatBlockDir(const std::vector<sce_ng_pfs_flat_block_t>& flatBlocks, std::uint32_t index);
+
+   const std::vector<sce_ng_pfs_flat_block_t>::const_iterator findFlatBlockFile(const std::vector<sce_ng_pfs_flat_block_t>& flatBlocks, std::uint32_t index);
 
    bool constructDirPaths(const std::map<std::uint32_t, std::uint32_t>& dirMatrix, const std::vector<sce_ng_pfs_flat_block_t>& flatBlocks);
 
