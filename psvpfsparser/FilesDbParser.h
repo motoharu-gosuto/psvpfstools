@@ -213,6 +213,11 @@ private:
    unsigned char m_klicensee[0x10];
    boost::filesystem::path m_titleIdPath;
 
+private:
+   sce_ng_pfs_header_t m_header;
+   std::vector<sce_ng_pfs_file_t> m_files;
+   std::vector<sce_ng_pfs_dir_t> m_dirs;
+
 public:
    FilesDbParser(std::shared_ptr<ICryptoOperations> cryptops, std::shared_ptr<IF00DKeyEncryptor> iF00D, const unsigned char* klicensee, boost::filesystem::path titleIdPath)
       : m_cryptops(cryptops), m_iF00D(iF00D), m_titleIdPath(titleIdPath)
@@ -221,5 +226,21 @@ public:
    }
 
 public:
-   int parse(sce_ng_pfs_header_t& header, std::vector<sce_ng_pfs_file_t>& filesResult, std::vector<sce_ng_pfs_dir_t>& dirsResult);
+   int parse();
+
+public:
+   const sce_ng_pfs_header_t& get_header() const
+   {
+      return m_header;
+   }
+
+   const std::vector<sce_ng_pfs_file_t>& get_files() const
+   {
+      return m_files;
+   }
+
+   const std::vector<sce_ng_pfs_dir_t>& get_dirs() const
+   {
+      return m_dirs;
+   }
 };

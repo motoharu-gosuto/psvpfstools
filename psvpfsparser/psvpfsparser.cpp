@@ -22,18 +22,18 @@
 
 int execute(std::shared_ptr<ICryptoOperations> cryptops, std::shared_ptr<IF00DKeyEncryptor> iF00D, const unsigned char* klicensee, boost::filesystem::path titleIdPath, boost::filesystem::path destTitleIdPath)
 {
-   sce_ng_pfs_header_t header;
-   std::vector<sce_ng_pfs_file_t> files;
-   std::vector<sce_ng_pfs_dir_t> dirs;
-
    FilesDbParser fbp(cryptops, iF00D, klicensee, titleIdPath);
 
-   if(fbp.parse(header, files, dirs) < 0)
+   if(fbp.parse() < 0)
       return -1;
 
    std::shared_ptr<sce_idb_base_t> unicv;
    if(parseUnicvDb(titleIdPath, unicv) < 0)
       return -1;
+
+   const sce_ng_pfs_header_t& header = fbp.get_header();
+   const std::vector<sce_ng_pfs_file_t>& files = fbp.get_files();
+   const std::vector<sce_ng_pfs_dir_t>& dirs = fbp.get_dirs();
 
    std::map<std::uint32_t, sce_junction> pageMap;
    std::set<sce_junction> emptyFiles;

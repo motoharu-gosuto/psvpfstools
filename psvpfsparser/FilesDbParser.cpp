@@ -897,7 +897,7 @@ int match_file_lists(const std::vector<sce_ng_pfs_file_t>& filesResult, const st
 }
 
 //parses files.db and flattens it into file list
-int FilesDbParser::parse(sce_ng_pfs_header_t& header, std::vector<sce_ng_pfs_file_t>& filesResult, std::vector<sce_ng_pfs_dir_t>& dirsResult)
+int FilesDbParser::parse()
 {
    if(!boost::filesystem::exists(m_titleIdPath))
    {
@@ -930,7 +930,7 @@ int FilesDbParser::parse(sce_ng_pfs_header_t& header, std::vector<sce_ng_pfs_fil
 
    //parse data into raw structures
    std::vector<sce_ng_pfs_block_t> blocks;
-   if(!parseFilesDb(m_cryptops, m_iF00D, m_klicensee, inputStream, isUnicv, header, blocks))
+   if(!parseFilesDb(m_cryptops, m_iF00D, m_klicensee, inputStream, isUnicv, m_header, blocks))
       return -1;
 
    //build child index -> parent index relationship map
@@ -950,11 +950,11 @@ int FilesDbParser::parse(sce_ng_pfs_header_t& header, std::vector<sce_ng_pfs_fil
 
    //convert flat blocks to file paths (sometimes there are empty directories that have to be created)
    //in normal scenario without this call - they will be ignored
-   if(!constructDirPaths(root, dirMatrix, flatBlocks, dirsResult))
+   if(!constructDirPaths(root, dirMatrix, flatBlocks, m_dirs))
       return -1;
 
    //convert flat blocks to file paths
-   if(!constructFilePaths(root, dirMatrix, fileMatrix, flatBlocks, filesResult))
+   if(!constructFilePaths(root, dirMatrix, fileMatrix, flatBlocks, m_files))
       return -1;
 
    //get the list of real filesystem paths
@@ -963,15 +963,15 @@ int FilesDbParser::parse(sce_ng_pfs_header_t& header, std::vector<sce_ng_pfs_fil
    getFileListNoPfs(root, files, directories);
 
    //link result dirs to real filesystem
-   if(!linkDirpaths(dirsResult, directories))
+   if(!linkDirpaths(m_dirs, directories))
       return -1;
 
    //link result files to real filesystem
-   if(!linkFilepaths(EXPECTED_FILE_SECTOR_SIZE, filesResult, files))
+   if(!linkFilepaths(EXPECTED_FILE_SECTOR_SIZE, m_files, files))
       return -1;
 
    //match files and get number of extra files that do not exist in files.db
-   int numExtra = match_file_lists(filesResult, files);
+   int numExtra = match_file_lists(m_files, files);
 
    //final check of sizes
    size_t expectedSize = files.size() + directories.size() - numExtra; // allow extra files to exist
