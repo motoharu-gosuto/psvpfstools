@@ -228,6 +228,8 @@ public:
    }
 
 private:
+   bool validate_header(uint32_t dataSize);
+
    bool parseFilesDb(std::ifstream& inputStream, std::vector<sce_ng_pfs_block_t>& blocks);
 
 public:

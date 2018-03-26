@@ -157,17 +157,17 @@ bool verify_header_icv(std::shared_ptr<ICryptoOperations> cryptops, std::ifstrea
    return true;
 }
 
-bool validate_header(const sce_ng_pfs_header_t& header, uint32_t dataSize, bool isUnicv)
+bool FilesDbParser::validate_header(uint32_t dataSize)
 {
    //confirm tail size
-   if(dataSize != header.tailSize)
+   if(dataSize != m_header.tailSize)
    {
       std::cout << "Unexpected tail size" << std::endl;
       return false;
    }
 
    //check version
-   if(header.version != FILES_EXPECTED_VERSION_3 && header.version != FILES_EXPECTED_VERSION_4 && header.version != FILES_EXPECTED_VERSION_5)
+   if(m_header.version != FILES_EXPECTED_VERSION_3 && m_header.version != FILES_EXPECTED_VERSION_4 && m_header.version != FILES_EXPECTED_VERSION_5)
    {
       std::cout << "Invalid version" << std::endl;
       return false;
@@ -175,13 +175,17 @@ bool validate_header(const sce_ng_pfs_header_t& header, uint32_t dataSize, bool 
 
    //check image spec
    {
+      bool isUnicv = false;
+      if(get_isUnicv(m_titleIdPath, isUnicv) < 0)
+         return false;
+
       std::vector<pfs_image_types> possibleTypes;
       is_unicv_to_img_types(isUnicv, possibleTypes);
 
       bool found = false;
       for(auto pt : possibleTypes)
       {
-         if(scePfsCheckImage(img_type_to_mode_index(pt), header.image_spec) == 0)
+         if(scePfsCheckImage(img_type_to_mode_index(pt), m_header.image_spec) == 0)
          {
             found = true;
             break;
@@ -196,41 +200,41 @@ bool validate_header(const sce_ng_pfs_header_t& header, uint32_t dataSize, bool 
    }
    
    //check key_id - should be 0 - we do not expect any other values or the code has to be changed
-   if(header.key_id != 0)
+   if(m_header.key_id != 0)
    {
       std::cout << "Unexpected key_id" << std::endl;
       return false;
    }
 
    //check that order of a tree is correct
-   if(header.bt_order != order_max_avail(header.pageSize))
+   if(m_header.bt_order != order_max_avail(m_header.pageSize))
    {
       std::cout << "Unexpected flags value" << std::endl;
       return false;
    }
 
    //check that order of a tree has expected value
-   if(header.bt_order != 0xA)
+   if(m_header.bt_order != 0xA)
    {
       std::cout << "Unexpected flags value" << std::endl;
       return false;
    }
 
    //check block size
-   if(header.pageSize != EXPECTED_BLOCK_SIZE)
+   if(m_header.pageSize != EXPECTED_BLOCK_SIZE)
    {
       std::cout << "Invalid block size" << std::endl;
       return false;
    }
 
-   if(header.unk6 != 0xFFFFFFFFFFFFFFFF)
+   if(m_header.unk6 != 0xFFFFFFFFFFFFFFFF)
    {
       std::cout << "Unexpected unk6" << std::endl;
       return false;
    }
 
    //check padding
-   if(!isZeroVector(header.padding + 0, header.padding + sizeof(header.padding)))
+   if(!isZeroVector(m_header.padding + 0, m_header.padding + sizeof(m_header.padding)))
    {
       std::cout << "Unexpected data instead of padding" << std::endl;
       return false;
@@ -241,12 +245,6 @@ bool validate_header(const sce_ng_pfs_header_t& header, uint32_t dataSize, bool 
 
 bool FilesDbParser::parseFilesDb(std::ifstream& inputStream, std::vector<sce_ng_pfs_block_t>& blocks)
 {
-   bool isUnicv = false;
-   if(get_isUnicv(m_titleIdPath, isUnicv) < 0)
-      return -1;
-
-   //---------------
-
    inputStream.read((char*)&m_header, sizeof(sce_ng_pfs_header_t));
 
    if(std::string((char*)m_header.magic, 8) != MAGIC_WORD)
@@ -272,7 +270,7 @@ bool FilesDbParser::parseFilesDb(std::ifstream& inputStream, std::vector<sce_ng_
    int64_t dataSize = cunksEndPos - chunksBeginPos;
 
    //validate header
-   if(!validate_header(m_header, static_cast<std::uint32_t>(dataSize), isUnicv))
+   if(!validate_header(static_cast<std::uint32_t>(dataSize)))
       return false;
 
    //seek back to the beginning of tail
