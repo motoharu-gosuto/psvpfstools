@@ -235,6 +235,10 @@ Go to cmake folder and execute build.bat. It will create build folder and config
 Go to cmake folder and execute build.sh. It will create build folder and configure cmake to build with standard make.
 
 ## run
+When decrypting unicv.db: use -k or -z option to provide klicensee data.
+
+When decrypting icv.db: dont use -k and -z. klicensee data will be taken automatically from sealedkey file.
+
 Options:
 
   -h [ --help ]             Show help
