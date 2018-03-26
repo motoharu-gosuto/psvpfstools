@@ -13,7 +13,7 @@
 //#### GROUP 1 (possible keygen aes-cbc-cts dec/aes-cbc-cts enc) ####
 
 //ok
-int AESCBCEncrypt_base(const unsigned char* key, unsigned char* tweak, std::uint32_t size, const unsigned char* src, unsigned char* dst)
+int AESCBCEncrypt_base(std::shared_ptr<ICryptoOperations> cryptops, const unsigned char* key, unsigned char* tweak, std::uint32_t size, const unsigned char* src, unsigned char* dst)
 {
    int size_tail = size & 0xF;
    int size_block = size & (~0xF);
@@ -22,7 +22,7 @@ int AESCBCEncrypt_base(const unsigned char* key, unsigned char* tweak, std::uint
    
    if(size_block != 0)
    {
-      int result0 = SceSblSsMgrForDriver_sceSblSsMgrAESCBCEncryptForDriver(src, dst, size_block, key, 0x80, tweak, 1);
+      int result0 = SceSblSsMgrForDriver_sceSblSsMgrAESCBCEncryptForDriver(cryptops, src, dst, size_block, key, 0x80, tweak, 1);
       if(result0 != 0)
          return result0;
    }
@@ -38,7 +38,7 @@ int AESCBCEncrypt_base(const unsigned char* key, unsigned char* tweak, std::uint
 
    //encrypt iv using key
 
-   int result1 = SceSblSsMgrForDriver_sceSblSsMgrAESECBEncryptForDriver(tweak, tweak_enc, 0x10, key, 0x80, 1);
+   int result1 = SceSblSsMgrForDriver_sceSblSsMgrAESECBEncryptForDriver(cryptops, tweak, tweak_enc, 0x10, key, 0x80, 1);
    if(result1 != 0)
       return result1;
 
@@ -49,7 +49,7 @@ int AESCBCEncrypt_base(const unsigned char* key, unsigned char* tweak, std::uint
 }
 
 //ok
-int AESCBCDecrypt_base(const unsigned char* key, unsigned char* tweak, std::uint32_t size, const unsigned char* src, unsigned char* dst)
+int AESCBCDecrypt_base(std::shared_ptr<ICryptoOperations> cryptops, const unsigned char* key, unsigned char* tweak, std::uint32_t size, const unsigned char* src, unsigned char* dst)
 {
    int size_tail = size & 0xF; // get size of tail
    int size_block = size & (~0xF); // get block size aligned to 0x10 boundary
@@ -58,7 +58,7 @@ int AESCBCDecrypt_base(const unsigned char* key, unsigned char* tweak, std::uint
 
    if(size_block != 0)
    {
-      int result0 = SceSblSsMgrForDriver_sceSblSsMgrAESCBCDecryptForDriver(src, dst, size_block, key, 0x80, tweak, 1);
+      int result0 = SceSblSsMgrForDriver_sceSblSsMgrAESCBCDecryptForDriver(cryptops, src, dst, size_block, key, 0x80, tweak, 1);
       if(result0 != 0)
          return result0;
    }
@@ -74,7 +74,7 @@ int AESCBCDecrypt_base(const unsigned char* key, unsigned char* tweak, std::uint
    
    //encrypt iv using key
 
-   int result1 = SceSblSsMgrForDriver_sceSblSsMgrAESECBEncryptForDriver(tweak, tweak_enc, 0x10, key, 0x80, 1);
+   int result1 = SceSblSsMgrForDriver_sceSblSsMgrAESECBEncryptForDriver(cryptops, tweak, tweak_enc, 0x10, key, 0x80, 1);
    if(result1 != 0)
       return result1;
 
@@ -87,7 +87,7 @@ int AESCBCDecrypt_base(const unsigned char* key, unsigned char* tweak, std::uint
 }
 
 //ok
-int AESCBCEncryptWithKeygen_base(std::shared_ptr<IF00DKeyEncryptor> iF00D, const unsigned char* key, unsigned char* tweak, std::uint32_t size, const unsigned char* src, unsigned char* dst, std::uint16_t key_id)
+int AESCBCEncryptWithKeygen_base(std::shared_ptr<ICryptoOperations> cryptops, std::shared_ptr<IF00DKeyEncryptor> iF00D, const unsigned char* key, unsigned char* tweak, std::uint32_t size, const unsigned char* src, unsigned char* dst, std::uint16_t key_id)
 {   
    std::uint16_t kid = key_id;
 
@@ -98,7 +98,7 @@ int AESCBCEncryptWithKeygen_base(std::shared_ptr<IF00DKeyEncryptor> iF00D, const
 
    if(size_block != 0)
    {
-      int result0 = SceSblSsMgrForDriver_sceSblSsMgrAESCBCEncryptWithKeygenForDriver(iF00D, src, dst, size_block, key, 0x80, tweak, kid, 1);
+      int result0 = SceSblSsMgrForDriver_sceSblSsMgrAESCBCEncryptWithKeygenForDriver(cryptops, iF00D, src, dst, size_block, key, 0x80, tweak, kid, 1);
       if(result0 != 0)
          return result0;  
    }
@@ -114,7 +114,7 @@ int AESCBCEncryptWithKeygen_base(std::shared_ptr<IF00DKeyEncryptor> iF00D, const
 
    //encrypt iv using klicensee
      
-   int result1 = SceSblSsMgrForDriver_sceSblSsMgrAESECBEncryptWithKeygenForDriver(iF00D, tweak, tweak_enc, 0x10, key, 0x80, kid, 1);
+   int result1 = SceSblSsMgrForDriver_sceSblSsMgrAESECBEncryptWithKeygenForDriver(cryptops, iF00D, tweak, tweak_enc, 0x10, key, 0x80, kid, 1);
    if(result1 != 0)
       return result1;
 
@@ -127,7 +127,7 @@ int AESCBCEncryptWithKeygen_base(std::shared_ptr<IF00DKeyEncryptor> iF00D, const
 }
 
 //ok
-int AESCBCDecryptWithKeygen_base(std::shared_ptr<IF00DKeyEncryptor> iF00D, const unsigned char* key, unsigned char* tweak, std::uint32_t size, const unsigned char* src, unsigned char* dst, std::uint16_t key_id)
+int AESCBCDecryptWithKeygen_base(std::shared_ptr<ICryptoOperations> cryptops, std::shared_ptr<IF00DKeyEncryptor> iF00D, const unsigned char* key, unsigned char* tweak, std::uint32_t size, const unsigned char* src, unsigned char* dst, std::uint16_t key_id)
 {
    std::uint16_t kid = key_id;
 
@@ -138,7 +138,7 @@ int AESCBCDecryptWithKeygen_base(std::shared_ptr<IF00DKeyEncryptor> iF00D, const
 
    if(size_block != 0)
    {
-      int result0 = SceSblSsMgrForDriver_sceSblSsMgrAESCBCDecryptWithKeygenForDriver(iF00D, src, dst, size_block, key, 0x80, tweak, kid, 1);
+      int result0 = SceSblSsMgrForDriver_sceSblSsMgrAESCBCDecryptWithKeygenForDriver(cryptops, iF00D, src, dst, size_block, key, 0x80, tweak, kid, 1);
       if(result0 != 0)
          return result0;
    }
@@ -154,7 +154,7 @@ int AESCBCDecryptWithKeygen_base(std::shared_ptr<IF00DKeyEncryptor> iF00D, const
 
    //encrypt iv using key
 
-   int result1 = SceSblSsMgrForDriver_sceSblSsMgrAESECBEncryptWithKeygenForDriver(iF00D, tweak, tweak_enc, 0x10, key, 0x80, kid, 1);
+   int result1 = SceSblSsMgrForDriver_sceSblSsMgrAESECBEncryptWithKeygenForDriver(cryptops, iF00D, tweak, tweak_enc, 0x10, key, 0x80, kid, 1);
    if(result1 != 0)
       return result1;
 
@@ -170,7 +170,7 @@ int AESCBCDecryptWithKeygen_base(std::shared_ptr<IF00DKeyEncryptor> iF00D, const
 
 // FUNCTIONS ARE SIMILAR
 
-int AESCMACEncrypt_base(const unsigned char* key, unsigned char* tweak, std::uint32_t size, const unsigned char* src, unsigned char dst[0x10])
+int AESCMACEncrypt_base(std::shared_ptr<ICryptoOperations> cryptops, const unsigned char* key, unsigned char* tweak, std::uint32_t size, const unsigned char* src, unsigned char dst[0x10])
 {
    throw std::runtime_error("Untested function");
 
@@ -181,7 +181,7 @@ int AESCMACEncrypt_base(const unsigned char* key, unsigned char* tweak, std::uin
 
    if(size_block != 0)
    {
-      int result0 = SceSblSsMgrForDriver_sceSblSsMgrAESCMACForDriver(src, dst, size_block, key, 0x80, tweak, 1, 0);
+      int result0 = SceSblSsMgrForDriver_sceSblSsMgrAESCMACForDriver(cryptops, src, dst, size_block, key, 0x80, tweak, 1, 0);
       if(result0 != 0)
          return result0;
    }
@@ -197,7 +197,7 @@ int AESCMACEncrypt_base(const unsigned char* key, unsigned char* tweak, std::uin
 
    //encrypt iv using key
 
-   int result1 = SceSblSsMgrForDriver_sceSblSsMgrAESECBEncryptForDriver(tweak, tweak_enc, 0x10, key, 0x80, 1);
+   int result1 = SceSblSsMgrForDriver_sceSblSsMgrAESECBEncryptForDriver(cryptops, tweak, tweak_enc, 0x10, key, 0x80, 1);
    if(result1 != 0)
       return result1;
 
@@ -211,7 +211,7 @@ int AESCMACEncrypt_base(const unsigned char* key, unsigned char* tweak, std::uin
    return 0;
 }
 
-int AESCMACDecrypt_base(const unsigned char* key, unsigned char* tweak, std::uint32_t size, const unsigned char* src, unsigned char dst[0x10])
+int AESCMACDecrypt_base(std::shared_ptr<ICryptoOperations> cryptops, const unsigned char* key, unsigned char* tweak, std::uint32_t size, const unsigned char* src, unsigned char dst[0x10])
 {
    throw std::runtime_error("Untested function");
 
@@ -222,7 +222,7 @@ int AESCMACDecrypt_base(const unsigned char* key, unsigned char* tweak, std::uin
 
    if(size_block != 0)
    {
-      int result0 = SceSblSsMgrForDriver_sceSblSsMgrAESCMACForDriver(src, dst, size_block, key, 0x80, tweak, 1, 0);
+      int result0 = SceSblSsMgrForDriver_sceSblSsMgrAESCMACForDriver(cryptops, src, dst, size_block, key, 0x80, tweak, 1, 0);
       if(result0 != 0)
          return result0;
    }
@@ -238,7 +238,7 @@ int AESCMACDecrypt_base(const unsigned char* key, unsigned char* tweak, std::uin
 
    //encrypt iv using key
 
-   int result1 = SceSblSsMgrForDriver_sceSblSsMgrAESECBEncryptForDriver(tweak, tweak_enc, 0x10, key, 0x80, 1);
+   int result1 = SceSblSsMgrForDriver_sceSblSsMgrAESECBEncryptForDriver(cryptops, tweak, tweak_enc, 0x10, key, 0x80, 1);
    if(result1 != 0)
       return result1;
 
@@ -254,7 +254,7 @@ int AESCMACDecrypt_base(const unsigned char* key, unsigned char* tweak, std::uin
 
 // FUNCTIONS ARE SIMILAR
 
-int AESCMACEncryptWithKeygen_base(std::shared_ptr<IF00DKeyEncryptor> iF00D, const unsigned char* key, unsigned char* tweak, std::uint32_t size, const unsigned char* src, unsigned char dst[0x10], std::uint16_t key_id)
+int AESCMACEncryptWithKeygen_base(std::shared_ptr<ICryptoOperations> cryptops, std::shared_ptr<IF00DKeyEncryptor> iF00D, const unsigned char* key, unsigned char* tweak, std::uint32_t size, const unsigned char* src, unsigned char dst[0x10], std::uint16_t key_id)
 {
    throw std::runtime_error("Untested function");
 
@@ -267,7 +267,7 @@ int AESCMACEncryptWithKeygen_base(std::shared_ptr<IF00DKeyEncryptor> iF00D, cons
 
    if(size_block != 0)
    {
-      int result0 = SceSblSsMgrForDriver_sceSblSsMgrAESCMACWithKeygenForDriver(iF00D, src, dst, size_block, key, 0x80, tweak, kid, 1, 0);
+      int result0 = SceSblSsMgrForDriver_sceSblSsMgrAESCMACWithKeygenForDriver(cryptops, iF00D, src, dst, size_block, key, 0x80, tweak, kid, 1, 0);
       if(result0 != 0)
          return result0;
    }
@@ -283,7 +283,7 @@ int AESCMACEncryptWithKeygen_base(std::shared_ptr<IF00DKeyEncryptor> iF00D, cons
 
    //encrypt iv using key
 
-   int result1 = SceSblSsMgrForDriver_sceSblSsMgrAESECBEncryptWithKeygenForDriver(iF00D, tweak, tweak_enc, 0x10, key, 0x80, kid, 1);
+   int result1 = SceSblSsMgrForDriver_sceSblSsMgrAESECBEncryptWithKeygenForDriver(cryptops, iF00D, tweak, tweak_enc, 0x10, key, 0x80, kid, 1);
    if(result1 != 0)
       return result1;
 
@@ -297,7 +297,7 @@ int AESCMACEncryptWithKeygen_base(std::shared_ptr<IF00DKeyEncryptor> iF00D, cons
    return 0;
 }
 
-int AESCMACDecryptWithKeygen_base(std::shared_ptr<IF00DKeyEncryptor> iF00D, const unsigned char* key, unsigned char* tweak, std::uint32_t size, const unsigned char* src, unsigned char dst[0x10], std::uint16_t key_id)
+int AESCMACDecryptWithKeygen_base(std::shared_ptr<ICryptoOperations> cryptops, std::shared_ptr<IF00DKeyEncryptor> iF00D, const unsigned char* key, unsigned char* tweak, std::uint32_t size, const unsigned char* src, unsigned char dst[0x10], std::uint16_t key_id)
 {
    throw std::runtime_error("Untested function");
 
@@ -310,7 +310,7 @@ int AESCMACDecryptWithKeygen_base(std::shared_ptr<IF00DKeyEncryptor> iF00D, cons
 
    if(size_block != 0)
    {
-      int result0 = SceSblSsMgrForDriver_sceSblSsMgrAESCMACWithKeygenForDriver(iF00D, src, dst, size_block, key, 0x80, tweak, kid, 1, 0);
+      int result0 = SceSblSsMgrForDriver_sceSblSsMgrAESCMACWithKeygenForDriver(cryptops, iF00D, src, dst, size_block, key, 0x80, tweak, kid, 1, 0);
       if(result0 != 0)
          return result0;
    }
@@ -326,7 +326,7 @@ int AESCMACDecryptWithKeygen_base(std::shared_ptr<IF00DKeyEncryptor> iF00D, cons
 
    //encrypt iv using key
    
-   int result1 = SceSblSsMgrForDriver_sceSblSsMgrAESECBEncryptWithKeygenForDriver(iF00D, tweak, tweak_enc, 0x10, key, 0x80, kid, 1);
+   int result1 = SceSblSsMgrForDriver_sceSblSsMgrAESECBEncryptWithKeygenForDriver(cryptops, iF00D, tweak, tweak_enc, 0x10, key, 0x80, kid, 1);
    if(result1 != 0)
       return result1;
 
@@ -440,23 +440,18 @@ int xts_mult_x_xor_data_cmac(std::uint32_t* src, std::uint32_t* tweak_enc_value,
 //#### GROUP 3 (no keygen xts-aes dec/xts-aes enc) ####
 
 //ok
-int XTSAESEncrypt_base(const unsigned char* tweak, const unsigned char* dst_key, const unsigned char* tweak_enc_key, std::uint32_t key_size, std::uint32_t size, const unsigned char* src, unsigned char* dst)
+int XTSAESEncrypt_base(std::shared_ptr<ICryptoOperations> cryptops, const unsigned char* tweak, const unsigned char* dst_key, const unsigned char* tweak_enc_key, std::uint32_t key_size, std::uint32_t size, const unsigned char* src, unsigned char* dst)
 {
-   aes_context aes_ctx;
-   unsigned char tweak_enc_value[0x10] = {0};
-
    //encrypt tweak
 
-   memset(&aes_ctx, 0, sizeof(aes_context));
-   aes_setkey_enc(&aes_ctx, tweak_enc_key, key_size);
-
-   aes_crypt_ecb(&aes_ctx, AES_ENCRYPT, tweak, tweak_enc_value);
+   unsigned char tweak_enc_value[0x10] = {0};
+   cryptops->aes_ecb_encrypt(tweak, tweak_enc_value, 0x10, tweak_enc_key, key_size);
 
    //do tweak crypt
 
    xts_mult_x_xor_data_xts((std::uint32_t*)src, (std::uint32_t*)tweak_enc_value, (std::uint32_t*)dst, size);
 
-   int result0 = SceSblSsMgrForDriver_sceSblSsMgrAESECBEncryptForDriver(dst, dst, size, dst_key, key_size, 1);
+   int result0 = SceSblSsMgrForDriver_sceSblSsMgrAESECBEncryptForDriver(cryptops, dst, dst, size, dst_key, key_size, 1);
    if(result0 == 0)
       xts_mult_x_xor_data_xts((std::uint32_t*)dst, (std::uint32_t*)tweak_enc_value, (std::uint32_t*)dst, size);
 
@@ -464,23 +459,18 @@ int XTSAESEncrypt_base(const unsigned char* tweak, const unsigned char* dst_key,
 }
 
 //ok
-int XTSAESDecrypt_base(const unsigned char* tweak, const unsigned char* dst_key, const unsigned char* tweak_enc_key, std::uint32_t key_size, std::uint32_t size, const unsigned char* src, unsigned char* dst)
+int XTSAESDecrypt_base(std::shared_ptr<ICryptoOperations> cryptops, const unsigned char* tweak, const unsigned char* dst_key, const unsigned char* tweak_enc_key, std::uint32_t key_size, std::uint32_t size, const unsigned char* src, unsigned char* dst)
 {
-   aes_context aes_ctx;
-   unsigned char tweak_enc_value[0x10] = {0};
-
    //encrypt tweak
 
-   memset(&aes_ctx, 0, sizeof(aes_context));
-   aes_setkey_enc(&aes_ctx, tweak_enc_key, key_size);
-
-   aes_crypt_ecb(&aes_ctx, AES_ENCRYPT, tweak, tweak_enc_value);
+   unsigned char tweak_enc_value[0x10] = {0};
+   cryptops->aes_ecb_encrypt(tweak, tweak_enc_value, 0x10, tweak_enc_key, key_size);
 
    //do tweak uncrypt
 
    xts_mult_x_xor_data_xts((std::uint32_t*)src, (std::uint32_t*)tweak_enc_value, (std::uint32_t*)dst, size);
 
-   int result0 = SceSblSsMgrForDriver_sceSblSsMgrAESECBDecryptForDriver(dst, dst, size, dst_key, key_size, 1);
+   int result0 = SceSblSsMgrForDriver_sceSblSsMgrAESECBDecryptForDriver(cryptops, dst, dst, size, dst_key, key_size, 1);
    if(result0 == 0)
       xts_mult_x_xor_data_xts((std::uint32_t*)dst, (std::uint32_t*)tweak_enc_value, (std::uint32_t*)dst, size);
 
@@ -491,44 +481,38 @@ int XTSAESDecrypt_base(const unsigned char* tweak, const unsigned char* dst_key,
 
 // FUNCTIONS ARE SIMILAR
 
-int XTSCMACEncrypt_base(const unsigned char* tweak, const unsigned char* dst_key, const unsigned char* tweak_enc_key, std::uint32_t key_size, std::uint32_t size, const unsigned char* src, unsigned char dst[0x10])
+int XTSCMACEncrypt_base(std::shared_ptr<ICryptoOperations> cryptops, const unsigned char* tweak, const unsigned char* dst_key, const unsigned char* tweak_enc_key, std::uint32_t key_size, std::uint32_t size, const unsigned char* src, unsigned char dst[0x10])
 {
    throw std::runtime_error("Untested function");
 
+   //encrypt tweak
+
    unsigned char tweak_enc_value[0x10] = {0};
-
-   aes_context aes_ctx;
-   memset(&aes_ctx, 0, sizeof(aes_context));
-   aes_setkey_enc(&aes_ctx, tweak_enc_key, key_size);
-
-   aes_crypt_ecb(&aes_ctx, AES_ENCRYPT, tweak, tweak_enc_value);
+   cryptops->aes_ecb_encrypt(tweak, tweak_enc_value, 0x10, tweak_enc_key, key_size);
 
    //not sure why this call is needed since dst will be overwritten with next cmac call
    xts_mult_x_xor_data_cmac((std::uint32_t*)src, (std::uint32_t*)tweak_enc_value, (std::uint32_t*)dst, size);
 
-   int result0 = SceSblSsMgrForDriver_sceSblSsMgrAESCMACForDriver(src, dst, size, dst_key, key_size, 0, 1, 0);
+   int result0 = SceSblSsMgrForDriver_sceSblSsMgrAESCMACForDriver(cryptops, src, dst, size, dst_key, key_size, 0, 1, 0);
    if(result0 == 0)
       xts_mult_x_xor_data_cmac((std::uint32_t*)dst, (std::uint32_t*)tweak_enc_value, (std::uint32_t*)dst, size);
 
    return result0;
 }
 
-int XTSCMACDecrypt_base(const unsigned char* tweak, const unsigned char* dst_key, const unsigned char* tweak_enc_key, std::uint32_t key_size, std::uint32_t size, const unsigned char* src, unsigned char dst[0x10])
+int XTSCMACDecrypt_base(std::shared_ptr<ICryptoOperations> cryptops, const unsigned char* tweak, const unsigned char* dst_key, const unsigned char* tweak_enc_key, std::uint32_t key_size, std::uint32_t size, const unsigned char* src, unsigned char dst[0x10])
 {
    throw std::runtime_error("Untested function");
 
-   unsigned char tweak_enc_value[0x10] = {0};
-   
-   aes_context aes_ctx;
-   memset(&aes_ctx, 0, sizeof(aes_context));
-   aes_setkey_enc(&aes_ctx, tweak_enc_key, key_size);
+   //encrypt tweak
 
-   aes_crypt_ecb(&aes_ctx, AES_ENCRYPT, tweak, tweak_enc_value);
+   unsigned char tweak_enc_value[0x10] = {0};
+   cryptops->aes_ecb_encrypt(tweak, tweak_enc_value, 0x10, tweak_enc_key, key_size);
 
    //not sure why this call is needed since dst will be overwritten with next cmac call
    xts_mult_x_xor_data_cmac((std::uint32_t*)src, (std::uint32_t*)tweak_enc_value, (std::uint32_t*)dst, size);
 
-   int result0 = SceSblSsMgrForDriver_sceSblSsMgrAESCMACForDriver(src, dst, size, dst_key, key_size, 0, 1, 0);
+   int result0 = SceSblSsMgrForDriver_sceSblSsMgrAESCMACForDriver(cryptops, src, dst, size, dst_key, key_size, 0, 1, 0);
    if(result0 == 0)
       xts_mult_x_xor_data_cmac((std::uint32_t*)dst, (std::uint32_t*)tweak_enc_value, (std::uint32_t*)dst, size);
 

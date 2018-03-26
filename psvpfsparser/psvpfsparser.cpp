@@ -16,11 +16,15 @@
 #include "FilesDbParser.h"
 #include "PfsDecryptor.h"
 #include "F00DKeyEncryptorFactory.h"
+#include "CryptoOperationsFactory.h"
 #include "PsvPfsParserConfig.h"
 #include "LocalKeyGenerator.h"
 
 int execute(PsvPfsParserConfig& cfg)
 {
+   std::shared_ptr<ICryptoOperations> cryptops = CryptoOperationsFactory::create(CryptoOperationsTypes::libtomcrypt);
+   std::shared_ptr<IF00DKeyEncryptor> iF00D = F00DKeyEncryptorFactory::create(cfg.f00d_enc_type, cfg.f00d_arg); 
+
    //trim slashes in source path
    
    boost::filesystem::path titleIdPath(cfg.title_id_src);
@@ -57,11 +61,9 @@ int execute(PsvPfsParserConfig& cfg)
    {
       std::cout << "using sealedkey..." << std::endl;
       
-      if(get_sealedkey(cfg.title_id_src, klicensee) < 0)
+      if(get_sealedkey(cryptops, cfg.title_id_src, klicensee) < 0)
          return -1;
    }
-
-   std::shared_ptr<IF00DKeyEncryptor> iF00D = F00DKeyEncryptorFactory::create(cfg.f00d_enc_type, cfg.f00d_arg); 
 
    if(!boost::filesystem::exists(titleIdPath))
    {
@@ -76,7 +78,7 @@ int execute(PsvPfsParserConfig& cfg)
    sce_ng_pfs_header_t header;
    std::vector<sce_ng_pfs_file_t> files;
    std::vector<sce_ng_pfs_dir_t> dirs;
-   if(parseFilesDb(iF00D, klicensee, titleIdPath, isUnicv, header, files, dirs) < 0)
+   if(parseFilesDb(cryptops, iF00D, klicensee, titleIdPath, isUnicv, header, files, dirs) < 0)
       return -1;
 
    std::shared_ptr<sce_idb_base_t> unicv;
@@ -85,15 +87,15 @@ int execute(PsvPfsParserConfig& cfg)
 
    std::map<std::uint32_t, sce_junction> pageMap;
    std::set<sce_junction> emptyFiles;
-   if(bruteforce_map(iF00D, titleIdPath, klicensee, header, unicv, pageMap, emptyFiles) < 0)
+   if(bruteforce_map(cryptops, iF00D, titleIdPath, klicensee, header, unicv, pageMap, emptyFiles) < 0)
       return -1;
 
-   if(decrypt_files(iF00D, titleIdPath, destTitleIdPath, klicensee, header, files, dirs, unicv, pageMap, emptyFiles) < 0)
+   if(decrypt_files(cryptops, iF00D, titleIdPath, destTitleIdPath, klicensee, header, files, dirs, unicv, pageMap, emptyFiles) < 0)
       return -1;
 
    std::cout << "keystone sanity check..." << std::endl;
 
-   if(get_keystone(destTitleIdPath) < 0)
+   if(get_keystone(cryptops, destTitleIdPath) < 0)
       return -1;
 
    std::cout << "F00D cache:" << std::endl;

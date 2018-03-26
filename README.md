@@ -100,6 +100,37 @@ https://github.com/motoharu-gosuto/psvpfstools/issues
 
 ## dependencies
 
+### libtomcrypt
+
+#### Windows (example)
+To build libtomcrypt execute the following steps:
+
+- Start Visual Studio command prompt
+- Navigate to libtomcrypt directory
+- Execute the following commands:
+
+debug build:
+```
+nmake -f makefile.msvc clean
+nmake -f makefile.msvc CFLAGS="/MDd /DLTC_NO_PROTOTYPES" default
+mkdir build
+nmake -f makefile.msvc PREFIX=C:\libtomcrypt\build install
+```
+
+release build:
+```
+nmake -f makefile.msvc clean
+nmake -f makefile.msvc CFLAGS="/MD /DLTC_NO_PROTOTYPES" default
+mkdir build
+nmake -f makefile.msvc PREFIX=C:\libtomcrypt\build install
+```
+
+This will build default target which contains tomcrypt.lib and install everything to corresponding build directory.
+
+You have to set these environment variables for cmake:
+- LIBTOMCRYPT_INCLUDE_DIR=C:\libtomcrypt\build\include
+- LIBTOMCRYPT_LIBRARY=C:\libtomcrypt\build\lib\tomcrypt.lib
+
 ### curl
 
 #### Windows (example)
@@ -225,9 +256,9 @@ Options:
   -c [ --f00d_cache] arg    Path to flat or json file with F00D cache.
   
 ## Special thanks  
-- Proxima. For initial docs on DMAC5, contributing code for keystone and sealedkey checks, providing F00D service and help with crypto theory. 
+- Proxima. For initial docs on DMAC5, contributing code for keystone and sealedkey checks, providing F00D service and help with crypto theory, advising on libtomcrypt.
 - St4rk, weaknespase and everyone involved in PkgDecrypt. For zRIF string decode/inflate code.
-- devnoname120 for hmac_sha256 crypto primitives.
+- devnoname120 for hmac_sha256 crypto primitives that were used in initial implementation.
 - SilicaAndPina for pointing at trophy and savedata pfs.
 - CelesteBlue for indicating possibility of sealedkey usage as local key.
 - tomazzz369 for testing and providing XP build
@@ -235,4 +266,3 @@ Options:
 
 ## Other thanks
 - Chris Venter. For libb64. Integrated as source.
-- PolarSSL. For cryptographic primitives. Integrated as source.
