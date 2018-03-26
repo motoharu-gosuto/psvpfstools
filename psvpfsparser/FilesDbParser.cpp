@@ -94,6 +94,13 @@ std::string fileTypeToString(sce_ng_pfs_file_types ft)
 
 //------------ implementation -----------------
 
+FilesDbParser::FilesDbParser(std::shared_ptr<ICryptoOperations> cryptops, std::shared_ptr<IF00DKeyEncryptor> iF00D, std::ostream& output, 
+                             const unsigned char* klicensee, boost::filesystem::path titleIdPath)
+   : m_cryptops(cryptops), m_iF00D(iF00D), m_output(output), m_titleIdPath(titleIdPath)
+{
+   memcpy(m_klicensee, klicensee, 0x10);
+}
+
 bool FilesDbParser::verify_header_icv(std::ifstream& inputStream, const unsigned char* secret)
 {
    std::cout << "verifying header..." << std::endl;
