@@ -140,7 +140,7 @@ int compare_hash_tables(const std::vector<icv>& left, const std::vector<icv>& ri
 //then we can read the file and hash it into merkle tree
 //then merkle tree is collected into hash table
 //then hash table is compared to the hash table from icv table entry
-int validate_merkle_trees(std::shared_ptr<ICryptoOperations> cryptops, std::shared_ptr<IF00DKeyEncryptor> iF00D, unsigned char* klicensee, sce_ng_pfs_header_t& ngpfs, std::map<std::uint32_t, sce_junction>& pageMap, std::vector<std::pair<std::shared_ptr<sce_iftbl_base_t>, std::shared_ptr<merkle_tree<icv> > > >& merkleTrees)
+int validate_merkle_trees(std::shared_ptr<ICryptoOperations> cryptops, std::shared_ptr<IF00DKeyEncryptor> iF00D, const unsigned char* klicensee, sce_ng_pfs_header_t& ngpfs, std::map<std::uint32_t, sce_junction>& pageMap, std::vector<std::pair<std::shared_ptr<sce_iftbl_base_t>, std::shared_ptr<merkle_tree<icv> > > >& merkleTrees)
 {
    std::cout << "Validating merkle trees..." << std::endl;
 
@@ -233,7 +233,7 @@ int validate_merkle_trees(std::shared_ptr<ICryptoOperations> cryptops, std::shar
    return 0;
 }
 
-int bruteforce_map(std::shared_ptr<ICryptoOperations> cryptops, std::shared_ptr<IF00DKeyEncryptor> iF00D, boost::filesystem::path titleIdPath, unsigned char* klicensee, sce_ng_pfs_header_t& ngpfs, std::shared_ptr<sce_idb_base_t> fdb, std::map<std::uint32_t, sce_junction>& pageMap, std::set<sce_junction>& emptyFiles)
+int bruteforce_map(std::shared_ptr<ICryptoOperations> cryptops, std::shared_ptr<IF00DKeyEncryptor> iF00D, boost::filesystem::path titleIdPath, const unsigned char* klicensee, sce_ng_pfs_header_t& ngpfs, std::shared_ptr<sce_idb_base_t> fdb, std::map<std::uint32_t, sce_junction>& pageMap, std::set<sce_junction>& emptyFiles)
 {
    if(img_spec_to_is_unicv(ngpfs.image_spec))
       std::cout << "Building unicv.db -> files.db relation..." << std::endl;
@@ -432,7 +432,7 @@ CryptEngineData g_data;
 CryptEngineSubctx g_sub_ctx;
 std::vector<std::uint8_t> g_signatureTable;
 
-int init_crypt_ctx(std::shared_ptr<ICryptoOperations> cryptops, std::shared_ptr<IF00DKeyEncryptor> iF00D, CryptEngineWorkCtx* work_ctx, unsigned char* klicensee, sce_ng_pfs_header_t& ngpfs, const sce_ng_pfs_file_t& file, std::shared_ptr<sce_iftbl_base_t> table, sig_tbl_t& block, std::uint32_t sector_base, std::uint32_t tail_size, unsigned char* source)
+int init_crypt_ctx(std::shared_ptr<ICryptoOperations> cryptops, std::shared_ptr<IF00DKeyEncryptor> iF00D, CryptEngineWorkCtx* work_ctx, const unsigned char* klicensee, sce_ng_pfs_header_t& ngpfs, const sce_ng_pfs_file_t& file, std::shared_ptr<sce_iftbl_base_t> table, sig_tbl_t& block, std::uint32_t sector_base, std::uint32_t tail_size, unsigned char* source)
 {     
    memset(&g_data, 0, sizeof(CryptEngineData));
    g_data.klicensee = klicensee;
@@ -537,7 +537,7 @@ int init_crypt_ctx(std::shared_ptr<ICryptoOperations> cryptops, std::shared_ptr<
    return 0;
 }
 
-int decrypt_icv_file(std::shared_ptr<ICryptoOperations> cryptops, std::shared_ptr<IF00DKeyEncryptor> iF00D, boost::filesystem::path titleIdPath, boost::filesystem::path destination_root, const sce_ng_pfs_file_t& file, const sce_junction& filepath, unsigned char* klicensee, sce_ng_pfs_header_t& ngpfs, std::shared_ptr<sce_iftbl_base_t> table)
+int decrypt_icv_file(std::shared_ptr<ICryptoOperations> cryptops, std::shared_ptr<IF00DKeyEncryptor> iF00D, boost::filesystem::path titleIdPath, boost::filesystem::path destination_root, const sce_ng_pfs_file_t& file, const sce_junction& filepath, const unsigned char* klicensee, sce_ng_pfs_header_t& ngpfs, std::shared_ptr<sce_iftbl_base_t> table)
 {
    //create new file
 
@@ -606,7 +606,7 @@ int decrypt_icv_file(std::shared_ptr<ICryptoOperations> cryptops, std::shared_pt
    return 0;
 }
 
-int decrypt_unicv_file(std::shared_ptr<ICryptoOperations> cryptops, std::shared_ptr<IF00DKeyEncryptor> iF00D, boost::filesystem::path titleIdPath, boost::filesystem::path destination_root, const sce_ng_pfs_file_t& file, const sce_junction& filepath, unsigned char* klicensee, sce_ng_pfs_header_t& ngpfs, std::shared_ptr<sce_iftbl_base_t> table)
+int decrypt_unicv_file(std::shared_ptr<ICryptoOperations> cryptops, std::shared_ptr<IF00DKeyEncryptor> iF00D, boost::filesystem::path titleIdPath, boost::filesystem::path destination_root, const sce_ng_pfs_file_t& file, const sce_junction& filepath, const unsigned char* klicensee, sce_ng_pfs_header_t& ngpfs, std::shared_ptr<sce_iftbl_base_t> table)
 {
    //create new file
 
@@ -768,7 +768,7 @@ int decrypt_unicv_file(std::shared_ptr<ICryptoOperations> cryptops, std::shared_
    return 0;
 }
 
-int decrypt_file(std::shared_ptr<ICryptoOperations> cryptops, std::shared_ptr<IF00DKeyEncryptor> iF00D, boost::filesystem::path titleIdPath, boost::filesystem::path destination_root, const sce_ng_pfs_file_t& file, const sce_junction& filepath, unsigned char* klicensee, sce_ng_pfs_header_t& ngpfs, std::shared_ptr<sce_iftbl_base_t> table)
+int decrypt_file(std::shared_ptr<ICryptoOperations> cryptops, std::shared_ptr<IF00DKeyEncryptor> iF00D, boost::filesystem::path titleIdPath, boost::filesystem::path destination_root, const sce_ng_pfs_file_t& file, const sce_junction& filepath, const unsigned char* klicensee, sce_ng_pfs_header_t& ngpfs, std::shared_ptr<sce_iftbl_base_t> table)
 {
    if(img_spec_to_is_unicv(ngpfs.image_spec))
       return decrypt_unicv_file(cryptops, iF00D, titleIdPath, destination_root, file, filepath, klicensee, ngpfs, table);
@@ -786,7 +786,7 @@ std::vector<sce_ng_pfs_file_t>::const_iterator find_file_by_path(std::vector<sce
    return files.end();
 }
 
-int decrypt_files(std::shared_ptr<ICryptoOperations> cryptops, std::shared_ptr<IF00DKeyEncryptor> iF00D, boost::filesystem::path titleIdPath, boost::filesystem::path destTitleIdPath, unsigned char* klicensee, sce_ng_pfs_header_t& ngpfs, std::vector<sce_ng_pfs_file_t>& files, std::vector<sce_ng_pfs_dir_t>& dirs, std::shared_ptr<sce_idb_base_t> fdb, std::map<std::uint32_t, sce_junction>& pageMap, std::set<sce_junction>& emptyFiles)
+int decrypt_files(std::shared_ptr<ICryptoOperations> cryptops, std::shared_ptr<IF00DKeyEncryptor> iF00D, boost::filesystem::path titleIdPath, boost::filesystem::path destTitleIdPath, const unsigned char* klicensee, sce_ng_pfs_header_t& ngpfs, std::vector<sce_ng_pfs_file_t>& files, std::vector<sce_ng_pfs_dir_t>& dirs, std::shared_ptr<sce_idb_base_t> fdb, std::map<std::uint32_t, sce_junction>& pageMap, std::set<sce_junction>& emptyFiles)
 {
    std::cout << "Creating directories..." << std::endl;
 

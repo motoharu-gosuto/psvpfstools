@@ -20,25 +20,42 @@
 #include "PsvPfsParserConfig.h"
 #include "LocalKeyGenerator.h"
 
-int execute(PsvPfsParserConfig& cfg)
+int execute(std::shared_ptr<ICryptoOperations> cryptops, std::shared_ptr<IF00DKeyEncryptor> iF00D, const unsigned char* klicensee, boost::filesystem::path titleIdPath, boost::filesystem::path destTitleIdPath)
 {
-   std::shared_ptr<ICryptoOperations> cryptops = CryptoOperationsFactory::create(CryptoOperationsTypes::libtomcrypt);
-   std::shared_ptr<IF00DKeyEncryptor> iF00D = F00DKeyEncryptorFactory::create(cfg.f00d_enc_type, cfg.f00d_arg); 
+   sce_ng_pfs_header_t header;
+   std::vector<sce_ng_pfs_file_t> files;
+   std::vector<sce_ng_pfs_dir_t> dirs;
 
-   //trim slashes in source path
-   
-   boost::filesystem::path titleIdPath(cfg.title_id_src);
-   std::string titleIdGen = titleIdPath.generic_string();
-   boost::algorithm::trim_right_if(titleIdGen, [](char c){return c == '/';});
-   titleIdPath = boost::filesystem::path(titleIdGen);
+   FilesDbParser fbp(cryptops, iF00D, klicensee, titleIdPath);
 
-   //trim slashes in dest path
-   boost::filesystem::path destTitleIdPath(cfg.title_id_dst);
-   std::string destTitleIdPathGen = destTitleIdPath.generic_string();
-   boost::algorithm::trim_right_if(destTitleIdPathGen, [](char c){return c == '/';});
-   destTitleIdPath = boost::filesystem::path(destTitleIdPathGen);
+   if(fbp.parse(header, files, dirs) < 0)
+      return -1;
 
-   unsigned char klicensee[0x10] = {0};
+   std::shared_ptr<sce_idb_base_t> unicv;
+   if(parseUnicvDb(titleIdPath, unicv) < 0)
+      return -1;
+
+   std::map<std::uint32_t, sce_junction> pageMap;
+   std::set<sce_junction> emptyFiles;
+   if(bruteforce_map(cryptops, iF00D, titleIdPath, klicensee, header, unicv, pageMap, emptyFiles) < 0)
+      return -1;
+
+   if(decrypt_files(cryptops, iF00D, titleIdPath, destTitleIdPath, klicensee, header, files, dirs, unicv, pageMap, emptyFiles) < 0)
+      return -1;
+
+   std::cout << "keystone sanity check..." << std::endl;
+
+   if(get_keystone(cryptops, destTitleIdPath) < 0)
+      return -1;
+
+   std::cout << "F00D cache:" << std::endl;
+   iF00D->print_cache(std::cout);
+
+   return 0;
+}
+
+int extract_klicensee(const PsvPfsParserConfig& cfg, std::shared_ptr<ICryptoOperations> cryptops, unsigned char* klicensee)
+{
    if(cfg.klicensee.length() > 0)
    {
       if(string_to_byte_array(cfg.klicensee, 0x10, klicensee) < 0)
@@ -65,43 +82,32 @@ int execute(PsvPfsParserConfig& cfg)
          return -1;
    }
 
-   if(!boost::filesystem::exists(titleIdPath))
-   {
-      std::cout << "Root directory does not exist" << std::endl;
-      return -1;
-   }
-
-   bool isUnicv = false;
-   if(get_isUnicv(titleIdPath, isUnicv) < 0)
-      return -1;
-
-   sce_ng_pfs_header_t header;
-   std::vector<sce_ng_pfs_file_t> files;
-   std::vector<sce_ng_pfs_dir_t> dirs;
-   if(parseFilesDb(cryptops, iF00D, klicensee, titleIdPath, isUnicv, header, files, dirs) < 0)
-      return -1;
-
-   std::shared_ptr<sce_idb_base_t> unicv;
-   if(parseUnicvDb(titleIdPath, unicv) < 0)
-      return -1;
-
-   std::map<std::uint32_t, sce_junction> pageMap;
-   std::set<sce_junction> emptyFiles;
-   if(bruteforce_map(cryptops, iF00D, titleIdPath, klicensee, header, unicv, pageMap, emptyFiles) < 0)
-      return -1;
-
-   if(decrypt_files(cryptops, iF00D, titleIdPath, destTitleIdPath, klicensee, header, files, dirs, unicv, pageMap, emptyFiles) < 0)
-      return -1;
-
-   std::cout << "keystone sanity check..." << std::endl;
-
-   if(get_keystone(cryptops, destTitleIdPath) < 0)
-      return -1;
-
-   std::cout << "F00D cache:" << std::endl;
-   iF00D->print_cache(std::cout);
-
    return 0;
+}
+
+int execute(const PsvPfsParserConfig& cfg)
+{
+   std::shared_ptr<ICryptoOperations> cryptops = CryptoOperationsFactory::create(CryptoOperationsTypes::libtomcrypt);
+   std::shared_ptr<IF00DKeyEncryptor> iF00D = F00DKeyEncryptorFactory::create(cfg.f00d_enc_type, cfg.f00d_arg); 
+
+   //trim slashes in source path
+   
+   boost::filesystem::path titleIdPath(cfg.title_id_src);
+   std::string titleIdGen = titleIdPath.generic_string();
+   boost::algorithm::trim_right_if(titleIdGen, [](char c){return c == '/';});
+   titleIdPath = boost::filesystem::path(titleIdGen);
+
+   //trim slashes in dest path
+   boost::filesystem::path destTitleIdPath(cfg.title_id_dst);
+   std::string destTitleIdPathGen = destTitleIdPath.generic_string();
+   boost::algorithm::trim_right_if(destTitleIdPathGen, [](char c){return c == '/';});
+   destTitleIdPath = boost::filesystem::path(destTitleIdPathGen);
+
+   unsigned char klicensee[0x10] = {0};
+   if(extract_klicensee(cfg, cryptops, klicensee) < 0)
+      return -1;
+
+   return execute(cryptops, iF00D, klicensee, titleIdPath, destTitleIdPath);
 }
 
 int main(int argc, char* argv[])

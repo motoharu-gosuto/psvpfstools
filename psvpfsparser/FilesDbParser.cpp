@@ -25,6 +25,35 @@
 #include "HashTree.h"
 #include "FlagOperations.h"
 
+int get_isUnicv(boost::filesystem::path titleIdPath, bool& isUnicv)
+{
+   boost::filesystem::path root(titleIdPath);
+
+   boost::filesystem::path filepath = root / "sce_pfs" / "unicv.db";
+
+   if(!boost::filesystem::exists(filepath))
+   {
+      boost::filesystem::path filepath2 = root / "sce_pfs" / "icv.db";
+      if(!boost::filesystem::exists(filepath2) || !boost::filesystem::is_directory(filepath2))
+      {
+         std::cout << "failed to find unicv.db file or icv.db folder" << std::endl;
+
+         isUnicv = false;
+         return -1;
+      }
+      else
+      {
+         isUnicv = false;
+         return 0;
+      }
+   }
+   else
+   {
+      isUnicv = true;
+      return 0;
+   }
+}
+
 bool is_directory(sce_ng_pfs_file_types type)
 {
    return type == sce_ng_pfs_file_types::normal_directory || 
@@ -210,7 +239,7 @@ bool validate_header(const sce_ng_pfs_header_t& header, uint32_t dataSize, bool 
    return true;
 }
 
-bool parseFilesDb(std::shared_ptr<ICryptoOperations> cryptops, std::shared_ptr<IF00DKeyEncryptor> iF00D, unsigned char* klicensee, std::ifstream& inputStream, bool isUnicv, sce_ng_pfs_header_t& header, std::vector<sce_ng_pfs_block_t>& blocks)
+bool parseFilesDb(std::shared_ptr<ICryptoOperations> cryptops, std::shared_ptr<IF00DKeyEncryptor> iF00D, const unsigned char* klicensee, std::ifstream& inputStream, bool isUnicv, sce_ng_pfs_header_t& header, std::vector<sce_ng_pfs_block_t>& blocks)
 {
    inputStream.read((char*)&header, sizeof(sce_ng_pfs_header_t));
 
@@ -868,11 +897,21 @@ int match_file_lists(const std::vector<sce_ng_pfs_file_t>& filesResult, const st
 }
 
 //parses files.db and flattens it into file list
-int parseFilesDb(std::shared_ptr<ICryptoOperations> cryptops, std::shared_ptr<IF00DKeyEncryptor> iF00D, unsigned char* klicensee, boost::filesystem::path titleIdPath, bool isUnicv, sce_ng_pfs_header_t& header, std::vector<sce_ng_pfs_file_t>& filesResult, std::vector<sce_ng_pfs_dir_t>& dirsResult)
+int FilesDbParser::parse(sce_ng_pfs_header_t& header, std::vector<sce_ng_pfs_file_t>& filesResult, std::vector<sce_ng_pfs_dir_t>& dirsResult)
 {
+   if(!boost::filesystem::exists(m_titleIdPath))
+   {
+      std::cout << "Root directory does not exist" << std::endl;
+      return -1;
+   }
+
+   bool isUnicv = false;
+   if(get_isUnicv(m_titleIdPath, isUnicv) < 0)
+      return -1;
+
    std::cout << "parsing  files.db..." << std::endl;
 
-   boost::filesystem::path root(titleIdPath);
+   boost::filesystem::path root(m_titleIdPath);
 
    boost::filesystem::path filepath = root / "sce_pfs" / "files.db";
    if(!boost::filesystem::exists(filepath))
@@ -891,7 +930,7 @@ int parseFilesDb(std::shared_ptr<ICryptoOperations> cryptops, std::shared_ptr<IF
 
    //parse data into raw structures
    std::vector<sce_ng_pfs_block_t> blocks;
-   if(!parseFilesDb(cryptops, iF00D, klicensee, inputStream, isUnicv, header, blocks))
+   if(!parseFilesDb(m_cryptops, m_iF00D, m_klicensee, inputStream, isUnicv, header, blocks))
       return -1;
 
    //build child index -> parent index relationship map

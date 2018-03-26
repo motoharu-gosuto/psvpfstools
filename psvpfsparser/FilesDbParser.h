@@ -205,4 +205,21 @@ bool is_unencrypted(sce_ng_pfs_file_types type);
 
 bool is_unexisting(sce_ng_pfs_file_types type);
 
-int parseFilesDb(std::shared_ptr<ICryptoOperations> cryptops, std::shared_ptr<IF00DKeyEncryptor> iF00D, unsigned char* klicensee, boost::filesystem::path titleIdPath, bool isUnicv, sce_ng_pfs_header_t& header, std::vector<sce_ng_pfs_file_t>& filesResult, std::vector<sce_ng_pfs_dir_t>& dirsResult);
+class FilesDbParser
+{
+private:
+   std::shared_ptr<ICryptoOperations> m_cryptops;
+   std::shared_ptr<IF00DKeyEncryptor> m_iF00D;
+   unsigned char m_klicensee[0x10];
+   boost::filesystem::path m_titleIdPath;
+
+public:
+   FilesDbParser(std::shared_ptr<ICryptoOperations> cryptops, std::shared_ptr<IF00DKeyEncryptor> iF00D, const unsigned char* klicensee, boost::filesystem::path titleIdPath)
+      : m_cryptops(cryptops), m_iF00D(iF00D), m_titleIdPath(titleIdPath)
+   {
+      memcpy(m_klicensee, klicensee, 0x10);
+   }
+
+public:
+   int parse(sce_ng_pfs_header_t& header, std::vector<sce_ng_pfs_file_t>& filesResult, std::vector<sce_ng_pfs_dir_t>& dirsResult);
+};
