@@ -415,7 +415,7 @@ bool FilesDbParser::parseFilesDb(std::ifstream& inputStream, std::vector<sce_ng_
 }
 
 //build child index -> parent index relationship map
-bool constructDirmatrix(const std::vector<sce_ng_pfs_block_t>& blocks, std::map<std::uint32_t, std::uint32_t>& dirMatrix)
+bool FilesDbParser::constructDirmatrix(const std::vector<sce_ng_pfs_block_t>& blocks, std::map<std::uint32_t, std::uint32_t>& dirMatrix)
 {   
    std::cout << "Building directory matrix..." << std::endl;
 
@@ -456,7 +456,7 @@ bool constructDirmatrix(const std::vector<sce_ng_pfs_block_t>& blocks, std::map<
 }
 
 //build child index -> parent index relationship map
-bool constructFileMatrix(std::vector<sce_ng_pfs_block_t>& blocks, std::map<std::uint32_t, std::uint32_t>& fileMatrix)
+bool FilesDbParser::constructFileMatrix(std::vector<sce_ng_pfs_block_t>& blocks, std::map<std::uint32_t, std::uint32_t>& fileMatrix)
 {
    std::cout << "Building file matrix..." << std::endl;
 
@@ -522,7 +522,7 @@ bool constructFileMatrix(std::vector<sce_ng_pfs_block_t>& blocks, std::map<std::
 
 //convert list of blocks to list of files
 //assign global index to files
-bool flattenBlocks(std::vector<sce_ng_pfs_block_t>& blocks, std::vector<sce_ng_pfs_flat_block_t>& flatBlocks)
+bool FilesDbParser::flattenBlocks(const std::vector<sce_ng_pfs_block_t>& blocks, std::vector<sce_ng_pfs_flat_block_t>& flatBlocks)
 {
    std::cout << "Flattening file pages..." << std::endl;
 
@@ -585,7 +585,7 @@ const std::vector<sce_ng_pfs_flat_block_t>::const_iterator findFlatBlockFile(con
    return flatBlocks.end();
 }
 
-bool FilesDbParser::constructDirPaths(std::map<std::uint32_t, std::uint32_t>& dirMatrix, const std::vector<sce_ng_pfs_flat_block_t>& flatBlocks)
+bool FilesDbParser::constructDirPaths(const std::map<std::uint32_t, std::uint32_t>& dirMatrix, const std::vector<sce_ng_pfs_flat_block_t>& flatBlocks)
 {
    std::cout << "Building dir paths..." << std::endl;
 
@@ -665,7 +665,7 @@ bool FilesDbParser::constructDirPaths(std::map<std::uint32_t, std::uint32_t>& di
 //fileMatrix - connection matrix for files [input]
 //flatBlocks - flat list of blocks in files.db [input]
 //filesResult - list of filepaths linked to file flat block and directory flat blocks
-bool FilesDbParser::constructFilePaths(std::map<std::uint32_t, std::uint32_t>& dirMatrix, const std::map<std::uint32_t, std::uint32_t>& fileMatrix, const std::vector<sce_ng_pfs_flat_block_t>& flatBlocks)
+bool FilesDbParser::constructFilePaths(const std::map<std::uint32_t, std::uint32_t>& dirMatrix, const std::map<std::uint32_t, std::uint32_t>& fileMatrix, const std::vector<sce_ng_pfs_flat_block_t>& flatBlocks)
 {
    std::cout << "Building file paths..." << std::endl;
 
@@ -767,11 +767,11 @@ std::string fileTypeToString(sce_ng_pfs_file_types ft)
 }
 
 //checks that directory exists
-bool linkDirpaths(std::vector<sce_ng_pfs_dir_t>& dirs, std::set<boost::filesystem::path> real_directories)
+bool FilesDbParser::linkDirpaths(const std::set<boost::filesystem::path> real_directories)
 {
    std::cout << "Linking dir paths..." << std::endl;
 
-   for(auto& dir : dirs)
+   for(auto& dir : m_dirs)
    {
       //comparison should be done with is_equal (upper case) so it can not be replaced by .find()
       bool found = false;
@@ -797,11 +797,11 @@ bool linkDirpaths(std::vector<sce_ng_pfs_dir_t>& dirs, std::set<boost::filesyste
 
 //checks that files exist
 //checks that file size is correct
-bool linkFilepaths(std::uint32_t fileSectorSize, std::vector<sce_ng_pfs_file_t>& files, std::set<boost::filesystem::path> real_files)
+bool FilesDbParser::linkFilepaths(const std::set<boost::filesystem::path> real_files, std::uint32_t fileSectorSize)
 {
    std::cout << "Linking file paths..." << std::endl;
 
-   for(auto& file : files)
+   for(auto& file : m_files)
    {
       //comparison should be done with is_equal (upper case) so it can not be replaced by .find()
       bool found = false;
@@ -836,7 +836,7 @@ bool linkFilepaths(std::uint32_t fileSectorSize, std::vector<sce_ng_pfs_file_t>&
 }
 
 //returns number of extra files in real file system which are not present in files.db
-int match_file_lists(const std::vector<sce_ng_pfs_file_t>& filesResult, const std::set<boost::filesystem::path>& files)
+int FilesDbParser::match_file_lists(const std::set<boost::filesystem::path>& files)
 {
    std::cout << "Matching file paths..." << std::endl;
 
@@ -848,7 +848,7 @@ int match_file_lists(const std::vector<sce_ng_pfs_file_t>& filesResult, const st
       bool found = false;
 
       //comparison should be done with is_equal (upper case) so it can not be replaced by .find()
-      for(auto& vp : filesResult)
+      for(auto& vp : m_files)
       {
          if(vp.path().is_equal(rp))
          {
@@ -871,7 +871,7 @@ int match_file_lists(const std::vector<sce_ng_pfs_file_t>& filesResult, const st
    }
 
    print = false;
-   for(auto& vp : filesResult)
+   for(auto& vp : m_files)
    {
       bool found = false;
 
@@ -961,15 +961,15 @@ int FilesDbParser::parse()
    getFileListNoPfs(m_titleIdPath, files, directories);
 
    //link result dirs to real filesystem
-   if(!linkDirpaths(m_dirs, directories))
+   if(!linkDirpaths(directories))
       return -1;
 
    //link result files to real filesystem
-   if(!linkFilepaths(EXPECTED_FILE_SECTOR_SIZE, m_files, files))
+   if(!linkFilepaths(files, EXPECTED_FILE_SECTOR_SIZE))
       return -1;
 
    //match files and get number of extra files that do not exist in files.db
-   int numExtra = match_file_lists(m_files, files);
+   int numExtra = match_file_lists(files);
 
    //final check of sizes
    size_t expectedSize = files.size() + directories.size() - numExtra; // allow extra files to exist
