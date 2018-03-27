@@ -226,7 +226,7 @@ public:
 private:
    bool verify_header_icv(std::ifstream& inputStream, const unsigned char* secret);
 
-   int get_isUnicv(bool& isUnicv);
+   bool get_isUnicv(bool& isUnicv);
 
    bool validate_header(uint32_t dataSize);
 

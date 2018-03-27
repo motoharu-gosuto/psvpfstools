@@ -166,7 +166,7 @@ bool FilesDbParser::verify_header_icv(std::ifstream& inputStream, const unsigned
    return true;
 }
 
-int FilesDbParser::get_isUnicv(bool& isUnicv)
+bool FilesDbParser::get_isUnicv(bool& isUnicv)
 {
    boost::filesystem::path root(m_titleIdPath);
 
@@ -180,18 +180,18 @@ int FilesDbParser::get_isUnicv(bool& isUnicv)
          std::cout << "failed to find unicv.db file or icv.db folder" << std::endl;
 
          isUnicv = false;
-         return -1;
+         return false;
       }
       else
       {
          isUnicv = false;
-         return 0;
+         return true;
       }
    }
    else
    {
       isUnicv = true;
-      return 0;
+      return true;
    }
 }
 
@@ -214,7 +214,7 @@ bool FilesDbParser::validate_header(uint32_t dataSize)
    //check image spec
    {
       bool isUnicv = false;
-      if(get_isUnicv(isUnicv) < 0)
+      if(!get_isUnicv(isUnicv))
          return false;
 
       std::vector<pfs_image_types> possibleTypes;
