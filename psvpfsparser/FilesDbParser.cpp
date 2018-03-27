@@ -847,7 +847,7 @@ bool FilesDbParser::linkFilepaths(const std::set<boost::filesystem::path> real_f
 }
 
 //returns number of extra files in real file system which are not present in files.db
-int FilesDbParser::match_file_lists(const std::set<boost::filesystem::path>& files)
+int FilesDbParser::matchFileLists(const std::set<boost::filesystem::path>& files)
 {
    std::cout << "Matching file paths..." << std::endl;
 
@@ -980,7 +980,7 @@ int FilesDbParser::parse()
       return -1;
 
    //match files and get number of extra files that do not exist in files.db
-   int numExtra = match_file_lists(files);
+   int numExtra = matchFileLists(files);
 
    //final check of sizes
    size_t expectedSize = files.size() + directories.size() - numExtra; // allow extra files to exist

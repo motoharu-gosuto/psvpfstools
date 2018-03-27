@@ -252,7 +252,7 @@ private:
 
    bool linkFilepaths(const std::set<boost::filesystem::path> real_files, std::uint32_t fileSectorSize);
 
-   int match_file_lists(const std::set<boost::filesystem::path>& files);
+   int matchFileLists(const std::set<boost::filesystem::path>& files);
 
 public:
    int parse();
