@@ -103,7 +103,7 @@ FilesDbParser::FilesDbParser(std::shared_ptr<ICryptoOperations> cryptops, std::s
 
 bool FilesDbParser::verify_header_icv(std::ifstream& inputStream, const unsigned char* secret)
 {
-   std::cout << "verifying header..." << std::endl;
+   m_output << "verifying header..." << std::endl;
 
    //verify header signature
    
@@ -119,11 +119,11 @@ bool FilesDbParser::verify_header_icv(std::ifstream& inputStream, const unsigned
 
    if(memcmp(m_header.header_icv, icv_hmac_sig_copy, 0x14) != 0)
    {
-      std::cout << "header signature is invalid" << std::endl;
+      m_output << "header signature is invalid" << std::endl;
       return false;
    }
 
-   std::cout << "header signature is valid" << std::endl;
+   m_output << "header signature is valid" << std::endl;
 
    //verify root_icv
 
@@ -148,17 +148,17 @@ bool FilesDbParser::verify_header_icv(std::ifstream& inputStream, const unsigned
    unsigned char root_icv[0x14];
    if(calculate_node_icv(m_cryptops, m_header, secret, &root_node_header, root_block_raw_data.data(), root_icv) < 0)
    {
-      std::cout << "failed to calculate root icv" << std::endl;
+      m_output << "failed to calculate root icv" << std::endl;
       return false;
    }
 
    if(memcmp(root_icv, m_header.root_icv, 0x14) != 0)
    {
-      std::cout << "root icv is invalid" << std::endl;
+      m_output << "root icv is invalid" << std::endl;
       return false;
    }
 
-   std::cout << "root icv is valid" << std::endl;
+   m_output << "root icv is valid" << std::endl;
    
    //seek back to the beginning of tail
    inputStream.seekg(chunksBeginPos, std::ios_base::beg);
@@ -177,7 +177,7 @@ bool FilesDbParser::get_isUnicv(bool& isUnicv)
       boost::filesystem::path filepath2 = root / "sce_pfs" / "icv.db";
       if(!boost::filesystem::exists(filepath2) || !boost::filesystem::is_directory(filepath2))
       {
-         std::cout << "failed to find unicv.db file or icv.db folder" << std::endl;
+         m_output << "failed to find unicv.db file or icv.db folder" << std::endl;
 
          isUnicv = false;
          return false;
@@ -200,14 +200,14 @@ bool FilesDbParser::validate_header(uint32_t dataSize)
    //confirm tail size
    if(dataSize != m_header.tailSize)
    {
-      std::cout << "Unexpected tail size" << std::endl;
+      m_output << "Unexpected tail size" << std::endl;
       return false;
    }
 
    //check version
    if(m_header.version != FILES_EXPECTED_VERSION_3 && m_header.version != FILES_EXPECTED_VERSION_4 && m_header.version != FILES_EXPECTED_VERSION_5)
    {
-      std::cout << "Invalid version" << std::endl;
+      m_output << "Invalid version" << std::endl;
       return false;
    }
 
@@ -232,7 +232,7 @@ bool FilesDbParser::validate_header(uint32_t dataSize)
 
       if(!found)
       {
-         std::cout << "Invalid image spec" << std::endl;
+         m_output << "Invalid image spec" << std::endl;
          return false;
       }
    }
@@ -240,41 +240,41 @@ bool FilesDbParser::validate_header(uint32_t dataSize)
    //check key_id - should be 0 - we do not expect any other values or the code has to be changed
    if(m_header.key_id != 0)
    {
-      std::cout << "Unexpected key_id" << std::endl;
+      m_output << "Unexpected key_id" << std::endl;
       return false;
    }
 
    //check that order of a tree is correct
    if(m_header.bt_order != order_max_avail(m_header.pageSize))
    {
-      std::cout << "Unexpected flags value" << std::endl;
+      m_output << "Unexpected flags value" << std::endl;
       return false;
    }
 
    //check that order of a tree has expected value
    if(m_header.bt_order != 0xA)
    {
-      std::cout << "Unexpected flags value" << std::endl;
+      m_output << "Unexpected flags value" << std::endl;
       return false;
    }
 
    //check block size
    if(m_header.pageSize != EXPECTED_BLOCK_SIZE)
    {
-      std::cout << "Invalid block size" << std::endl;
+      m_output << "Invalid block size" << std::endl;
       return false;
    }
 
    if(m_header.unk6 != 0xFFFFFFFFFFFFFFFF)
    {
-      std::cout << "Unexpected unk6" << std::endl;
+      m_output << "Unexpected unk6" << std::endl;
       return false;
    }
 
    //check padding
    if(!isZeroVector(m_header.padding + 0, m_header.padding + sizeof(m_header.padding)))
    {
-      std::cout << "Unexpected data instead of padding" << std::endl;
+      m_output << "Unexpected data instead of padding" << std::endl;
       return false;
    }
 
@@ -287,7 +287,7 @@ bool FilesDbParser::parseFilesDb(std::ifstream& inputStream, std::vector<sce_ng_
 
    if(std::string((char*)m_header.magic, 8) != MAGIC_WORD)
    {
-      std::cout << "Magic word is incorrect" << std::endl;
+      m_output << "Magic word is incorrect" << std::endl;
       return false;
    }
 
@@ -337,14 +337,14 @@ bool FilesDbParser::parseFilesDb(std::ifstream& inputStream, std::vector<sce_ng_
       if(block.header.type != sce_ng_pfs_block_types::child && 
          block.header.type != sce_ng_pfs_block_types::root)
       {
-         std::cout << "Unexpected type" << std::endl;
+         m_output << "Unexpected type" << std::endl;
          return false;
       }
 
       //verify header
       if(block.header.padding != 0)
       {
-         std::cout << "Unexpected padding" << std::endl;
+         m_output << "Unexpected padding" << std::endl;
          return false;
       }
 
@@ -366,7 +366,7 @@ bool FilesDbParser::parseFilesDb(std::ifstream& inputStream, std::vector<sce_ng_
 
          if(!isZeroVector(unusedData1))
          {
-            std::cout << "Unexpected data instead of padding" << std::endl;
+            m_output << "Unexpected data instead of padding" << std::endl;
             return false;
          }
       }
@@ -386,19 +386,19 @@ bool FilesDbParser::parseFilesDb(std::ifstream& inputStream, std::vector<sce_ng_
          //check file type
          if(!is_valid_file_type(fi.header.type))
          {
-            std::cout << "Unexpected file type" << std::endl;
+            m_output << "Unexpected file type" << std::endl;
             return false;
          }
 
          if(fi.header.padding0 != 0)
          {
-            std::cout << "Unexpected padding" << std::endl;
+            m_output << "Unexpected padding" << std::endl;
             return false;
          }
 
          if(fi.header.padding1 != 0)
          {
-            std::cout << "Unexpected unk1" << std::endl;
+            m_output << "Unexpected unk1" << std::endl;
             return false;
          }
       }
@@ -416,7 +416,7 @@ bool FilesDbParser::parseFilesDb(std::ifstream& inputStream, std::vector<sce_ng_
       int64_t nextBlockPos = currentBlockPos + m_header.pageSize;
       if((int64_t)inputStream.tellg() != nextBlockPos)
       {
-         std::cout << "Block overlay" << std::endl;
+         m_output << "Block overlay" << std::endl;
          return false;
       }
 
@@ -431,7 +431,7 @@ bool FilesDbParser::parseFilesDb(std::ifstream& inputStream, std::vector<sce_ng_
 
       if(calculate_node_icv(m_cryptops, m_header, secret, &block.header, raw_block_data.data(), icv.icv) < 0)
       {
-         std::cout << "failed to calculate icv" << std::endl;
+         m_output << "failed to calculate icv" << std::endl;
          return false;
       }
 
@@ -439,15 +439,15 @@ bool FilesDbParser::parseFilesDb(std::ifstream& inputStream, std::vector<sce_ng_
       page_icvs.insert(std::make_pair(block.header.parent_page_number, icv));
    }
 
-   std::cout << "Validating hash tree..." << std::endl;
+   m_output << "Validating hash tree..." << std::endl;
 
    if(!validate_hash_tree(0, m_header.root_icv_page_number, blocks, page_icvs))
    {
-      std::cout << "Failed to validate hash tree" << std::endl;
+      m_output << "Failed to validate hash tree" << std::endl;
       return false;
    }
 
-   std::cout << "Hash tree is ok" << std::endl;
+   m_output << "Hash tree is ok" << std::endl;
 
    return true;
 }
@@ -455,7 +455,7 @@ bool FilesDbParser::parseFilesDb(std::ifstream& inputStream, std::vector<sce_ng_
 //build child index -> parent index relationship map
 bool FilesDbParser::constructDirmatrix(const std::vector<sce_ng_pfs_block_t>& blocks, std::map<std::uint32_t, std::uint32_t>& dirMatrix)
 {   
-   std::cout << "Building directory matrix..." << std::endl;
+   m_output << "Building directory matrix..." << std::endl;
 
    for(auto& block : blocks)
    {
@@ -471,18 +471,18 @@ bool FilesDbParser::constructDirmatrix(const std::vector<sce_ng_pfs_block_t>& bl
 
          if(block.m_infos[i].header.size != 0)
          {
-            std::cout << "[WARNING] Directory " << fileName << " size is invalid" << std::endl;
+            m_output << "[WARNING] Directory " << fileName << " size is invalid" << std::endl;
          }
 
          if(child == INVALID_FILE_INDEX)
          {
-            std::cout << "Directory " << fileName << " index is invalid" << std::endl;
+            m_output << "Directory " << fileName << " index is invalid" << std::endl;
             return false;
          }
 
          if(dirMatrix.find(child) != dirMatrix.end())
          {
-            std::cout << "Directory " << fileName << " index " << child << " is not unique" << std::endl;
+            m_output << "Directory " << fileName << " index " << child << " is not unique" << std::endl;
             return false;
          }
 
@@ -496,7 +496,7 @@ bool FilesDbParser::constructDirmatrix(const std::vector<sce_ng_pfs_block_t>& bl
 //build child index -> parent index relationship map
 bool FilesDbParser::constructFileMatrix(std::vector<sce_ng_pfs_block_t>& blocks, std::map<std::uint32_t, std::uint32_t>& fileMatrix)
 {
-   std::cout << "Building file matrix..." << std::endl;
+   m_output << "Building file matrix..." << std::endl;
 
    for(auto& block : blocks)
    {
@@ -514,13 +514,13 @@ bool FilesDbParser::constructFileMatrix(std::vector<sce_ng_pfs_block_t>& blocks,
          {   
             if(is_unexisting(block.m_infos[i].header.type))
             {
-               //std::cout << "[EMPTY] File " << fileName << " index " << child << std::endl;
+               //m_output << "[EMPTY] File " << fileName << " index " << child << std::endl;
                continue; // can not add unexisting files - they will conflict by index in the fileMatrix!
             }
             else
             {
                //empty files should be allowed!
-               std::cout << "[EMPTY] File " << fileName << " index " << child << " of type " << std::hex << block.m_infos[i].header.type << std::endl;
+               m_output << "[EMPTY] File " << fileName << " index " << child << " of type " << std::hex << block.m_infos[i].header.type << std::endl;
             }
          }
          else
@@ -530,7 +530,7 @@ bool FilesDbParser::constructFileMatrix(std::vector<sce_ng_pfs_block_t>& blocks,
                //for icv.db - files that are outside of sce_sys folder always dont have correct type
                //it looks like sdslot.dat also does not have correct type
                //we assume that all these files are encrypted
-               std::cout << "[WARNING] Invalid file type for file " << fileName << ". assuming file is encrypted" << std::endl;
+               m_output << "[WARNING] Invalid file type for file " << fileName << ". assuming file is encrypted" << std::endl;
 
                //fixup the type so that it does not cause troubles later
                block.m_infos[i].original_type = block.m_infos[i].header.type;
@@ -541,13 +541,13 @@ bool FilesDbParser::constructFileMatrix(std::vector<sce_ng_pfs_block_t>& blocks,
 
          if(child == INVALID_FILE_INDEX)
          {
-            std::cout << "Directory " << fileName << " index is invalid" << std::endl;
+            m_output << "Directory " << fileName << " index is invalid" << std::endl;
             return false;
          }
 
          if(fileMatrix.find(child) != fileMatrix.end())
          {
-            std::cout << "File " << fileName << " index " << child << " is not unique" << std::endl;
+            m_output << "File " << fileName << " index " << child << " is not unique" << std::endl;
             return false;
          }
 
@@ -562,7 +562,7 @@ bool FilesDbParser::constructFileMatrix(std::vector<sce_ng_pfs_block_t>& blocks,
 //assign global index to files
 bool FilesDbParser::flattenBlocks(const std::vector<sce_ng_pfs_block_t>& blocks, std::vector<sce_ng_pfs_flat_block_t>& flatBlocks)
 {
-   std::cout << "Flattening file pages..." << std::endl;
+   m_output << "Flattening file pages..." << std::endl;
 
    for(auto& block : blocks)
    {
@@ -579,7 +579,7 @@ bool FilesDbParser::flattenBlocks(const std::vector<sce_ng_pfs_block_t>& blocks,
             else
             {
                std::string fileName = std::string((const char*)block.files[i].fileName);
-               std::cout << "invalid file type for file " << fileName << std::endl;
+               m_output << "invalid file type for file " << fileName << std::endl;
                return false;
             }
          }
@@ -625,7 +625,7 @@ const std::vector<sce_ng_pfs_flat_block_t>::const_iterator FilesDbParser::findFl
 
 bool FilesDbParser::constructDirPaths(const std::map<std::uint32_t, std::uint32_t>& dirMatrix, const std::vector<sce_ng_pfs_flat_block_t>& flatBlocks)
 {
-   std::cout << "Building dir paths..." << std::endl;
+   m_output << "Building dir paths..." << std::endl;
 
    for(auto& dir_entry : dirMatrix)
    {
@@ -641,7 +641,7 @@ bool FilesDbParser::constructDirPaths(const std::map<std::uint32_t, std::uint32_
          auto directory = dirMatrix.find(parentIndex);
          if(directory == dirMatrix.end())
          {
-            std::cout << "Missing parent directory index " << parentIndex  << std::endl;
+            m_output << "Missing parent directory index " << parentIndex  << std::endl;
             return false;
          }
          
@@ -653,7 +653,7 @@ bool FilesDbParser::constructDirPaths(const std::map<std::uint32_t, std::uint32_
       auto dirFlatBlock = findFlatBlockDir(flatBlocks, childIndex);
       if(dirFlatBlock == flatBlocks.end())
       {
-         std::cout << "Missing dir with index" << childIndex << std::endl;
+         m_output << "Missing dir with index" << childIndex << std::endl;
          return false;
       }
 
@@ -666,7 +666,7 @@ bool FilesDbParser::constructDirPaths(const std::map<std::uint32_t, std::uint32_
          auto dirFlatBlock = findFlatBlockDir(flatBlocks, dirIndex);
          if(dirFlatBlock == flatBlocks.end())
          {
-            std::cout << "Missing parent directory index " << dirIndex  << std::endl;
+            m_output << "Missing parent directory index " << dirIndex  << std::endl;
             return false;
          }
 
@@ -705,7 +705,7 @@ bool FilesDbParser::constructDirPaths(const std::map<std::uint32_t, std::uint32_
 //filesResult - list of filepaths linked to file flat block and directory flat blocks
 bool FilesDbParser::constructFilePaths(const std::map<std::uint32_t, std::uint32_t>& dirMatrix, const std::map<std::uint32_t, std::uint32_t>& fileMatrix, const std::vector<sce_ng_pfs_flat_block_t>& flatBlocks)
 {
-   std::cout << "Building file paths..." << std::endl;
+   m_output << "Building file paths..." << std::endl;
 
    for(auto& file_entry : fileMatrix)
    {
@@ -721,7 +721,7 @@ bool FilesDbParser::constructFilePaths(const std::map<std::uint32_t, std::uint32
          auto directory = dirMatrix.find(parentIndex);
          if(directory == dirMatrix.end())
          {
-            std::cout << "Missing parent directory index " << parentIndex  << std::endl;
+            m_output << "Missing parent directory index " << parentIndex  << std::endl;
             return false;
          }
          
@@ -733,7 +733,7 @@ bool FilesDbParser::constructFilePaths(const std::map<std::uint32_t, std::uint32
       auto fileFlatBlock = findFlatBlockFile(flatBlocks, childIndex);
       if(fileFlatBlock == flatBlocks.end())
       {
-         std::cout << "Missing file with index" << childIndex << std::endl;
+         m_output << "Missing file with index" << childIndex << std::endl;
          return false;
       }
 
@@ -746,7 +746,7 @@ bool FilesDbParser::constructFilePaths(const std::map<std::uint32_t, std::uint32
          auto dirFlatBlock = findFlatBlockDir(flatBlocks, dirIndex);
          if(dirFlatBlock == flatBlocks.end())
          {
-            std::cout << "Missing parent directory index " << dirIndex  << std::endl;
+            m_output << "Missing parent directory index " << dirIndex  << std::endl;
             return false;
          }
 
@@ -780,7 +780,7 @@ bool FilesDbParser::constructFilePaths(const std::map<std::uint32_t, std::uint32
 //checks that directory exists
 bool FilesDbParser::linkDirpaths(const std::set<boost::filesystem::path> real_directories)
 {
-   std::cout << "Linking dir paths..." << std::endl;
+   m_output << "Linking dir paths..." << std::endl;
 
    for(auto& dir : m_dirs)
    {
@@ -798,7 +798,7 @@ bool FilesDbParser::linkDirpaths(const std::set<boost::filesystem::path> real_di
       
       if(!found)
       {
-         std::cout << "Directory " << dir.path() << " does not exist" << std::endl;
+         m_output << "Directory " << dir.path() << " does not exist" << std::endl;
          return false;
       }
    }
@@ -810,7 +810,7 @@ bool FilesDbParser::linkDirpaths(const std::set<boost::filesystem::path> real_di
 //checks that file size is correct
 bool FilesDbParser::linkFilepaths(const std::set<boost::filesystem::path> real_files, std::uint32_t fileSectorSize)
 {
-   std::cout << "Linking file paths..." << std::endl;
+   m_output << "Linking file paths..." << std::endl;
 
    for(auto& file : m_files)
    {
@@ -828,7 +828,7 @@ bool FilesDbParser::linkFilepaths(const std::set<boost::filesystem::path> real_f
 
       if(!found)
       {
-         std::cout << "File " << file.path() << " does not exist" << std::endl;
+         m_output << "File " << file.path() << " does not exist" << std::endl;
          return false;
       }
 
@@ -837,7 +837,7 @@ bool FilesDbParser::linkFilepaths(const std::set<boost::filesystem::path> real_f
       {
          if((size % fileSectorSize) > 0)
          {
-            std::cout << "File " << file.path() << " size incorrect" << std::endl;
+            m_output << "File " << file.path() << " size incorrect" << std::endl;
             return false;
          }
       }
@@ -849,7 +849,7 @@ bool FilesDbParser::linkFilepaths(const std::set<boost::filesystem::path> real_f
 //returns number of extra files in real file system which are not present in files.db
 int FilesDbParser::matchFileLists(const std::set<boost::filesystem::path>& files)
 {
-   std::cout << "Matching file paths..." << std::endl;
+   m_output << "Matching file paths..." << std::endl;
 
    int real_extra = 0;
 
@@ -872,11 +872,11 @@ int FilesDbParser::matchFileLists(const std::set<boost::filesystem::path>& files
       {
          if(!print)
          {
-            std::cout << "Files not found in files.db (warning):" << std::endl;
+            m_output << "Files not found in files.db (warning):" << std::endl;
             print = true;
          }
 
-         std::cout << rp.generic_string() << std::endl;
+         m_output << rp.generic_string() << std::endl;
          real_extra++;
       }
    }
@@ -900,11 +900,11 @@ int FilesDbParser::matchFileLists(const std::set<boost::filesystem::path>& files
       {
          if(!print)
          {
-            std::cout << "Files not found in filesystem :" << std::endl;
+            m_output << "Files not found in filesystem :" << std::endl;
             print = true;
          }
 
-         std::cout << vp.path() << std::endl;
+         m_output << vp.path() << std::endl;
       }
    }
 
@@ -916,16 +916,16 @@ int FilesDbParser::parse()
 {
    if(!boost::filesystem::exists(m_titleIdPath))
    {
-      std::cout << "Root directory does not exist" << std::endl;
+      m_output << "Root directory does not exist" << std::endl;
       return -1;
    }
 
-   std::cout << "parsing  files.db..." << std::endl;
+   m_output << "parsing  files.db..." << std::endl;
 
    boost::filesystem::path filepath = m_titleIdPath / "sce_pfs" / "files.db";
    if(!boost::filesystem::exists(filepath))
    {
-      std::cout << "failed to find files.db file" << std::endl;
+      m_output << "failed to find files.db file" << std::endl;
       return -1;
    }
 
@@ -933,7 +933,7 @@ int FilesDbParser::parse()
 
    if(!inputStream.is_open())
    {
-      std::cout << "failed to open files.db file" << std::endl;
+      m_output << "failed to open files.db file" << std::endl;
       return -1;
    }
 
@@ -986,7 +986,7 @@ int FilesDbParser::parse()
    size_t expectedSize = files.size() + directories.size() - numExtra; // allow extra files to exist
    if(expectedSize != flatBlocks.size())
    {
-      std::cout << "Mismatch in number of files + directories agains number of flat blocks" << std::endl;
+      m_output << "Mismatch in number of files + directories agains number of flat blocks" << std::endl;
       return -1;
    }
 
