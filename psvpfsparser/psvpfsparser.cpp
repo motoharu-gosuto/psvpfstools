@@ -27,13 +27,16 @@ int execute(std::shared_ptr<ICryptoOperations> cryptops, std::shared_ptr<IF00DKe
    if(fbp.parse() < 0)
       return -1;
 
-   std::shared_ptr<sce_idb_base_t> unicv;
-   if(parseUnicvDb(titleIdPath, unicv) < 0)
+   UnicvDbParser udp(titleIdPath);
+
+   if(udp.parse() < 0)
       return -1;
 
    const sce_ng_pfs_header_t& header = fbp.get_header();
    const std::vector<sce_ng_pfs_file_t>& files = fbp.get_files();
    const std::vector<sce_ng_pfs_dir_t>& dirs = fbp.get_dirs();
+
+   const std::shared_ptr<sce_idb_base_t>& unicv = udp.get_idatabase();
 
    std::map<std::uint32_t, sce_junction> pageMap;
    std::set<sce_junction> emptyFiles;

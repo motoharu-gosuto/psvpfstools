@@ -11,15 +11,20 @@
 
 #include "UnicvDbTypes.h"
 
-int parseUnicvDb(boost::filesystem::path titleIdPath, std::shared_ptr<sce_idb_base_t>& fdb)
+UnicvDbParser::UnicvDbParser(boost::filesystem::path titleIdPath)
+   : m_titleIdPath(titleIdPath)
 {
-   if(!boost::filesystem::exists(titleIdPath))
+}
+
+int UnicvDbParser::parse()
+{
+   if(!boost::filesystem::exists(m_titleIdPath))
    {
       std::cout << "Root directory does not exist" << std::endl;
       return -1;
    }
 
-   boost::filesystem::path root(titleIdPath);
+   boost::filesystem::path root(m_titleIdPath);
 
    boost::filesystem::path filepath = root / "sce_pfs" / "unicv.db";
 
@@ -35,8 +40,8 @@ int parseUnicvDb(boost::filesystem::path titleIdPath, std::shared_ptr<sce_idb_ba
       {
          std::cout << "parsing  icv.db..." << std::endl;
 
-         fdb = std::make_shared<sce_icvdb_t>();
-         if(!fdb->read(filepath2))
+         m_fdb = std::make_shared<sce_icvdb_t>();
+         if(!m_fdb->read(filepath2))
             return -1;
 
          return 0;
@@ -46,10 +51,15 @@ int parseUnicvDb(boost::filesystem::path titleIdPath, std::shared_ptr<sce_idb_ba
    {
       std::cout << "parsing  unicv.db..." << std::endl;
 
-      fdb = std::make_shared<sce_irodb_t>();
-      if(!fdb->read(filepath))
+      m_fdb = std::make_shared<sce_irodb_t>();
+      if(!m_fdb->read(filepath))
          return -1;
 
       return 0;
    }
+}
+
+const std::shared_ptr<sce_idb_base_t>& UnicvDbParser::get_idatabase() const
+{
+   return m_fdb;
 }
