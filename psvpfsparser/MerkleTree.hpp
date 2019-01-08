@@ -209,7 +209,7 @@ int walk_tree_recoursive_forward(const merkle_tree<T>& mkt, typename merkle_node
 
 //================ index tree ==========================
 
-//this is a tree walk indexing funtion that propagates index from top to bottom, from left to right
+//this is a tree walk indexing function that propagates index from top to bottom, from left to right
 template<typename T>
 int tree_indexer(std::shared_ptr<merkle_tree_node<T> > node, void* ctx)
 {
