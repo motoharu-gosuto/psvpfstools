@@ -31,7 +31,8 @@ FILE (GLOB HEADER_FILES "../ICryptoOperations.h"
                         "../LocalKeys.h"
                         "../MerkleTree.hpp"
                         "../IcvPrimitives.h"
-                        "../FlagOperations.h")
+                        "../FlagOperations.h"
+                        "../PfsParser.h")
 source_group ("Header Files" FILES ${HEADER_FILES})
 
 FILE (GLOB SOURCE_FILES "../LibTomCryptCryptoOperations.cpp"
@@ -60,7 +61,8 @@ FILE (GLOB SOURCE_FILES "../LibTomCryptCryptoOperations.cpp"
                         "../LocalKeyGenerator.cpp"
                         "../LocalKeys.cpp"
                         "../IcvPrimitives.cpp"
-                        "../FlagOperations.cpp")
+                        "../FlagOperations.cpp"
+                        "../PfsParser.cpp")
 source_group ("Source Files" FILES ${SOURCE_FILES})
 
 add_executable (${PROJECT} ${HEADER_FILES} ${SOURCE_FILES})
