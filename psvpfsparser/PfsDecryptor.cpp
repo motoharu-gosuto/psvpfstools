@@ -110,19 +110,19 @@ int PfsFile::init_crypt_ctx(CryptEngineWorkCtx* work_ctx, const sce_ng_pfs_heade
          return -1;
       }
 
-      std::map<std::uint32_t, icv> nartualHashTable;
+      std::map<std::uint32_t, icv> naturalHashTable;
 
       //skip first chunk of hashes that corresponds to nodes of merkle tree (we only need to go through leaves)
       for(std::uint32_t i = mkt->nNodes - mkt->nLeaves, j = 0; i < block.m_signatures.size(); i++, j++)
       {
-         nartualHashTable.insert(std::make_pair(leaves[j]->m_index, block.m_signatures[i]));
+         naturalHashTable.insert(std::make_pair(leaves[j]->m_index, block.m_signatures[i]));
       }
 
       m_signatureTable.clear();
-      m_signatureTable.resize(nartualHashTable.size() * block.get_header()->get_sigSize());
+      m_signatureTable.resize(naturalHashTable.size() * block.get_header()->get_sigSize());
 
       std::uint32_t signatureTableOffset = 0;
-      for(auto& s :  nartualHashTable)
+      for(auto& s :  naturalHashTable)
       {
          memcpy(m_signatureTable.data() + signatureTableOffset, s.second.m_data.data(), block.get_header()->get_sigSize());
          signatureTableOffset += block.get_header()->get_sigSize();
