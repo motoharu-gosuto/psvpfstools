@@ -106,7 +106,7 @@ int PfsFile::init_crypt_ctx(CryptEngineWorkCtx* work_ctx, const sce_ng_pfs_heade
 
       if(mkt->nLeaves != leaves.size())
       {
-         std::cout << "Invalid number of leaves collected" << std::endl;
+         m_output << "Invalid number of leaves collected" << std::endl;
          return -1;
       }
 
@@ -154,7 +154,7 @@ int PfsFile::decrypt_icv_file(boost::filesystem::path destination_root, const sc
    std::ifstream inputStream;
    if(!filepath.open(inputStream))
    {
-      std::cout << "Failed to open " << filepath << std::endl;
+      m_output << "Failed to open " << filepath << std::endl;
       return -1;
    }
 
@@ -185,7 +185,7 @@ int PfsFile::decrypt_icv_file(boost::filesystem::path destination_root, const sc
 
       if(work_ctx.error < 0)
       {
-         std::cout << "Crypto Engine failed" << std::endl;
+         m_output << "Crypto Engine failed" << std::endl;
          return -1;
       }
       else
@@ -199,7 +199,7 @@ int PfsFile::decrypt_icv_file(boost::filesystem::path destination_root, const sc
       //meaning that size is limited to 23 sectors
       //lets keep things simple for now
       //if it supports more than one signature page - different places in the code will have to be fixed
-      std::cout << "Maximum number of hashes in icv file is exceeded" << std::endl;
+      m_output << "Maximum number of hashes in icv file is exceeded" << std::endl;
       return -1;
    }
 
@@ -223,7 +223,7 @@ int PfsFile::decrypt_unicv_file(boost::filesystem::path destination_root, const 
    std::ifstream inputStream;
    if(!filepath.open(inputStream))
    {
-      std::cout << "Failed to open " << filepath << std::endl;
+      m_output << "Failed to open " << filepath << std::endl;
       return -1;
    }
 
@@ -254,7 +254,7 @@ int PfsFile::decrypt_unicv_file(boost::filesystem::path destination_root, const 
 
       if(work_ctx.error < 0)
       {
-         std::cout << "Crypto Engine failed" << std::endl;
+         m_output << "Crypto Engine failed" << std::endl;
          return -1;
       }
       else
@@ -279,7 +279,7 @@ int PfsFile::decrypt_unicv_file(boost::filesystem::path destination_root, const 
 
             if(bytes_left >= full_block_size)
             {
-               std::cout << "Invalid data size" << std::endl;
+               m_output << "Invalid data size" << std::endl;
                return -1;
             }
 
@@ -298,7 +298,7 @@ int PfsFile::decrypt_unicv_file(boost::filesystem::path destination_root, const 
 
             if(work_ctx.error < 0)
             {
-               std::cout << "Crypto Engine failed" << std::endl;
+               m_output << "Crypto Engine failed" << std::endl;
                return -1;
             }
             else
@@ -328,7 +328,7 @@ int PfsFile::decrypt_unicv_file(boost::filesystem::path destination_root, const 
 
                if(work_ctx.error < 0)
                {
-                  std::cout << "Crypto Engine failed" << std::endl;
+                  m_output << "Crypto Engine failed" << std::endl;
                   return -1;
                }
                else
@@ -350,7 +350,7 @@ int PfsFile::decrypt_unicv_file(boost::filesystem::path destination_root, const 
 
                if(work_ctx.error < 0)
                {
-                  std::cout << "Crypto Engine failed" << std::endl;
+                  m_output << "Crypto Engine failed" << std::endl;
                   return -1;
                }
                else
