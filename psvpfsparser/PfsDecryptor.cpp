@@ -386,6 +386,8 @@ PfsFilesystem::PfsFilesystem(std::shared_ptr<ICryptoOperations> cryptops, std::s
    : m_cryptops(cryptops), m_iF00D(iF00D), m_output(output), m_titleIdPath(titleIdPath)
 {
    memcpy(m_klicensee, klicensee, 0x10);
+
+   m_pfsParser = std::unique_ptr<PfsParser>(new PfsParser(cryptops, iF00D, output, klicensee, titleIdPath));
 }
 
 std::vector<sce_ng_pfs_file_t>::const_iterator PfsFilesystem::find_file_by_path(const std::vector<sce_ng_pfs_file_t>& files, const sce_junction& p)
@@ -398,8 +400,29 @@ std::vector<sce_ng_pfs_file_t>::const_iterator PfsFilesystem::find_file_by_path(
    return files.end();
 }
 
-int PfsFilesystem::decrypt_files(boost::filesystem::path destTitleIdPath, const sce_ng_pfs_header_t& ngpfs, const std::vector<sce_ng_pfs_file_t>& files, const std::vector<sce_ng_pfs_dir_t>& dirs, const std::unique_ptr<sce_idb_base_t>& fdb, const std::map<std::uint32_t, sce_junction>& pageMap, const std::set<sce_junction>& emptyFiles)
+int PfsFilesystem::mount()
 {
+   if(m_pfsParser->parse() < 0)
+      return -1;
+
+   return 0;
+}
+
+int PfsFilesystem::decrypt_files(boost::filesystem::path destTitleIdPath)
+{
+   const std::unique_ptr<FilesDbParser>& filesDbParser = m_pfsParser->get_filesDbParser();
+   const std::unique_ptr<UnicvDbParser>& unicvDbParser = m_pfsParser->get_unicvDbParser();
+   const std::unique_ptr<PfsPageMapper>& pageMapper = m_pfsParser->get_pageMapper();
+
+   const sce_ng_pfs_header_t& ngpfs = filesDbParser->get_header(); //header
+   const std::vector<sce_ng_pfs_file_t>& files = filesDbParser->get_files();
+   const std::vector<sce_ng_pfs_dir_t>& dirs = filesDbParser->get_dirs();
+
+   const std::unique_ptr<sce_idb_base_t>& fdb = unicvDbParser->get_idatabase(); //unicv
+
+   const std::map<std::uint32_t, sce_junction>& pageMap = pageMapper->get_pageMap();
+   const std::set<sce_junction>& emptyFiles = pageMapper->get_emptyFiles();
+
    std::cout << "Creating directories..." << std::endl;
 
    for(auto& d : dirs)

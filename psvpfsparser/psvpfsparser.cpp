@@ -22,24 +22,12 @@
 
 int execute(std::shared_ptr<ICryptoOperations> cryptops, std::shared_ptr<IF00DKeyEncryptor> iF00D, const unsigned char* klicensee, boost::filesystem::path titleIdPath, boost::filesystem::path destTitleIdPath)
 {
-   PfsParser pfsp(cryptops, iF00D, std::cout, klicensee, titleIdPath);
-
-   const std::unique_ptr<FilesDbParser>& filesDbParser = pfsp.get_filesDbParser();
-   const std::unique_ptr<UnicvDbParser>& unicvDbParser = pfsp.get_unicvDbParser();
-   const std::unique_ptr<PfsPageMapper>& pageMapper = pfsp.get_pageMapper();
-
-   const sce_ng_pfs_header_t& header = filesDbParser->get_header();
-   const std::vector<sce_ng_pfs_file_t>& files = filesDbParser->get_files();
-   const std::vector<sce_ng_pfs_dir_t>& dirs = filesDbParser->get_dirs();
-
-   const std::unique_ptr<sce_idb_base_t>& unicv = unicvDbParser->get_idatabase();
-
-   const std::map<std::uint32_t, sce_junction>& pageMap = pageMapper->get_pageMap();
-   const std::set<sce_junction>& emptyFiles = pageMapper->get_emptyFiles();
-
    PfsFilesystem pfs(cryptops, iF00D, std::cout, klicensee, titleIdPath);
+
+   if(pfs.mount() < 0)
+      return -1;
    
-   if(pfs.decrypt_files(destTitleIdPath, header, files, dirs, unicv, pageMap, emptyFiles) < 0)
+   if(pfs.decrypt_files(destTitleIdPath) < 0)
       return -1;
 
    std::cout << "keystone sanity check..." << std::endl;

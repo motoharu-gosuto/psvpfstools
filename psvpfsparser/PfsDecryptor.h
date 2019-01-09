@@ -16,6 +16,7 @@
 #include "Utils.h"
 
 #include "PfsCryptEngine.h"
+#include "PfsParser.h"
 
 struct sce_ng_pfs_header_t;
 class sce_idb_base_t;
@@ -62,6 +63,9 @@ private:
    unsigned char m_klicensee[0x10];
    boost::filesystem::path m_titleIdPath;
 
+private:
+   std::unique_ptr<PfsParser> m_pfsParser;
+
 public:
    PfsFilesystem(std::shared_ptr<ICryptoOperations> cryptops, std::shared_ptr<IF00DKeyEncryptor> iF00D, std::ostream& output, 
                  const unsigned char* klicensee, boost::filesystem::path titleIdPath);
@@ -70,5 +74,7 @@ private:
    std::vector<sce_ng_pfs_file_t>::const_iterator find_file_by_path(const std::vector<sce_ng_pfs_file_t>& files, const sce_junction& p);
 
 public:
-   int decrypt_files(boost::filesystem::path destTitleIdPath, const sce_ng_pfs_header_t& ngpfs, const std::vector<sce_ng_pfs_file_t>& files, const std::vector<sce_ng_pfs_dir_t>& dirs, const std::unique_ptr<sce_idb_base_t>& fdb, const std::map<std::uint32_t, sce_junction>& pageMap, const std::set<sce_junction>& emptyFiles);
+   int mount();
+
+   int decrypt_files(boost::filesystem::path destTitleIdPath);
 };
