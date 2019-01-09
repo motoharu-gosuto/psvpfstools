@@ -243,7 +243,7 @@ int PfsPageMapper::validate_merkle_trees(const std::unique_ptr<FilesDbParser>& f
 int PfsPageMapper::bruteforce_map(const std::unique_ptr<FilesDbParser>& filesDbParser, const std::unique_ptr<UnicvDbParser>& unicvDbParser)
 {
    const sce_ng_pfs_header_t& ngpfs = filesDbParser->get_header();
-   const std::unique_ptr<sce_idb_base_t>& fdb = unicvDbParser->get_idatabase();
+   const std::unique_ptr<sce_idb_base_t>& unicv = unicvDbParser->get_idatabase();
 
    if(img_spec_to_is_unicv(ngpfs.image_spec))
       m_output << "Building unicv.db -> files.db relation..." << std::endl;
@@ -254,7 +254,7 @@ int PfsPageMapper::bruteforce_map(const std::unique_ptr<FilesDbParser>& filesDbP
 
    //check file fileSectorSize
    std::set<std::uint32_t> fileSectorSizes;
-   for(auto& t : fdb->m_tables)
+   for(auto& t : unicv->m_tables)
    {
       //skip SCEINULL blocks
       if(t->m_blocks.size() > 0)
@@ -314,7 +314,7 @@ int PfsPageMapper::bruteforce_map(const std::unique_ptr<FilesDbParser>& filesDbP
    std::vector<std::pair<std::shared_ptr<sce_iftbl_base_t>, std::shared_ptr<merkle_tree<icv> > > > merkleTrees;
 
    //brutforce each sce_iftbl_t record
-   for(auto& t : fdb->m_tables)
+   for(auto& t : unicv->m_tables)
    {
       //process only files that are not empty
       if(t->get_header()->get_numSectors() > 0)

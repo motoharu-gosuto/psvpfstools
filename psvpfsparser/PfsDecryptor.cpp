@@ -420,11 +420,11 @@ int PfsFilesystem::mount()
 
 int PfsFilesystem::decrypt_files(boost::filesystem::path destTitleIdPath)
 {
-   const sce_ng_pfs_header_t& ngpfs = m_filesDbParser->get_header(); //header
+   const sce_ng_pfs_header_t& ngpfs = m_filesDbParser->get_header();
    const std::vector<sce_ng_pfs_file_t>& files = m_filesDbParser->get_files();
    const std::vector<sce_ng_pfs_dir_t>& dirs = m_filesDbParser->get_dirs();
 
-   const std::unique_ptr<sce_idb_base_t>& fdb = m_unicvDbParser->get_idatabase(); //unicv
+   const std::unique_ptr<sce_idb_base_t>& unicv = m_unicvDbParser->get_idatabase();
 
    const std::map<std::uint32_t, sce_junction>& pageMap = m_pageMapper->get_pageMap();
    const std::set<sce_junction>& emptyFiles = m_pageMapper->get_emptyFiles();
@@ -469,7 +469,7 @@ int PfsFilesystem::decrypt_files(boost::filesystem::path destTitleIdPath)
 
    m_output << "Decrypting files..." << std::endl;
 
-   for(auto& t : fdb->m_tables)
+   for(auto& t : unicv->m_tables)
    {
       //skip empty files and directories
       if(t->get_header()->get_numSectors() == 0)
