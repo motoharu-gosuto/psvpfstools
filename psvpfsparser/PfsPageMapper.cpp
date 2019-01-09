@@ -5,7 +5,6 @@
 #include "SecretGenerator.h"
 #include "UnicvDbParser.h"
 #include "FilesDbParser.h"
-#include "MerkleTree.hpp"
 
 std::shared_ptr<sce_junction> brutforce_hashes(std::shared_ptr<ICryptoOperations> cryptops, const sce_ng_pfs_header_t& ngpfs, std::map<sce_junction, std::vector<std::uint8_t>>& fileDatas, const unsigned char* secret, const unsigned char* signature)
 {
@@ -129,8 +128,10 @@ int compare_hash_tables(const std::vector<icv>& left, const std::vector<icv>& ri
 //then we can read the file and hash it into merkle tree
 //then merkle tree is collected into hash table
 //then hash table is compared to the hash table from icv table entry
-int validate_merkle_trees(std::shared_ptr<ICryptoOperations> cryptops, std::shared_ptr<IF00DKeyEncryptor> iF00D, const unsigned char* klicensee, const sce_ng_pfs_header_t& ngpfs, std::map<std::uint32_t, sce_junction>& pageMap, std::vector<std::pair<std::shared_ptr<sce_iftbl_base_t>, std::shared_ptr<merkle_tree<icv> > > >& merkleTrees)
+int PfsPageMapper::validate_merkle_trees(const std::unique_ptr<FilesDbParser>& filesDbParser, std::vector<std::pair<std::shared_ptr<sce_iftbl_base_t>, std::shared_ptr<merkle_tree<icv> > > >& merkleTrees)
 {
+   const sce_ng_pfs_header_t& ngpfs = filesDbParser->get_header();
+
    std::cout << "Validating merkle trees..." << std::endl;
 
    for(auto entry : merkleTrees)
@@ -140,11 +141,11 @@ int validate_merkle_trees(std::shared_ptr<ICryptoOperations> cryptops, std::shar
 
       //calculate secret
       unsigned char secret[0x14];
-      scePfsUtilGetSecret(cryptops, iF00D, secret, klicensee, ngpfs.files_salt, img_spec_to_crypto_engine_flag(ngpfs.image_spec), table->get_icv_salt(), 0);
+      scePfsUtilGetSecret(m_cryptops, m_iF00D, secret, m_klicensee, ngpfs.files_salt, img_spec_to_crypto_engine_flag(ngpfs.image_spec), table->get_icv_salt(), 0);
 
       //find junction
-      auto junctionIt = pageMap.find(table->get_icv_salt());
-      if(junctionIt == pageMap.end())
+      auto junctionIt = m_pageMap.find(table->get_icv_salt());
+      if(junctionIt == m_pageMap.end())
       {
          std::cout << "Table item not found in page map" << std::endl;
          return -1;
@@ -173,7 +174,7 @@ int validate_merkle_trees(std::shared_ptr<ICryptoOperations> cryptops, std::shar
          inputStream.read((char*)raw_data.data(), sectorSize);
 
          currentIcv.m_data.resize(0x14);
-         cryptops->hmac_sha1(raw_data.data(), currentIcv.m_data.data(), sectorSize, secret, 0x14);
+         m_cryptops->hmac_sha1(raw_data.data(), currentIcv.m_data.data(), sectorSize, secret, 0x14);
       }
 
       if(tailSize > 0)
@@ -184,7 +185,7 @@ int validate_merkle_trees(std::shared_ptr<ICryptoOperations> cryptops, std::shar
          inputStream.read((char*)raw_data.data(), tailSize);
 
          currentIcv.m_data.resize(0x14);
-         cryptops->hmac_sha1(raw_data.data(), currentIcv.m_data.data(), tailSize, secret, 0x14);
+         m_cryptops->hmac_sha1(raw_data.data(), currentIcv.m_data.data(), tailSize, secret, 0x14);
       }
 
       try
@@ -196,7 +197,7 @@ int validate_merkle_trees(std::shared_ptr<ICryptoOperations> cryptops, std::shar
          walk_tree(mkt, assign_hash, &sectorHashMap);
 
          //calculate node hashes
-         auto combine_ctx = std::make_pair(cryptops, secret);
+         auto combine_ctx = std::make_pair(m_cryptops, secret);
          bottom_top_walk_combine(mkt, combine_hash, &combine_ctx);
 
          //collect hashes into table
@@ -366,7 +367,7 @@ int PfsPageMapper::bruteforce_map(const std::unique_ptr<FilesDbParser>& filesDbP
    //in icv - additional step checks that hash table corresponds to merkle tree
    if(!img_spec_to_is_unicv(ngpfs.image_spec))
    {
-      if(validate_merkle_trees(m_cryptops, m_iF00D, m_klicensee, ngpfs, m_pageMap, merkleTrees) < 0)
+      if(validate_merkle_trees(filesDbParser, merkleTrees) < 0)
          return -1;
    }
 
