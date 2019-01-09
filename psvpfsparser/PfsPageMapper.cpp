@@ -228,7 +228,7 @@ PfsPageMapper::PfsPageMapper(std::shared_ptr<ICryptoOperations> cryptops, std::s
    memcpy(m_klicensee, klicensee, 0x10);
 }
 
-int PfsPageMapper::bruteforce_map(const std::unique_ptr<FilesDbParser>& filesDbParser, const std::unique_ptr<UnicvDbParser>& unicvDbParser, std::map<std::uint32_t, sce_junction>& pageMap, std::set<sce_junction>& emptyFiles)
+int PfsPageMapper::bruteforce_map(const std::unique_ptr<FilesDbParser>& filesDbParser, const std::unique_ptr<UnicvDbParser>& unicvDbParser)
 {
    const sce_ng_pfs_header_t& ngpfs = filesDbParser->get_header();
    const std::unique_ptr<sce_idb_base_t>& fdb = unicvDbParser->get_idatabase();
@@ -281,7 +281,7 @@ int PfsPageMapper::bruteforce_map(const std::unique_ptr<FilesDbParser>& filesDbP
       if(fsz_limited == 0)
       {
          std::cout << "File " << sp << " is empty" << std::endl;
-         emptyFiles.insert(sp);
+         m_emptyFiles.insert(sp);
       }
       else
       {
@@ -353,7 +353,7 @@ int PfsPageMapper::bruteforce_map(const std::unique_ptr<FilesDbParser>& filesDbP
          if(found_path)
          {
             std::cout << "Match found: " << std::hex << t->get_icv_salt() << " " << *found_path << std::endl;
-            pageMap.insert(std::make_pair(t->get_icv_salt(), *found_path));
+            m_pageMap.insert(std::make_pair(t->get_icv_salt(), *found_path));
          }
          else
          {
@@ -366,13 +366,13 @@ int PfsPageMapper::bruteforce_map(const std::unique_ptr<FilesDbParser>& filesDbP
    //in icv - additional step checks that hash table corresponds to merkle tree
    if(!img_spec_to_is_unicv(ngpfs.image_spec))
    {
-      if(validate_merkle_trees(m_cryptops, m_iF00D, m_klicensee, ngpfs, pageMap, merkleTrees) < 0)
+      if(validate_merkle_trees(m_cryptops, m_iF00D, m_klicensee, ngpfs, m_pageMap, merkleTrees) < 0)
          return -1;
    }
 
-   if(files.size() != (pageMap.size() + emptyFiles.size()))
+   if(files.size() != (m_pageMap.size() + m_emptyFiles.size()))
    {
-      std::cout << "Extra files are left after mapping (warning): " << (files.size() - (pageMap.size() + emptyFiles.size())) << std::endl;
+      std::cout << "Extra files are left after mapping (warning): " << (files.size() - (m_pageMap.size() + m_emptyFiles.size())) << std::endl;
    }
 
    if(fileDatas.size() != 0)
