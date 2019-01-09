@@ -12,8 +12,10 @@ PfsPageMapper::PfsPageMapper(std::shared_ptr<ICryptoOperations> cryptops, std::s
    memcpy(m_klicensee, klicensee, 0x10);
 }
 
-std::shared_ptr<sce_junction> brutforce_hashes(std::shared_ptr<ICryptoOperations> cryptops, const sce_ng_pfs_header_t& ngpfs, std::map<sce_junction, std::vector<std::uint8_t>>& fileDatas, const unsigned char* secret, const unsigned char* signature)
+std::shared_ptr<sce_junction> PfsPageMapper::brutforce_hashes(const std::unique_ptr<FilesDbParser>& filesDbParser, std::map<sce_junction, std::vector<std::uint8_t>>& fileDatas, const unsigned char* secret, const unsigned char* signature) const
 {
+   const sce_ng_pfs_header_t& ngpfs = filesDbParser->get_header();
+
    unsigned char signature_key[0x14] = {0};
 
    if(img_spec_to_is_unicv(ngpfs.image_spec))
@@ -21,7 +23,7 @@ std::shared_ptr<sce_junction> brutforce_hashes(std::shared_ptr<ICryptoOperations
       //we will be checking only first sector of each file hence we can precalculate a signature_key
       //because both secret and sector_salt will not vary
       int sector_salt = 0; //sector number is most likely a salt which is logically correct in terms of xts-aes
-      cryptops->hmac_sha1((unsigned char*)&sector_salt, signature_key, 4, secret, 0x14);
+      m_cryptops->hmac_sha1((unsigned char*)&sector_salt, signature_key, 4, secret, 0x14);
    }
    else
    {
@@ -35,7 +37,7 @@ std::shared_ptr<sce_junction> brutforce_hashes(std::shared_ptr<ICryptoOperations
    {
       //calculate sector signature
       unsigned char realSignature[0x14] = {0};
-      cryptops->hmac_sha1(f.second.data(), realSignature, f.second.size(), signature_key, 0x14);
+      m_cryptops->hmac_sha1(f.second.data(), realSignature, f.second.size(), signature_key, 0x14);
 
       //try to match the signatures
       if(memcmp(signature, realSignature, 0x14) == 0)
@@ -329,7 +331,7 @@ int PfsPageMapper::bruteforce_map(const std::unique_ptr<FilesDbParser>& filesDbP
             const unsigned char* zeroSectorIcv = t->m_blocks.front().m_signatures.front().m_data.data();
 
             //try to find match by hash of zero sector
-            found_path = brutforce_hashes(m_cryptops, ngpfs, fileDatas, secret, zeroSectorIcv); 
+            found_path = brutforce_hashes(filesDbParser, fileDatas, secret, zeroSectorIcv); 
          }
          else
          {
@@ -351,7 +353,7 @@ int PfsPageMapper::bruteforce_map(const std::unique_ptr<FilesDbParser>& filesDbP
                const unsigned char* zeroSectorIcv = t->m_blocks.front().m_signatures.at(ctx.second).m_data.data();
 
                //try to find match by hash of zero sector
-               found_path = brutforce_hashes(m_cryptops, ngpfs, fileDatas, secret, zeroSectorIcv);
+               found_path = brutforce_hashes(filesDbParser, fileDatas, secret, zeroSectorIcv);
             }
             catch(std::runtime_error& e)
             {
@@ -395,7 +397,7 @@ int PfsPageMapper::bruteforce_map(const std::unique_ptr<FilesDbParser>& filesDbP
 }
 
 //this is a test method that was supposed to be used for caching
-int PfsPageMapper::load_page_map(boost::filesystem::path filepath, std::map<std::uint32_t, std::string>& pageMap)
+int PfsPageMapper::load_page_map(boost::filesystem::path filepath, std::map<std::uint32_t, std::string>& pageMap) const
 {
    boost::filesystem::path fp(filepath);
 

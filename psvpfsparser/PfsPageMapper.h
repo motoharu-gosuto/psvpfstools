@@ -38,6 +38,8 @@ public:
    PfsPageMapper(std::shared_ptr<ICryptoOperations> cryptops, std::shared_ptr<IF00DKeyEncryptor> iF00D, std::ostream& output, const unsigned char* klicensee, boost::filesystem::path titleIdPath);
 
 private:
+   std::shared_ptr<sce_junction> brutforce_hashes(const std::unique_ptr<FilesDbParser>& filesDbParser, std::map<sce_junction, std::vector<std::uint8_t>>& fileDatas, const unsigned char* secret, const unsigned char* signature) const;
+
    int compare_hash_tables(const std::vector<icv>& left, const std::vector<icv>& right);
 
    int validate_merkle_trees(const std::unique_ptr<FilesDbParser>& filesDbParser, std::vector<std::pair<std::shared_ptr<sce_iftbl_base_t>, std::shared_ptr<merkle_tree<icv> > > >& merkleTrees);
@@ -45,5 +47,5 @@ private:
 public:
    int bruteforce_map(const std::unique_ptr<FilesDbParser>& filesDbParser, const std::unique_ptr<UnicvDbParser>& unicvDbParser);
 
-   int load_page_map(boost::filesystem::path filepath, std::map<std::uint32_t, std::string>& pageMap);
+   int load_page_map(boost::filesystem::path filepath, std::map<std::uint32_t, std::string>& pageMap) const;
 };
