@@ -12,8 +12,8 @@
 
 #include "Utils.h"
 
-#include "UnicvDbParser.h"
-#include "FilesDbParser.h"
+#include "PfsParser.h"
+
 #include "PfsDecryptor.h"
 #include "F00DKeyEncryptorFactory.h"
 #include "CryptoOperationsFactory.h"
@@ -22,27 +22,21 @@
 
 int execute(std::shared_ptr<ICryptoOperations> cryptops, std::shared_ptr<IF00DKeyEncryptor> iF00D, const unsigned char* klicensee, boost::filesystem::path titleIdPath, boost::filesystem::path destTitleIdPath)
 {
-   FilesDbParser fbp(cryptops, iF00D, std::cout, klicensee, titleIdPath);
+   PfsParser pfsp(cryptops, iF00D, std::cout, klicensee, titleIdPath);
 
-   if(fbp.parse() < 0)
-      return -1;
+   const std::unique_ptr<FilesDbParser>& filesDbParser = pfsp.get_filesDbParser();
+   const std::unique_ptr<UnicvDbParser>& unicvDbParser = pfsp.get_unicvDbParser();
+   const std::unique_ptr<PfsPageMapper>& pageMapper = pfsp.get_pageMapper();
 
-   UnicvDbParser udp(titleIdPath);
+   const sce_ng_pfs_header_t& header = filesDbParser->get_header();
+   const std::vector<sce_ng_pfs_file_t>& files = filesDbParser->get_files();
+   const std::vector<sce_ng_pfs_dir_t>& dirs = filesDbParser->get_dirs();
 
-   if(udp.parse() < 0)
-      return -1;
+   const std::unique_ptr<sce_idb_base_t>& unicv = unicvDbParser->get_idatabase();
 
-   const sce_ng_pfs_header_t& header = fbp.get_header();
-   const std::vector<sce_ng_pfs_file_t>& files = fbp.get_files();
-   const std::vector<sce_ng_pfs_dir_t>& dirs = fbp.get_dirs();
-
-   const std::shared_ptr<sce_idb_base_t>& unicv = udp.get_idatabase();
-
-   std::map<std::uint32_t, sce_junction> pageMap;
-   std::set<sce_junction> emptyFiles;
-   if(bruteforce_map(cryptops, iF00D, titleIdPath, klicensee, header, unicv, pageMap, emptyFiles) < 0)
-      return -1;
-
+   const std::map<std::uint32_t, sce_junction>& pageMap = pageMapper->get_pageMap();
+   const std::set<sce_junction>& emptyFiles = pageMapper->get_emptyFiles();
+   
    if(decrypt_files(cryptops, iF00D, titleIdPath, destTitleIdPath, klicensee, header, files, dirs, unicv, pageMap, emptyFiles) < 0)
       return -1;
 
