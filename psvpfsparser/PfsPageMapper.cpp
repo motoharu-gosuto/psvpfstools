@@ -6,6 +6,12 @@
 #include "UnicvDbParser.h"
 #include "FilesDbParser.h"
 
+PfsPageMapper::PfsPageMapper(std::shared_ptr<ICryptoOperations> cryptops, std::shared_ptr<IF00DKeyEncryptor> iF00D, std::ostream& output, const unsigned char* klicensee, boost::filesystem::path titleIdPath)
+   : m_cryptops(cryptops), m_iF00D(iF00D), m_output(output), m_titleIdPath(titleIdPath)
+{
+   memcpy(m_klicensee, klicensee, 0x10);
+}
+
 std::shared_ptr<sce_junction> brutforce_hashes(std::shared_ptr<ICryptoOperations> cryptops, const sce_ng_pfs_header_t& ngpfs, std::map<sce_junction, std::vector<std::uint8_t>>& fileDatas, const unsigned char* secret, const unsigned char* signature)
 {
    unsigned char signature_key[0x14] = {0};
@@ -223,12 +229,11 @@ int PfsPageMapper::validate_merkle_trees(const std::unique_ptr<FilesDbParser>& f
    return 0;
 }
 
-PfsPageMapper::PfsPageMapper(std::shared_ptr<ICryptoOperations> cryptops, std::shared_ptr<IF00DKeyEncryptor> iF00D, std::ostream& output, const unsigned char* klicensee, boost::filesystem::path titleIdPath)
-   : m_cryptops(cryptops), m_iF00D(iF00D), m_output(output), m_titleIdPath(titleIdPath)
-{
-   memcpy(m_klicensee, klicensee, 0x10);
-}
-
+//filesDbParser and unicvDbParser are not made part of the context of PfsPageMapper
+//the reason is because both filesDbParser and unicvDbParser have to be 
+//initialized with parse method externally prior to calling bruteforce_map
+//having filesDbParser and unicvDbParser as constructor arguments will 
+//introduce ambiguity in usage of PfsPageMapper
 int PfsPageMapper::bruteforce_map(const std::unique_ptr<FilesDbParser>& filesDbParser, const std::unique_ptr<UnicvDbParser>& unicvDbParser)
 {
    const sce_ng_pfs_header_t& ngpfs = filesDbParser->get_header();
@@ -385,6 +390,7 @@ int PfsPageMapper::bruteforce_map(const std::unique_ptr<FilesDbParser>& filesDbP
    return 0;
 }
 
+//this is a test method that was supposed to be used for caching
 int PfsPageMapper::load_page_map(boost::filesystem::path filepath, std::map<std::uint32_t, std::string>& pageMap)
 {
    boost::filesystem::path fp(filepath);
