@@ -11,40 +11,40 @@ bool sce_irodb_header_proxy_t::validate(std::uint64_t fileSize) const
    //check file size field
    if(fileSize != (m_header.dataSize + m_header.blockSize)) //do not forget to count header
    {
-      std::cout << "Incorrect block size or data size" << std::endl;
+      m_output << "Incorrect block size or data size" << std::endl;
       return false;
    }
 
    //check magic word
    if(std::string((const char*)m_header.magic, 8) != DB_MAGIC_WORD)
    {
-      std::cout << "Invalid magic word" << std::endl;
+      m_output << "Invalid magic word" << std::endl;
       return false;
    }
 
    //check version
    if(m_header.version != UNICV_EXPECTED_VERSION_1 && m_header.version != UNICV_EXPECTED_VERSION_2)
    {
-      std::cout << "Unexpected version" << std::endl;
+      m_output << "Unexpected version" << std::endl;
       return false;
    }
 
    if(m_header.unk2 != 0xFFFFFFFF)
    {
-      std::cout << "Unexpected unk2" << std::endl;
+      m_output << "Unexpected unk2" << std::endl;
       return false;
    }
 
    if(m_header.unk3 != 0xFFFFFFFF)
    {
-      std::cout << "Unexpected unk3" << std::endl;
+      m_output << "Unexpected unk3" << std::endl;
       return false;
    }
 
    //debug check only for now to see if there are any other sizes
    if(m_header.blockSize != EXPECTED_PAGE_SIZE)
    {
-      std::cout << "Unexpected page size" << std::endl;
+      m_output << "Unexpected page size" << std::endl;
       return false;
    }
 
@@ -70,28 +70,28 @@ bool sig_tbl_header_base_t::validate(std::shared_ptr<sce_iftbl_base_t> fft, std:
 {
    if(m_header.binTreeSize != binTreeSize(0x14, fft->get_header()->get_binTreeNumMaxAvail()))
    {
-      std::cout << "Unexpected tableSize" << std::endl;
+      m_output << "Unexpected tableSize" << std::endl;
       return false;
    }
 
    //check to see if there are any other sizes
    if(m_header.sigSize != EXPECTED_SIGNATURE_SIZE)
    {
-      std::cout << "Unexpected chunk size" << std::endl;
+      m_output << "Unexpected chunk size" << std::endl;
       return false;
    }
 
    //check padding
    if(m_header.padding != 0)
    {
-      std::cout << "Unexpected data instead of padding" << std::endl;
+      m_output << "Unexpected data instead of padding" << std::endl;
       return false;
    }
 
    //this check is usefull for validating file structure
    if(m_header.nSignatures != sizeCheck)
    {
-      std::cout << "unexpected number of chunks" << std::endl;
+      m_output << "unexpected number of chunks" << std::endl;
       return false;
    }
 
@@ -139,7 +139,7 @@ bool sig_tbl_header_normal_t::validate_tail(std::shared_ptr<sce_iftbl_base_t> ff
    //validate tail data
    if(!isZeroVector(data))
    {
-      std::cout << "Unexpected data instead of padding" << std::endl;
+      m_output << "Unexpected data instead of padding" << std::endl;
       return false;
    }
 
@@ -153,7 +153,7 @@ bool sig_tbl_header_merlke_t::read(std::ifstream& inputStream, std::shared_ptr<s
    inputStream.read((char*)zero_header, 0x10);
    if(!isZeroVector(zero_header, zero_header + 0x10))
    {
-      std::cout << "Invalid zero vector" << std::endl;
+      m_output << "Invalid zero vector" << std::endl;
       return false;
    }
 
@@ -171,7 +171,7 @@ bool sig_tbl_header_merlke_t::validate_tail(std::shared_ptr<sce_iftbl_base_t> ff
    {
       if(*(unk_value_base + i) != 0xFFFFFFFF)
       {
-         std::cout << "Unexpected value in signature table tail" << std::endl;
+         m_output << "Unexpected value in signature table tail" << std::endl;
          return false;
       }
 
@@ -181,7 +181,7 @@ bool sig_tbl_header_merlke_t::validate_tail(std::shared_ptr<sce_iftbl_base_t> ff
    //after 0xFFFFFFFF values are cleared - everything should be zeroes (including all other data)
    if(!isZeroVector(data_copy))
    {
-      std::cout << "Invalid zero vector" << std::endl;
+      m_output << "Invalid zero vector" << std::endl;
       return false;
    }
 
@@ -196,42 +196,42 @@ bool sce_iftbl_header_proxy_t::validate() const
    //this will allow to fail if there are any other unexpected block sizes
    if(m_header.pageSize != EXPECTED_PAGE_SIZE)
    {
-      std::cout << "Unexpected block size" << std::endl;
+      m_output << "Unexpected block size" << std::endl;
       return false;
    }
 
    //check magic word
    if(std::string((const char*)m_header.magic, 8) != FT_MAGIC_WORD)
    {
-      std::cout << "Invalid magic word" << std::endl;
+      m_output << "Invalid magic word" << std::endl;
       return false;
    }
 
    //check version
    if(m_header.version != UNICV_EXPECTED_VERSION_1 && m_header.version != UNICV_EXPECTED_VERSION_2)
    {
-      std::cout << "Unexpected version" << std::endl;
+      m_output << "Unexpected version" << std::endl;
       return false;
    }
 
    //check maxNSectors
    if(m_header.binTreeNumMaxAvail != binTreeNumMaxAvail(0x14, m_header.pageSize))
    {
-      std::cout << "Unexpected binTreeNumMaxAvail" << std::endl;
+      m_output << "Unexpected binTreeNumMaxAvail" << std::endl;
       return false;
    }
 
    //check file sector size
    if(m_header.fileSectorSize != EXPECTED_FILE_SECTOR_SIZE)
    {
-      std::cout << "Unexpected fileSectorSize" << std::endl;
+      m_output << "Unexpected fileSectorSize" << std::endl;
       return false;
    }
 
    //check padding
    if(m_header.padding != 0)
    {
-      std::cout << "Unexpected padding" << std::endl;
+      m_output << "Unexpected padding" << std::endl;
       return false;
    }
 
@@ -249,49 +249,49 @@ bool sce_icvdb_header_proxy_t::validate() const
 {
    if(m_header.pageSize != EXPECTED_PAGE_SIZE)
    {
-      std::cout << "Unexpected block size" << std::endl;
+      m_output << "Unexpected block size" << std::endl;
       return false;
    }
 
    if(std::string((const char*)m_header.magic, 8) != CV_DB_MAGIC_WORD)
    {
-      std::cout << "Invalid magic word" << std::endl;
+      m_output << "Invalid magic word" << std::endl;
       return false;
    }
 
    if(m_header.version != ICV_EXPECTED_VERSION_2)
    {
-      std::cout << "Unexpected version" << std::endl;
+      m_output << "Unexpected version" << std::endl;
       return false;
    }
 
    if(m_header.fileSectorSize != EXPECTED_FILE_SECTOR_SIZE)
    {
-      std::cout << "Unexpected fileSectorSize" << std::endl;
+      m_output << "Unexpected fileSectorSize" << std::endl;
       return false;
    }   
 
    if((m_realDataSize - m_header.pageSize) != m_header.dataSize)
    {
-      std::cout << "Unexpected dataSize" << std::endl;
+      m_output << "Unexpected dataSize" << std::endl;
       return false;
    }
 
    if(m_header.unk0 != 0xFFFFFFFF)
    {
-      std::cout << "Unexpected unk2" << std::endl;
+      m_output << "Unexpected unk2" << std::endl;
       return false;
    }
 
    if(m_header.unk1 != 0xFFFFFFFF)
    {
-      std::cout << "Unexpected unk3" << std::endl;
+      m_output << "Unexpected unk3" << std::endl;
       return false;
    }
 
    if(m_header.padding != 0)
    {
-      std::cout << "Unexpected padding" << std::endl;
+      m_output << "Unexpected padding" << std::endl;
       return false;
    }
 
@@ -314,31 +314,31 @@ bool sce_inull_header_proxy_t::validate() const
 {
    if(std::string((const char*)m_header.magic, 8) != NULL_MAGIC_WORD)
    {
-      std::cout << "Invalid magic word" << std::endl;
+      m_output << "Invalid magic word" << std::endl;
       return false;
    }
 
    if(m_header.version != NULL_EXPECTED_VERSION)
    {
-      std::cout << "Unexpected version" << std::endl;
+      m_output << "Unexpected version" << std::endl;
       return false;
    }
 
    if(m_header.unk1 != 0)
    {
-      std::cout << "Unexpected unk1" << std::endl;
+      m_output << "Unexpected unk1" << std::endl;
       return false;
    }
 
    if(m_header.unk2 != 0)
    {
-      std::cout << "Unexpected unk2" << std::endl;
+      m_output << "Unexpected unk2" << std::endl;
       return false;
    }
 
    if(m_header.unk3 != 0)
    {
-      std::cout << "Unexpected unk3" << std::endl;
+      m_output << "Unexpected unk3" << std::endl;
       return false;
    }
 
@@ -353,38 +353,38 @@ bool sce_inull_header_proxy_t::read(std::ifstream& inputStream)
 
 //===========
 
-std::shared_ptr<sig_tbl_header_base_t> magic_to_sig_tbl(std::string type)
+std::shared_ptr<sig_tbl_header_base_t> magic_to_sig_tbl(std::string type, std::ostream& output)
 {
    if(type == FT_MAGIC_WORD)
-      return std::make_shared<sig_tbl_header_normal_t>();
+      return std::make_shared<sig_tbl_header_normal_t>(output);
    else if(type == CV_DB_MAGIC_WORD)
-      return std::make_shared<sig_tbl_header_merlke_t>();
+      return std::make_shared<sig_tbl_header_merlke_t>(output);
    else if(type == NULL_MAGIC_WORD)
       throw std::runtime_error("wrong magic");
    else
       throw std::runtime_error("wrong magic");
 }
 
-std::shared_ptr<sce_iftbl_header_base_t> magic_to_ftbl_header(std::string type)
+std::shared_ptr<sce_iftbl_header_base_t> magic_to_ftbl_header(std::string type, std::ostream& output)
 {
    if(type == FT_MAGIC_WORD)
-      return std::make_shared<sce_iftbl_header_proxy_t>();
+      return std::make_shared<sce_iftbl_header_proxy_t>(output);
    else if(type == CV_DB_MAGIC_WORD)
-      return std::make_shared<sce_icvdb_header_proxy_t>();
+      return std::make_shared<sce_icvdb_header_proxy_t>(output);
    else if(type == NULL_MAGIC_WORD)
-      return std::make_shared<sce_inull_header_proxy_t>();
+      return std::make_shared<sce_inull_header_proxy_t>(output);
    else
       throw std::runtime_error("wrong magic");
 }
 
-std::shared_ptr<sce_iftbl_base_t> magic_to_ftbl(std::string type)
+std::shared_ptr<sce_iftbl_base_t> magic_to_ftbl(std::string type, std::ostream& output)
 {
    if(type == FT_MAGIC_WORD)
-      return std::make_shared<sce_iftbl_proxy_t>(magic_to_ftbl_header(type));
+      return std::make_shared<sce_iftbl_proxy_t>(magic_to_ftbl_header(type, output), output);
    else if(type == CV_DB_MAGIC_WORD)
-      return std::make_shared<sce_icvdb_proxy_t>(magic_to_ftbl_header(type));
+      return std::make_shared<sce_icvdb_proxy_t>(magic_to_ftbl_header(type, output), output);
    else if(type == NULL_MAGIC_WORD)
-      return std::make_shared<sce_inull_proxy_t>(magic_to_ftbl_header(type));
+      return std::make_shared<sce_inull_proxy_t>(magic_to_ftbl_header(type, output), output);
    else
       throw std::runtime_error("wrong magic");
 }
@@ -407,7 +407,7 @@ bool sce_iftbl_base_t::read(std::ifstream& inputStream, std::uint64_t& index, st
 bool sce_iftbl_base_t::read_block(std::ifstream& inputStream, std::uint64_t& index, std::uint32_t sizeCheck)
 {
    //create new signature block
-   m_blocks.push_back(sig_tbl_t(magic_to_sig_tbl(m_header->get_magic())));
+   m_blocks.push_back(sig_tbl_t(magic_to_sig_tbl(m_header->get_magic(), m_output)));
    sig_tbl_t& fdt = m_blocks.back();
 
    //read and valiate signature block
@@ -437,7 +437,7 @@ bool sce_iftbl_cvdb_proxy_t::read(std::ifstream& inputStream, std::uint64_t& ind
    //validate tail
    if(!isZeroVector(tailData))
    {
-      std::cout << "Unexpected data instead of padding" << std::endl;
+      m_output << "Unexpected data instead of padding" << std::endl;
       return false;
    }
 
@@ -519,7 +519,7 @@ bool sce_idb_base_t::read_table_item(std::ifstream& inputStream, std::uint64_t& 
    inputStream.read((char*)magic, sizeof(magic));
    inputStream.seekg(-8, std::ios::cur);
 
-   m_tables.push_back(magic_to_ftbl(std::string((char*)magic, sizeof(magic))));
+   m_tables.push_back(magic_to_ftbl(std::string((char*)magic, sizeof(magic)), m_output));
    std::shared_ptr<sce_iftbl_base_t>& fft = m_tables.back();
 
    if(!fft->read(inputStream, index, icv_salt))
@@ -534,7 +534,7 @@ bool sce_irodb_t::read(boost::filesystem::path filepath)
 
    if(!inputStream.is_open())
    {
-      std::cout << "failed to open unicv.db file" << std::endl;
+      m_output << "failed to open unicv.db file" << std::endl;
       return false;
    }
 
@@ -544,7 +544,7 @@ bool sce_irodb_t::read(boost::filesystem::path filepath)
    inputStream.seekg(0, std::ios::beg);
    
    //read header
-   if(!m_dbHeader.read(inputStream, fileSize))
+   if(!m_dbHeader->read(inputStream, fileSize))
       return false;
    
    //it looks like unicv file is split into groups of SCEIFTBL chunks (blocks)
@@ -554,29 +554,29 @@ bool sce_irodb_t::read(boost::filesystem::path filepath)
    //the only way is to calculate total number of chunks (blocks)
    //and read them as stream splitting it into groups in the process
    
-   std::uint64_t nBlocks = m_dbHeader.get_dataSize() / m_dbHeader.get_blockSize();
-   std::uint64_t tailSize = m_dbHeader.get_dataSize() % m_dbHeader.get_blockSize();
+   std::uint64_t nBlocks = m_dbHeader->get_dataSize() / m_dbHeader->get_blockSize();
+   std::uint64_t tailSize = m_dbHeader->get_dataSize() % m_dbHeader->get_blockSize();
 
    //check tail size just in case
    if(tailSize > 0)
    {
-      std::cout << "Block misalign" << std::endl;
+      m_output << "Block misalign" << std::endl;
       return false;
    }
 
-   std::cout << "Total blocks: " << std::dec << nBlocks << std::endl;
+   m_output << "Total blocks: " << std::dec << nBlocks << std::endl;
 
-   std::vector<std::uint8_t> blankPage(m_dbHeader.get_blockSize());
+   std::vector<std::uint8_t> blankPage(m_dbHeader->get_blockSize());
 
    //read all blocks
    for(std::uint64_t index = 0; index < nBlocks; index++)
    {
       //try to skip blank pages
-      inputStream.read((char*)blankPage.data(), m_dbHeader.get_blockSize());
+      inputStream.read((char*)blankPage.data(), m_dbHeader->get_blockSize());
       if(isZeroVector(blankPage))
          continue;
 
-      inputStream.seekg(-(std::int32_t)m_dbHeader.get_blockSize(), std::ios::cur);
+      inputStream.seekg(-(std::int32_t)m_dbHeader->get_blockSize(), std::ios::cur);
 
       //read single block
       if(!read_table_item(inputStream, index, 0))
@@ -587,7 +587,7 @@ bool sce_irodb_t::read(boost::filesystem::path filepath)
    std::uint64_t endp = inputStream.tellg();
    if(fileSize != endp)
    {
-      std::cout << "Data misalign" << std::endl;
+      m_output << "Data misalign" << std::endl;
       return false;
    }
 

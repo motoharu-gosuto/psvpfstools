@@ -53,6 +53,15 @@ class sce_irodb_header_proxy_t
 private:
    sce_irodb_header_t m_header;
 
+private:
+   std::ostream& m_output;
+
+public:
+   sce_irodb_header_proxy_t(std::ostream& output)
+      : m_output(output)
+   {
+   }
+
 public:
    bool validate(std::uint64_t fileSize) const;
 
@@ -154,7 +163,15 @@ class sig_tbl_header_base_t
 protected:
    sig_tbl_header_t m_header;
 
+protected:
+   std::ostream& m_output;
+
 public:
+   sig_tbl_header_base_t(std::ostream& output)
+      : m_output(output)
+   {
+   }
+
    virtual ~sig_tbl_header_base_t()
    {
    }
@@ -191,11 +208,23 @@ public:
 class sig_tbl_header_normal_t : public sig_tbl_header_base_t
 {
 public:
+   sig_tbl_header_normal_t(std::ostream& output)
+      : sig_tbl_header_base_t(output)
+   {
+   }
+
+public:
    bool validate_tail(std::shared_ptr<sce_iftbl_base_t> fft, const std::vector<std::uint8_t>& data) const override;
 };
 
 class sig_tbl_header_merlke_t : public sig_tbl_header_base_t
 {
+public:
+   sig_tbl_header_merlke_t(std::ostream& output)
+      : sig_tbl_header_base_t(output)
+   {
+   }
+
 public:
    bool read(std::ifstream& inputStream, std::shared_ptr<sce_iftbl_base_t> fft, std::uint32_t sizeCheck, std::vector<icv>& signatures) override;
 
@@ -271,6 +300,15 @@ class sce_iftbl_header_proxy_t : public sce_iftbl_header_base_t
 private:
    sce_iftbl_header_t m_header;
 
+private:
+   std::ostream& m_output;
+
+public:
+   sce_iftbl_header_proxy_t(std::ostream& output)
+      : m_output(output)
+   {
+   }
+
 public:
    std::uint32_t get_numSectors() const override
    {
@@ -330,6 +368,15 @@ private:
 
    uint64_t m_realDataSize;
 
+private:
+   std::ostream& m_output;
+
+public:
+   sce_icvdb_header_proxy_t(std::ostream& output)
+      : m_output(output)
+   {
+   }
+
 public:
    std::uint32_t get_numSectors() const override
    {
@@ -382,7 +429,7 @@ public:
       const unsigned char* rootSig = blocks.front().m_signatures.front().m_data.data();
       if(memcmp(rootSig, m_header.merkleTreeRoot, 0x14) != 0)
       {
-         std::cout << "Root icv is invalid" << std::endl;
+         m_output << "Root icv is invalid" << std::endl;
          return false;
       }
       return true;
@@ -393,6 +440,15 @@ class sce_inull_header_proxy_t : public sce_iftbl_header_base_t
 {
 private:
    sce_inull_header_t m_header;
+
+private:
+   std::ostream& m_output;
+
+public:
+   sce_inull_header_proxy_t(std::ostream& output)
+      : m_output(output)
+   {
+   }
 
 public:
    std::uint32_t get_numSectors() const override
@@ -460,10 +516,14 @@ protected:
 public:
    std::vector<sig_tbl_t> m_blocks;
 
+protected:
+   std::ostream& m_output;
+
 public:
-   sce_iftbl_base_t(std::shared_ptr<sce_iftbl_header_base_t> header)
+   sce_iftbl_base_t(std::shared_ptr<sce_iftbl_header_base_t> header, std::ostream& output)
       : m_header(header),
-        m_page(-1)
+        m_page(-1),
+        m_output(output)
    {
    }
 
@@ -490,8 +550,8 @@ public:
 class sce_iftbl_cvdb_proxy_t : public sce_iftbl_base_t
 {
 public:
-   sce_iftbl_cvdb_proxy_t(std::shared_ptr<sce_iftbl_header_base_t> header)
-      : sce_iftbl_base_t(header)
+   sce_iftbl_cvdb_proxy_t(std::shared_ptr<sce_iftbl_header_base_t> header, std::ostream& output)
+      : sce_iftbl_base_t(header, output)
    {
    }
 
@@ -504,8 +564,8 @@ public:
 class sce_iftbl_proxy_t : public sce_iftbl_cvdb_proxy_t
 {
 public:
-   sce_iftbl_proxy_t(std::shared_ptr<sce_iftbl_header_base_t> header)
-      : sce_iftbl_cvdb_proxy_t(header)
+   sce_iftbl_proxy_t(std::shared_ptr<sce_iftbl_header_base_t> header, std::ostream& output)
+      : sce_iftbl_cvdb_proxy_t(header, output)
    {
    } 
 
@@ -519,8 +579,8 @@ private:
    std::uint32_t m_icv_salt;
 
 public:
-   sce_icvdb_proxy_t(std::shared_ptr<sce_iftbl_header_base_t> header)
-      : sce_iftbl_cvdb_proxy_t(header)
+   sce_icvdb_proxy_t(std::shared_ptr<sce_iftbl_header_base_t> header, std::ostream& output)
+      : sce_iftbl_cvdb_proxy_t(header, output)
    {
    }
 
@@ -537,8 +597,8 @@ private:
    std::uint32_t m_icv_salt;
 
 public:
-   sce_inull_proxy_t(std::shared_ptr<sce_iftbl_header_base_t> header)
-      : sce_iftbl_base_t(header)
+   sce_inull_proxy_t(std::shared_ptr<sce_iftbl_header_base_t> header, std::ostream& output)
+      : sce_iftbl_base_t(header, output)
    {
    }
 
@@ -556,7 +616,15 @@ class sce_idb_base_t
 public:
    std::vector<std::shared_ptr<sce_iftbl_base_t> > m_tables;
 
+protected:
+   std::ostream& m_output;
+
 public:
+   sce_idb_base_t(std::ostream& output)
+      : m_output(output)
+   {
+   }
+
    virtual ~sce_idb_base_t()
    {
    }
@@ -572,7 +640,14 @@ protected:
 class sce_irodb_t : public sce_idb_base_t
 {
 private:
-   sce_irodb_header_proxy_t m_dbHeader;
+   std::unique_ptr<sce_irodb_header_proxy_t> m_dbHeader;
+
+public:
+   sce_irodb_t(std::ostream& output)
+      : sce_idb_base_t(output)
+   {
+      m_dbHeader = std::unique_ptr<sce_irodb_header_proxy_t>(new sce_irodb_header_proxy_t(output));
+   }
 
 public:
    bool read(boost::filesystem::path filepath);
@@ -582,13 +657,19 @@ public:
 class sce_icvdb_t : public sce_idb_base_t
 {
 public:
+   sce_icvdb_t(std::ostream& output)
+      : sce_idb_base_t(output)
+   {
+   }
+
+public:
    bool read(boost::filesystem::path filepath);
 };
 
 #pragma pack(pop)
 
-std::shared_ptr<sig_tbl_header_base_t> magic_to_sig_tbl(std::string type);
+std::shared_ptr<sig_tbl_header_base_t> magic_to_sig_tbl(std::string type, std::ostream& output);
 
-std::shared_ptr<sce_iftbl_header_base_t> magic_to_ftbl_header(std::string type);
+std::shared_ptr<sce_iftbl_header_base_t> magic_to_ftbl_header(std::string type, std::ostream& output);
 
-std::shared_ptr<sce_iftbl_base_t> magic_to_ftbl(std::string type);
+std::shared_ptr<sce_iftbl_base_t> magic_to_ftbl(std::string type, std::ostream& output);
