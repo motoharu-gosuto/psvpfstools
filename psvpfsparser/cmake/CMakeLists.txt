@@ -32,7 +32,6 @@ FILE (GLOB HEADER_FILES "../ICryptoOperations.h"
                         "../MerkleTree.hpp"
                         "../IcvPrimitives.h"
                         "../FlagOperations.h"
-                        "../PfsParser.h"
                         "../PfsPageMapper.h")
 source_group ("Header Files" FILES ${HEADER_FILES})
 
@@ -63,7 +62,6 @@ FILE (GLOB SOURCE_FILES "../LibTomCryptCryptoOperations.cpp"
                         "../LocalKeys.cpp"
                         "../IcvPrimitives.cpp"
                         "../FlagOperations.cpp"
-                        "../PfsParser.cpp"
                         "../PfsPageMapper.cpp")
 source_group ("Source Files" FILES ${SOURCE_FILES})
 

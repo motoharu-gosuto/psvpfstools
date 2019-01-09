@@ -12,8 +12,6 @@
 
 #include "Utils.h"
 
-#include "PfsParser.h"
-
 #include "PfsDecryptor.h"
 #include "F00DKeyEncryptorFactory.h"
 #include "CryptoOperationsFactory.h"

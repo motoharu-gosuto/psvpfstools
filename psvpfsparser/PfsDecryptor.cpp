@@ -387,7 +387,11 @@ PfsFilesystem::PfsFilesystem(std::shared_ptr<ICryptoOperations> cryptops, std::s
 {
    memcpy(m_klicensee, klicensee, 0x10);
 
-   m_pfsParser = std::unique_ptr<PfsParser>(new PfsParser(cryptops, iF00D, output, klicensee, titleIdPath));
+   m_filesDbParser = std::unique_ptr<FilesDbParser>(new FilesDbParser(cryptops, iF00D, output, klicensee, titleIdPath));
+
+   m_unicvDbParser = std::unique_ptr<UnicvDbParser>(new UnicvDbParser(titleIdPath, output));
+
+   m_pageMapper = std::unique_ptr<PfsPageMapper>(new PfsPageMapper(cryptops, iF00D, output, klicensee, titleIdPath));
 }
 
 std::vector<sce_ng_pfs_file_t>::const_iterator PfsFilesystem::find_file_by_path(const std::vector<sce_ng_pfs_file_t>& files, const sce_junction& p)
@@ -402,26 +406,28 @@ std::vector<sce_ng_pfs_file_t>::const_iterator PfsFilesystem::find_file_by_path(
 
 int PfsFilesystem::mount()
 {
-   if(m_pfsParser->parse() < 0)
+   if(m_filesDbParser->parse() < 0)
       return -1;
 
+   if(m_unicvDbParser->parse() < 0)
+      return -1;
+
+   if(m_pageMapper->bruteforce_map(m_filesDbParser, m_unicvDbParser) < 0)
+      return -1;
+   
    return 0;
 }
 
 int PfsFilesystem::decrypt_files(boost::filesystem::path destTitleIdPath)
 {
-   const std::unique_ptr<FilesDbParser>& filesDbParser = m_pfsParser->get_filesDbParser();
-   const std::unique_ptr<UnicvDbParser>& unicvDbParser = m_pfsParser->get_unicvDbParser();
-   const std::unique_ptr<PfsPageMapper>& pageMapper = m_pfsParser->get_pageMapper();
+   const sce_ng_pfs_header_t& ngpfs = m_filesDbParser->get_header(); //header
+   const std::vector<sce_ng_pfs_file_t>& files = m_filesDbParser->get_files();
+   const std::vector<sce_ng_pfs_dir_t>& dirs = m_filesDbParser->get_dirs();
 
-   const sce_ng_pfs_header_t& ngpfs = filesDbParser->get_header(); //header
-   const std::vector<sce_ng_pfs_file_t>& files = filesDbParser->get_files();
-   const std::vector<sce_ng_pfs_dir_t>& dirs = filesDbParser->get_dirs();
+   const std::unique_ptr<sce_idb_base_t>& fdb = m_unicvDbParser->get_idatabase(); //unicv
 
-   const std::unique_ptr<sce_idb_base_t>& fdb = unicvDbParser->get_idatabase(); //unicv
-
-   const std::map<std::uint32_t, sce_junction>& pageMap = pageMapper->get_pageMap();
-   const std::set<sce_junction>& emptyFiles = pageMapper->get_emptyFiles();
+   const std::map<std::uint32_t, sce_junction>& pageMap = m_pageMapper->get_pageMap();
+   const std::set<sce_junction>& emptyFiles = m_pageMapper->get_emptyFiles();
 
    m_output << "Creating directories..." << std::endl;
 

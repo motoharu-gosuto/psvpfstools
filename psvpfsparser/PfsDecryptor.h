@@ -15,15 +15,10 @@
 
 #include "Utils.h"
 
+#include "FilesDbParser.h"
+#include "UnicvDbParser.h"
+#include "PfsPageMapper.h"
 #include "PfsCryptEngine.h"
-#include "PfsParser.h"
-
-struct sce_ng_pfs_header_t;
-class sce_idb_base_t;
-struct sce_ng_pfs_file_t;
-struct sce_ng_pfs_dir_t;
-class sce_iftbl_base_t;
-class sig_tbl_t;
 
 class PfsFile
 {
@@ -64,7 +59,9 @@ private:
    boost::filesystem::path m_titleIdPath;
 
 private:
-   std::unique_ptr<PfsParser> m_pfsParser;
+   std::unique_ptr<FilesDbParser> m_filesDbParser;
+   std::unique_ptr<UnicvDbParser> m_unicvDbParser;
+   std::unique_ptr<PfsPageMapper> m_pageMapper;
 
 public:
    PfsFilesystem(std::shared_ptr<ICryptoOperations> cryptops, std::shared_ptr<IF00DKeyEncryptor> iF00D, std::ostream& output, 
