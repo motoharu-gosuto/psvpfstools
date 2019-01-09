@@ -146,7 +146,7 @@ bool sig_tbl_header_normal_t::validate_tail(std::shared_ptr<sce_iftbl_base_t> ff
    return true;
 }
 
-bool sig_tbl_header_merlke_t::read(std::ifstream& inputStream, std::shared_ptr<sce_iftbl_base_t> fft, std::uint32_t sizeCheck, std::vector<icv>& signatures)
+bool sig_tbl_header_merkle_t::read(std::ifstream& inputStream, std::shared_ptr<sce_iftbl_base_t> fft, std::uint32_t sizeCheck, std::vector<icv>& signatures)
 {
    //read weird 0x10 byte zero header which makes the data not being aligned on page boder
    unsigned char zero_header[0x10];
@@ -160,7 +160,7 @@ bool sig_tbl_header_merlke_t::read(std::ifstream& inputStream, std::shared_ptr<s
    return sig_tbl_header_base_t::read(inputStream, fft, sizeCheck, signatures);
 }
 
-bool sig_tbl_header_merlke_t::validate_tail(std::shared_ptr<sce_iftbl_base_t> fft, const std::vector<std::uint8_t>& data) const
+bool sig_tbl_header_merkle_t::validate_tail(std::shared_ptr<sce_iftbl_base_t> fft, const std::vector<std::uint8_t>& data) const
 {
    std::vector<std::uint8_t> data_copy(data);
 
@@ -358,7 +358,7 @@ std::shared_ptr<sig_tbl_header_base_t> magic_to_sig_tbl(std::string type, std::o
    if(type == FT_MAGIC_WORD)
       return std::make_shared<sig_tbl_header_normal_t>(output);
    else if(type == CV_DB_MAGIC_WORD)
-      return std::make_shared<sig_tbl_header_merlke_t>(output);
+      return std::make_shared<sig_tbl_header_merkle_t>(output);
    else if(type == NULL_MAGIC_WORD)
       throw std::runtime_error("wrong magic");
    else

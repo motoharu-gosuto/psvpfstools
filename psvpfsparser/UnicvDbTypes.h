@@ -217,10 +217,10 @@ public:
    bool validate_tail(std::shared_ptr<sce_iftbl_base_t> fft, const std::vector<std::uint8_t>& data) const override;
 };
 
-class sig_tbl_header_merlke_t : public sig_tbl_header_base_t
+class sig_tbl_header_merkle_t : public sig_tbl_header_base_t
 {
 public:
-   sig_tbl_header_merlke_t(std::ostream& output)
+   sig_tbl_header_merkle_t(std::ostream& output)
       : sig_tbl_header_base_t(output)
    {
    }
