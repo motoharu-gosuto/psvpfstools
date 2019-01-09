@@ -222,15 +222,24 @@ int validate_merkle_trees(std::shared_ptr<ICryptoOperations> cryptops, std::shar
    return 0;
 }
 
-
-int PfsPageMapper::bruteforce_map(std::shared_ptr<ICryptoOperations> cryptops, std::shared_ptr<IF00DKeyEncryptor> iF00D, boost::filesystem::path titleIdPath, const unsigned char* klicensee, const sce_ng_pfs_header_t& ngpfs, std::shared_ptr<sce_idb_base_t> fdb, std::map<std::uint32_t, sce_junction>& pageMap, std::set<sce_junction>& emptyFiles)
+PfsPageMapper::PfsPageMapper(std::shared_ptr<ICryptoOperations> cryptops, std::shared_ptr<IF00DKeyEncryptor> iF00D, std::ostream& output, const unsigned char* klicensee, boost::filesystem::path titleIdPath)
+   : m_cryptops(cryptops), m_iF00D(iF00D), m_output(output), m_titleIdPath(titleIdPath)
 {
+   memcpy(m_klicensee, klicensee, 0x10);
+}
+
+int PfsPageMapper::bruteforce_map(const std::unique_ptr<FilesDbParser>& filesDbParser, const std::unique_ptr<UnicvDbParser>& unicvDbParser, std::map<std::uint32_t, sce_junction>& pageMap, std::set<sce_junction>& emptyFiles)
+{
+   const sce_ng_pfs_header_t& ngpfs = filesDbParser->get_header();
+   const std::shared_ptr<sce_idb_base_t>& fdb = unicvDbParser->get_idatabase();
+
+
    if(img_spec_to_is_unicv(ngpfs.image_spec))
       std::cout << "Building unicv.db -> files.db relation..." << std::endl;
    else
       std::cout << "Building icv.db -> files.db relation..." << std::endl;
 
-   boost::filesystem::path root(titleIdPath);
+   boost::filesystem::path root(m_titleIdPath);
 
    //check file fileSectorSize
    std::set<std::uint32_t> fileSectorSizes;
@@ -301,7 +310,7 @@ int PfsPageMapper::bruteforce_map(std::shared_ptr<ICryptoOperations> cryptops, s
       {
          //generate secret - one secret per unicv.db page is required
          unsigned char secret[0x14];
-         scePfsUtilGetSecret(cryptops, iF00D, secret, klicensee, ngpfs.files_salt, img_spec_to_crypto_engine_flag(ngpfs.image_spec), t->get_icv_salt(), 0);
+         scePfsUtilGetSecret(m_cryptops, m_iF00D, secret, m_klicensee, ngpfs.files_salt, img_spec_to_crypto_engine_flag(ngpfs.image_spec), t->get_icv_salt(), 0);
 
          std::shared_ptr<sce_junction> found_path;
 
@@ -311,7 +320,7 @@ int PfsPageMapper::bruteforce_map(std::shared_ptr<ICryptoOperations> cryptops, s
             const unsigned char* zeroSectorIcv = t->m_blocks.front().m_signatures.front().m_data.data();
 
             //try to find match by hash of zero sector
-            found_path = brutforce_hashes(cryptops, ngpfs, fileDatas, secret, zeroSectorIcv); 
+            found_path = brutforce_hashes(m_cryptops, ngpfs, fileDatas, secret, zeroSectorIcv); 
          }
          else
          {
@@ -333,7 +342,7 @@ int PfsPageMapper::bruteforce_map(std::shared_ptr<ICryptoOperations> cryptops, s
                const unsigned char* zeroSectorIcv = t->m_blocks.front().m_signatures.at(ctx.second).m_data.data();
 
                //try to find match by hash of zero sector
-               found_path = brutforce_hashes(cryptops, ngpfs, fileDatas, secret, zeroSectorIcv);
+               found_path = brutforce_hashes(m_cryptops, ngpfs, fileDatas, secret, zeroSectorIcv);
             }
             catch(std::runtime_error& e)
             {
@@ -358,7 +367,7 @@ int PfsPageMapper::bruteforce_map(std::shared_ptr<ICryptoOperations> cryptops, s
    //in icv - additional step checks that hash table corresponds to merkle tree
    if(!img_spec_to_is_unicv(ngpfs.image_spec))
    {
-      if(validate_merkle_trees(cryptops, iF00D, klicensee, ngpfs, pageMap, merkleTrees) < 0)
+      if(validate_merkle_trees(m_cryptops, m_iF00D, m_klicensee, ngpfs, pageMap, merkleTrees) < 0)
          return -1;
    }
 
