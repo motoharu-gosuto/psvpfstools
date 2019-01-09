@@ -144,7 +144,7 @@ int PfsPageMapper::validate_merkle_trees(const std::unique_ptr<FilesDbParser>& f
 {
    const sce_ng_pfs_header_t& ngpfs = filesDbParser->get_header();
 
-   std::cout << "Validating merkle trees..." << std::endl;
+   m_output << "Validating merkle trees..." << std::endl;
 
    for(auto entry : merkleTrees)
    {
@@ -159,7 +159,7 @@ int PfsPageMapper::validate_merkle_trees(const std::unique_ptr<FilesDbParser>& f
       auto junctionIt = m_pageMap.find(table->get_icv_salt());
       if(junctionIt == m_pageMap.end())
       {
-         std::cout << "Table item not found in page map" << std::endl;
+         m_output << "Table item not found in page map" << std::endl;
          return -1;
       }
       
@@ -219,15 +219,15 @@ int PfsPageMapper::validate_merkle_trees(const std::unique_ptr<FilesDbParser>& f
          //compare tables
          if(compare_hash_tables(hashTable, table->m_blocks.front().m_signatures) < 0)
          {
-            std::cout << "Merkle tree is invalid in file " << junction << std::endl;
+            m_output << "Merkle tree is invalid in file " << junction << std::endl;
             return -1;
          }
 
-         std::cout << "File: " << std::hex << table->get_icv_salt() << " [OK]" << std::endl;
+         m_output << "File: " << std::hex << table->get_icv_salt() << " [OK]" << std::endl;
       }
       catch(std::runtime_error& e)
       {
-         std::cout << e.what() << std::endl;
+         m_output << e.what() << std::endl;
          return -1;
       }  
    }
@@ -246,9 +246,9 @@ int PfsPageMapper::bruteforce_map(const std::unique_ptr<FilesDbParser>& filesDbP
    const std::unique_ptr<sce_idb_base_t>& fdb = unicvDbParser->get_idatabase();
 
    if(img_spec_to_is_unicv(ngpfs.image_spec))
-      std::cout << "Building unicv.db -> files.db relation..." << std::endl;
+      m_output << "Building unicv.db -> files.db relation..." << std::endl;
    else
-      std::cout << "Building icv.db -> files.db relation..." << std::endl;
+      m_output << "Building icv.db -> files.db relation..." << std::endl;
 
    boost::filesystem::path root(m_titleIdPath);
 
@@ -263,7 +263,7 @@ int PfsPageMapper::bruteforce_map(const std::unique_ptr<FilesDbParser>& filesDbP
 
    if(fileSectorSizes.size() > 1)
    {
-      std::cout << "File sector size is not unique. This bruteforce mode is not supported now" << std::endl;
+      m_output << "File sector size is not unique. This bruteforce mode is not supported now" << std::endl;
       return -1;
    }
 
@@ -292,7 +292,7 @@ int PfsPageMapper::bruteforce_map(const std::unique_ptr<FilesDbParser>& filesDbP
       //empty files should be allowed!
       if(fsz_limited == 0)
       {
-         std::cout << "File " << sp << " is empty" << std::endl;
+         m_output << "File " << sp << " is empty" << std::endl;
          m_emptyFiles.insert(sp);
       }
       else
@@ -302,7 +302,7 @@ int PfsPageMapper::bruteforce_map(const std::unique_ptr<FilesDbParser>& filesDbP
          std::ifstream in;
          if(!sp.open(in))
          {
-            std::cout << "Failed to open " << sp << std::endl;
+            m_output << "Failed to open " << sp << std::endl;
             return -1;
          }
 
@@ -357,19 +357,19 @@ int PfsPageMapper::bruteforce_map(const std::unique_ptr<FilesDbParser>& filesDbP
             }
             catch(std::runtime_error& e)
             {
-               std::cout << e.what() << std::endl;
+               m_output << e.what() << std::endl;
                return -1;
             } 
          }
 
          if(found_path)
          {
-            std::cout << "Match found: " << std::hex << t->get_icv_salt() << " " << *found_path << std::endl;
+            m_output << "Match found: " << std::hex << t->get_icv_salt() << " " << *found_path << std::endl;
             m_pageMap.insert(std::make_pair(t->get_icv_salt(), *found_path));
          }
          else
          {
-            std::cout << "Match not found: " << std::hex << t->get_icv_salt() << std::endl;
+            m_output << "Match not found: " << std::hex << t->get_icv_salt() << std::endl;
             return -1;
          }
       }
@@ -384,13 +384,13 @@ int PfsPageMapper::bruteforce_map(const std::unique_ptr<FilesDbParser>& filesDbP
 
    if(files.size() != (m_pageMap.size() + m_emptyFiles.size()))
    {
-      std::cout << "Extra files are left after mapping (warning): " << (files.size() - (m_pageMap.size() + m_emptyFiles.size())) << std::endl;
+      m_output << "Extra files are left after mapping (warning): " << (files.size() - (m_pageMap.size() + m_emptyFiles.size())) << std::endl;
    }
 
    if(fileDatas.size() != 0)
    {
       for(auto& f : fileDatas)
-         std::cout << f.first << std::endl;
+         m_output << f.first << std::endl;
    }
 
    return 0;
@@ -403,14 +403,14 @@ int PfsPageMapper::load_page_map(boost::filesystem::path filepath, std::map<std:
 
    if(!boost::filesystem::exists(fp))
    {
-      std::cout << "File " << fp.generic_string() << " does not exist" << std::endl;
+      m_output << "File " << fp.generic_string() << " does not exist" << std::endl;
       return -1;
    }
 
    std::ifstream in(fp.generic_string().c_str());
    if(!in.is_open())
    {
-      std::cout << "Failed to open " << fp.generic_string() << std::endl;
+      m_output << "Failed to open " << fp.generic_string() << std::endl;
       return -1;
    }
 
