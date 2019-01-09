@@ -5,6 +5,7 @@
 #include <memory>
 #include <map>
 #include <iostream>
+#include <vector>
 
 #include <boost/filesystem.hpp>
 
@@ -37,6 +38,8 @@ public:
    PfsPageMapper(std::shared_ptr<ICryptoOperations> cryptops, std::shared_ptr<IF00DKeyEncryptor> iF00D, std::ostream& output, const unsigned char* klicensee, boost::filesystem::path titleIdPath);
 
 private:
+   int compare_hash_tables(const std::vector<icv>& left, const std::vector<icv>& right);
+
    int validate_merkle_trees(const std::unique_ptr<FilesDbParser>& filesDbParser, std::vector<std::pair<std::shared_ptr<sce_iftbl_base_t>, std::shared_ptr<merkle_tree<icv> > > >& merkleTrees);
 
 public:

@@ -50,6 +50,7 @@ std::shared_ptr<sce_junction> brutforce_hashes(std::shared_ptr<ICryptoOperations
    return std::shared_ptr<sce_junction>();
 }
 
+//this is a tree walker function and it should not be a part of the class
 int find_zero_sector_index(std::shared_ptr<merkle_tree_node<icv> > node, void* ctx)
 {
    std::pair<std::uint32_t, std::uint32_t>* ctx_pair = (std::pair<std::uint32_t, std::uint32_t>*)ctx;
@@ -74,6 +75,7 @@ int find_zero_sector_index(std::shared_ptr<merkle_tree_node<icv> > node, void* c
    }
 }
 
+//this is a tree walker function and it should not be a part of the class
 int assign_hash(std::shared_ptr<merkle_tree_node<icv> > node, void* ctx)
 {
    if(!node->isLeaf())
@@ -90,6 +92,7 @@ int assign_hash(std::shared_ptr<merkle_tree_node<icv> > node, void* ctx)
    return 0;
 }
 
+//this is a tree walker function and it should not be a part of the class
 int combine_hash(std::shared_ptr<merkle_tree_node<icv> > result, std::shared_ptr<merkle_tree_node<icv> > left, std::shared_ptr<merkle_tree_node<icv> > right, void* ctx)
 {
    unsigned char bytes28[0x28] = {0};
@@ -107,6 +110,7 @@ int combine_hash(std::shared_ptr<merkle_tree_node<icv> > result, std::shared_ptr
    return 0;
 }
 
+//this is a tree walker function and it should not be a part of the class
 int collect_hash(std::shared_ptr<merkle_tree_node<icv> > node, void* ctx)
 {
    std::vector<icv>* hashTable = (std::vector<icv>*)ctx;
@@ -114,7 +118,7 @@ int collect_hash(std::shared_ptr<merkle_tree_node<icv> > node, void* ctx)
    return 0;
 }
 
-int compare_hash_tables(const std::vector<icv>& left, const std::vector<icv>& right)
+int PfsPageMapper::compare_hash_tables(const std::vector<icv>& left, const std::vector<icv>& right)
 {
    if(left.size() != right.size())
       return -1;
