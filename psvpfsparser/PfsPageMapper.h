@@ -48,4 +48,9 @@ public:
    int bruteforce_map(const std::unique_ptr<FilesDbParser>& filesDbParser, const std::unique_ptr<UnicvDbParser>& unicvDbParser);
 
    int load_page_map(boost::filesystem::path filepath, std::map<std::uint32_t, std::string>& pageMap) const;
+
+public:
+   const std::map<std::uint32_t, sce_junction>& get_pageMap() const;
+
+   const std::set<sce_junction>& get_emptyFiles() const;
 };

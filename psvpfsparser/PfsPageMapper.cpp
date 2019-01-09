@@ -428,3 +428,13 @@ int PfsPageMapper::load_page_map(boost::filesystem::path filepath, std::map<std:
 
    return 0;
 }
+
+const std::map<std::uint32_t, sce_junction>& PfsPageMapper::get_pageMap() const
+{
+   return m_pageMap;
+}
+
+const std::set<sce_junction>& PfsPageMapper::get_emptyFiles() const
+{
+   return m_emptyFiles;
+}
