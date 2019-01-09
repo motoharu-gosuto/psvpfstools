@@ -14,10 +14,18 @@
 #include "SecretGenerator.h"
 #include "UnicvDbParser.h"
 #include "FilesDbParser.h"
-#include "PfsCryptEngine.h"
+
 #include "PfsKeyGenerator.h"
 #include "MerkleTree.hpp"
 
+PfsFile::PfsFile(std::shared_ptr<ICryptoOperations> cryptops, std::shared_ptr<IF00DKeyEncryptor> iF00D, std::ostream& output, 
+                 const unsigned char* klicensee, boost::filesystem::path titleIdPath)
+   : m_cryptops(cryptops), m_iF00D(iF00D), m_output(output), m_titleIdPath(titleIdPath)
+{
+   memcpy(m_klicensee, klicensee, 0x10);
+}
+
+//this is a tree walker function and it should not be a part of the class
 int collect_leaf(std::shared_ptr<merkle_tree_node<icv> > node, void* ctx)
 {
    if(!node->isLeaf())
@@ -28,63 +36,59 @@ int collect_leaf(std::shared_ptr<merkle_tree_node<icv> > node, void* ctx)
    return 0;
 }
 
-CryptEngineData g_data;
-CryptEngineSubctx g_sub_ctx;
-std::vector<std::uint8_t> g_signatureTable;
-
-int init_crypt_ctx(std::shared_ptr<ICryptoOperations> cryptops, std::shared_ptr<IF00DKeyEncryptor> iF00D, CryptEngineWorkCtx* work_ctx, const unsigned char* klicensee, const sce_ng_pfs_header_t& ngpfs, const sce_ng_pfs_file_t& file, std::shared_ptr<sce_iftbl_base_t> table, sig_tbl_t& block, std::uint32_t sector_base, std::uint32_t tail_size, unsigned char* source)
+int PfsFile::init_crypt_ctx(CryptEngineWorkCtx* work_ctx, const sce_ng_pfs_header_t& ngpfs, const sce_ng_pfs_file_t& file, std::shared_ptr<sce_iftbl_base_t> table, sig_tbl_t& block, std::uint32_t sector_base, std::uint32_t tail_size, unsigned char* source)
 {     
-   memset(&g_data, 0, sizeof(CryptEngineData));
-   g_data.klicensee = klicensee;
-   g_data.files_salt = ngpfs.files_salt;
-   g_data.icv_salt = table->get_icv_salt();
-   g_data.mode_index = img_spec_to_mode_index(ngpfs.image_spec);
-   g_data.crypto_engine_flag = img_spec_to_crypto_engine_flag(ngpfs.image_spec) | CRYPTO_ENGINE_THROW_ERROR;
-   g_data.key_id = ngpfs.key_id;
-   g_data.fs_attr = file.file.m_info.get_original_type();
-   g_data.block_size = table->get_header()->get_fileSectorSize();
+   memset(&m_data, 0, sizeof(CryptEngineData));
+   m_data.klicensee = m_klicensee;
+   m_data.files_salt = ngpfs.files_salt;
+   m_data.icv_salt = table->get_icv_salt();
+   m_data.mode_index = img_spec_to_mode_index(ngpfs.image_spec);
+   m_data.crypto_engine_flag = img_spec_to_crypto_engine_flag(ngpfs.image_spec) | CRYPTO_ENGINE_THROW_ERROR;
+   m_data.key_id = ngpfs.key_id;
+   m_data.fs_attr = file.file.m_info.get_original_type();
+   m_data.block_size = table->get_header()->get_fileSectorSize();
 
    //--------------------------------
 
    derive_keys_ctx drv_ctx;
    memset(&drv_ctx, 0, sizeof(derive_keys_ctx));
 
-   drv_ctx.db_type = settings_to_db_type(g_data.mode_index, g_data.fs_attr);
+   drv_ctx.db_type = settings_to_db_type(m_data.mode_index, m_data.fs_attr);
    drv_ctx.icv_version = table->get_header()->get_version();
 
-   if(is_gamedata(g_data.mode_index) && has_dbseed(drv_ctx.db_type, drv_ctx.icv_version))
+   if(is_gamedata(m_data.mode_index) && has_dbseed(drv_ctx.db_type, drv_ctx.icv_version))
       memcpy(drv_ctx.dbseed, table->get_header()->get_dbseed(), 0x14);
    else
       memset(drv_ctx.dbseed, 0, 0x14);
 
-   setup_crypt_packet_keys(cryptops, iF00D, &g_data, &drv_ctx); //derive dec_key, tweak_enc_key, secret
+   setup_crypt_packet_keys(m_cryptops, m_iF00D, &m_data, &drv_ctx); //derive dec_key, tweak_enc_key, secret
 
    //--------------------------------
    
-   memset(&g_sub_ctx, 0, sizeof(CryptEngineSubctx));
-   g_sub_ctx.opt_code = CRYPT_ENGINE_READ;
-   g_sub_ctx.data = &g_data;
-   g_sub_ctx.work_buffer_ofst = (unsigned char*)0;
-   g_sub_ctx.nBlocksOffset = 0;
-   g_sub_ctx.nBlocksTail = 0;
+   memset(&m_sub_ctx, 0, sizeof(CryptEngineSubctx));
+   m_sub_ctx.opt_code = CRYPT_ENGINE_READ;
+   m_sub_ctx.data = &m_data;
+   m_sub_ctx.work_buffer_ofst = (unsigned char*)0;
+   m_sub_ctx.nBlocksOffset = 0;
+   m_sub_ctx.nBlocksTail = 0;
 
    if(db_type_to_is_unicv(drv_ctx.db_type))
-      g_sub_ctx.nBlocks = block.get_header()->get_nSignatures(); //for unicv - number of hashes is equal to number of sectors, so can use get_nSignatures
+      m_sub_ctx.nBlocks = block.get_header()->get_nSignatures(); //for unicv - number of hashes is equal to number of sectors, so can use get_nSignatures
    else
-      g_sub_ctx.nBlocks = table->get_header()->get_numSectors(); //for icv - there are more hashes than sectors (because of merkle tree), so have to use get_numSectors
+      m_sub_ctx.nBlocks = table->get_header()->get_numSectors(); //for icv - there are more hashes than sectors (because of merkle tree), so have to use get_numSectors
 
-   g_sub_ctx.sector_base = sector_base;
-   g_sub_ctx.dest_offset = 0;
-   g_sub_ctx.tail_size = tail_size;
+   m_sub_ctx.sector_base = sector_base;
+   m_sub_ctx.dest_offset = 0;
+   m_sub_ctx.tail_size = tail_size;
 
    if(db_type_to_is_unicv(drv_ctx.db_type))
    {
-      g_signatureTable.clear();
-      g_signatureTable.resize(block.m_signatures.size() * block.get_header()->get_sigSize());
+      m_signatureTable.clear();
+      m_signatureTable.resize(block.m_signatures.size() * block.get_header()->get_sigSize());
       std::uint32_t signatureTableOffset = 0;
       for(auto& s :  block.m_signatures)
       {
-         memcpy(g_signatureTable.data() + signatureTableOffset, s.m_data.data(), block.get_header()->get_sigSize());
+         memcpy(m_signatureTable.data() + signatureTableOffset, s.m_data.data(), block.get_header()->get_sigSize());
          signatureTableOffset += block.get_header()->get_sigSize();
       }
    }
@@ -111,38 +115,38 @@ int init_crypt_ctx(std::shared_ptr<ICryptoOperations> cryptops, std::shared_ptr<
       //skip first chunk of hashes that corresponds to nodes of merkle tree (we only need to go through leaves)
       for(std::uint32_t i = mkt->nNodes - mkt->nLeaves, j = 0; i < block.m_signatures.size(); i++, j++)
       {
-         nartualHashTable.insert(std::make_pair(leaves[j]->m_index, block.m_signatures[i]));         
+         nartualHashTable.insert(std::make_pair(leaves[j]->m_index, block.m_signatures[i]));
       }
 
-      g_signatureTable.clear();
-      g_signatureTable.resize(nartualHashTable.size() * block.get_header()->get_sigSize());
+      m_signatureTable.clear();
+      m_signatureTable.resize(nartualHashTable.size() * block.get_header()->get_sigSize());
 
       std::uint32_t signatureTableOffset = 0;
       for(auto& s :  nartualHashTable)
       {
-         memcpy(g_signatureTable.data() + signatureTableOffset, s.second.m_data.data(), block.get_header()->get_sigSize());
+         memcpy(m_signatureTable.data() + signatureTableOffset, s.second.m_data.data(), block.get_header()->get_sigSize());
          signatureTableOffset += block.get_header()->get_sigSize();
       }
    }
 
-   g_sub_ctx.signature_table = g_signatureTable.data();
-   g_sub_ctx.work_buffer0 = source;
-   g_sub_ctx.work_buffer1 = source;
+   m_sub_ctx.signature_table = m_signatureTable.data();
+   m_sub_ctx.work_buffer0 = source;
+   m_sub_ctx.work_buffer1 = source;
    
    //--------------------------------
    
-   work_ctx->subctx = &g_sub_ctx;
+   work_ctx->subctx = &m_sub_ctx;
    work_ctx->error = 0;
 
    return 0;
 }
 
-int decrypt_icv_file(std::shared_ptr<ICryptoOperations> cryptops, std::shared_ptr<IF00DKeyEncryptor> iF00D, boost::filesystem::path titleIdPath, boost::filesystem::path destination_root, const sce_ng_pfs_file_t& file, const sce_junction& filepath, const unsigned char* klicensee, const sce_ng_pfs_header_t& ngpfs, std::shared_ptr<sce_iftbl_base_t> table)
+int PfsFile::decrypt_icv_file(boost::filesystem::path destination_root, const sce_ng_pfs_file_t& file, const sce_junction& filepath, const sce_ng_pfs_header_t& ngpfs, std::shared_ptr<sce_iftbl_base_t> table)
 {
    //create new file
 
    std::ofstream outputStream;
-   if(!filepath.create_empty_file(titleIdPath, destination_root, outputStream))
+   if(!filepath.create_empty_file(m_titleIdPath, destination_root, outputStream))
       return -1;
 
    //open encrypted file
@@ -174,10 +178,10 @@ int decrypt_icv_file(std::shared_ptr<ICryptoOperations> cryptops, std::shared_pt
          tail_size = table->get_header()->get_fileSectorSize();
          
       CryptEngineWorkCtx work_ctx;
-      if(init_crypt_ctx(cryptops, iF00D, &work_ctx, klicensee, ngpfs, file, table, table->m_blocks.front(), 0, tail_size, buffer.data()) < 0)
+      if(init_crypt_ctx(&work_ctx, ngpfs, file, table, table->m_blocks.front(), 0, tail_size, buffer.data()) < 0)
          return -1;
 
-      pfs_decrypt(cryptops, iF00D, &work_ctx);
+      pfs_decrypt(m_cryptops, m_iF00D, &work_ctx);
 
       if(work_ctx.error < 0)
       {
@@ -206,12 +210,12 @@ int decrypt_icv_file(std::shared_ptr<ICryptoOperations> cryptops, std::shared_pt
    return 0;
 }
 
-int decrypt_unicv_file(std::shared_ptr<ICryptoOperations> cryptops, std::shared_ptr<IF00DKeyEncryptor> iF00D, boost::filesystem::path titleIdPath, boost::filesystem::path destination_root, const sce_ng_pfs_file_t& file, const sce_junction& filepath, const unsigned char* klicensee, const sce_ng_pfs_header_t& ngpfs, std::shared_ptr<sce_iftbl_base_t> table)
+int PfsFile::decrypt_unicv_file(boost::filesystem::path destination_root, const sce_ng_pfs_file_t& file, const sce_junction& filepath, const sce_ng_pfs_header_t& ngpfs, std::shared_ptr<sce_iftbl_base_t> table)
 {
    //create new file
 
    std::ofstream outputStream;
-   if(!filepath.create_empty_file(titleIdPath, destination_root, outputStream))
+   if(!filepath.create_empty_file(m_titleIdPath, destination_root, outputStream))
       return -1;
 
    //open encrypted file
@@ -243,10 +247,10 @@ int decrypt_unicv_file(std::shared_ptr<ICryptoOperations> cryptops, std::shared_
          tail_size = table->get_header()->get_fileSectorSize();
          
       CryptEngineWorkCtx work_ctx;
-      if(init_crypt_ctx(cryptops, iF00D, &work_ctx, klicensee, ngpfs, file, table, table->m_blocks.front(), 0, tail_size, buffer.data()) < 0)
+      if(init_crypt_ctx(&work_ctx, ngpfs, file, table, table->m_blocks.front(), 0, tail_size, buffer.data()) < 0)
          return -1;
 
-      pfs_decrypt(cryptops, iF00D, &work_ctx);
+      pfs_decrypt(m_cryptops, m_iF00D, &work_ctx);
 
       if(work_ctx.error < 0)
       {
@@ -287,10 +291,10 @@ int decrypt_unicv_file(std::shared_ptr<ICryptoOperations> cryptops, std::shared_
                tail_size = table->get_header()->get_fileSectorSize();
          
             CryptEngineWorkCtx work_ctx;
-            if(init_crypt_ctx(cryptops, iF00D, &work_ctx, klicensee, ngpfs, file, table, b, sector_base, tail_size, buffer.data()) < 0)
+            if(init_crypt_ctx(&work_ctx, ngpfs, file, table, b, sector_base, tail_size, buffer.data()) < 0)
                return -1;
 
-            pfs_decrypt(cryptops, iF00D, &work_ctx);
+            pfs_decrypt(m_cryptops, m_iF00D, &work_ctx);
 
             if(work_ctx.error < 0)
             {
@@ -317,10 +321,10 @@ int decrypt_unicv_file(std::shared_ptr<ICryptoOperations> cryptops, std::shared_
                   tail_size = table->get_header()->get_fileSectorSize();
 
                CryptEngineWorkCtx work_ctx;
-               if(init_crypt_ctx(cryptops, iF00D, &work_ctx, klicensee, ngpfs, file, table, b, sector_base, tail_size, buffer.data()) < 0)
+               if(init_crypt_ctx(&work_ctx, ngpfs, file, table, b, sector_base, tail_size, buffer.data()) < 0)
                   return -1;
 
-               pfs_decrypt(cryptops, iF00D, &work_ctx);
+               pfs_decrypt(m_cryptops, m_iF00D, &work_ctx);
 
                if(work_ctx.error < 0)
                {
@@ -339,10 +343,10 @@ int decrypt_unicv_file(std::shared_ptr<ICryptoOperations> cryptops, std::shared_
                inputStream.read((char*)buffer.data(), full_block_size);
 
                CryptEngineWorkCtx work_ctx;
-               if(init_crypt_ctx(cryptops, iF00D, &work_ctx, klicensee, ngpfs, file, table, b, sector_base, table->get_header()->get_fileSectorSize(), buffer.data()) < 0)
+               if(init_crypt_ctx(&work_ctx, ngpfs, file, table, b, sector_base, table->get_header()->get_fileSectorSize(), buffer.data()) < 0)
                   return -1;
 
-               pfs_decrypt(cryptops, iF00D, &work_ctx);
+               pfs_decrypt(m_cryptops, m_iF00D, &work_ctx);
 
                if(work_ctx.error < 0)
                {
@@ -368,13 +372,16 @@ int decrypt_unicv_file(std::shared_ptr<ICryptoOperations> cryptops, std::shared_
    return 0;
 }
 
-int decrypt_file(std::shared_ptr<ICryptoOperations> cryptops, std::shared_ptr<IF00DKeyEncryptor> iF00D, boost::filesystem::path titleIdPath, boost::filesystem::path destination_root, const sce_ng_pfs_file_t& file, const sce_junction& filepath, const unsigned char* klicensee, const sce_ng_pfs_header_t& ngpfs, std::shared_ptr<sce_iftbl_base_t> table)
+int PfsFile::decrypt_file(boost::filesystem::path destination_root, const sce_ng_pfs_file_t& file, const sce_junction& filepath, const sce_ng_pfs_header_t& ngpfs, std::shared_ptr<sce_iftbl_base_t> table)
 {
    if(img_spec_to_is_unicv(ngpfs.image_spec))
-      return decrypt_unicv_file(cryptops, iF00D, titleIdPath, destination_root, file, filepath, klicensee, ngpfs, table);
+      return decrypt_unicv_file(destination_root, file, filepath, ngpfs, table);
    else
-      return decrypt_icv_file(cryptops, iF00D, titleIdPath, destination_root, file, filepath, klicensee, ngpfs, table);
+      return decrypt_icv_file(destination_root, file, filepath, ngpfs, table);
 }
+
+
+
 
 std::vector<sce_ng_pfs_file_t>::const_iterator find_file_by_path(const std::vector<sce_ng_pfs_file_t>& files, const sce_junction& p)
 {
@@ -473,7 +480,9 @@ int decrypt_files(std::shared_ptr<ICryptoOperations> cryptops, std::shared_ptr<I
       //decrypt encrypted files
       else if(is_encrypted(file->file.m_info.header.type))
       {
-         if(decrypt_file(cryptops, iF00D, titleIdPath, destTitleIdPath, *file, filepath, klicensee, ngpfs, t) < 0)
+         PfsFile pfsFile(cryptops,iF00D, std::cout, klicensee, titleIdPath);
+
+         if(pfsFile.decrypt_file(destTitleIdPath, *file, filepath, ngpfs, t) < 0)
          {
             std::cout << "Failed to decrypt: " << filepath << std::endl;
             return -1;
