@@ -381,9 +381,14 @@ int PfsFile::decrypt_file(boost::filesystem::path destination_root, const sce_ng
 }
 
 
+PfsFilesystem::PfsFilesystem(std::shared_ptr<ICryptoOperations> cryptops, std::shared_ptr<IF00DKeyEncryptor> iF00D, std::ostream& output, 
+                 const unsigned char* klicensee, boost::filesystem::path titleIdPath)
+   : m_cryptops(cryptops), m_iF00D(iF00D), m_output(output), m_titleIdPath(titleIdPath)
+{
+   memcpy(m_klicensee, klicensee, 0x10);
+}
 
-
-std::vector<sce_ng_pfs_file_t>::const_iterator find_file_by_path(const std::vector<sce_ng_pfs_file_t>& files, const sce_junction& p)
+std::vector<sce_ng_pfs_file_t>::const_iterator PfsFilesystem::find_file_by_path(const std::vector<sce_ng_pfs_file_t>& files, const sce_junction& p)
 {
    for(std::vector<sce_ng_pfs_file_t>::const_iterator it = files.begin(); it != files.end(); ++it)
    {
@@ -393,13 +398,13 @@ std::vector<sce_ng_pfs_file_t>::const_iterator find_file_by_path(const std::vect
    return files.end();
 }
 
-int decrypt_files(std::shared_ptr<ICryptoOperations> cryptops, std::shared_ptr<IF00DKeyEncryptor> iF00D, boost::filesystem::path titleIdPath, boost::filesystem::path destTitleIdPath, const unsigned char* klicensee, const sce_ng_pfs_header_t& ngpfs, const std::vector<sce_ng_pfs_file_t>& files, const std::vector<sce_ng_pfs_dir_t>& dirs, const std::unique_ptr<sce_idb_base_t>& fdb, const std::map<std::uint32_t, sce_junction>& pageMap, const std::set<sce_junction>& emptyFiles)
+int PfsFilesystem::decrypt_files(boost::filesystem::path destTitleIdPath, const sce_ng_pfs_header_t& ngpfs, const std::vector<sce_ng_pfs_file_t>& files, const std::vector<sce_ng_pfs_dir_t>& dirs, const std::unique_ptr<sce_idb_base_t>& fdb, const std::map<std::uint32_t, sce_junction>& pageMap, const std::set<sce_junction>& emptyFiles)
 {
    std::cout << "Creating directories..." << std::endl;
 
    for(auto& d : dirs)
    {
-      if(!d.path().create_empty_directory(titleIdPath, destTitleIdPath))
+      if(!d.path().create_empty_directory(m_titleIdPath, destTitleIdPath))
       {
          std::cout << "Failed to create: " << d.path() << std::endl;
          return -1;
@@ -421,7 +426,7 @@ int decrypt_files(std::shared_ptr<ICryptoOperations> cryptops, std::shared_ptr<I
       }
       else
       {
-         if(!f.create_empty_file(titleIdPath, destTitleIdPath))
+         if(!f.create_empty_file(m_titleIdPath, destTitleIdPath))
          {
             std::cout << "Failed to create: " << f << std::endl;
             return -1;
@@ -467,7 +472,7 @@ int decrypt_files(std::shared_ptr<ICryptoOperations> cryptops, std::shared_ptr<I
       //copy unencrypted files
       else if(is_unencrypted(file->file.m_info.header.type))
       {
-         if(!filepath.copy_existing_file(titleIdPath, destTitleIdPath))
+         if(!filepath.copy_existing_file(m_titleIdPath, destTitleIdPath))
          {
             std::cout << "Failed to copy: " << filepath << std::endl;
             return -1;
@@ -480,7 +485,7 @@ int decrypt_files(std::shared_ptr<ICryptoOperations> cryptops, std::shared_ptr<I
       //decrypt encrypted files
       else if(is_encrypted(file->file.m_info.header.type))
       {
-         PfsFile pfsFile(cryptops,iF00D, std::cout, klicensee, titleIdPath);
+         PfsFile pfsFile(m_cryptops, m_iF00D, std::cout, m_klicensee, m_titleIdPath);
 
          if(pfsFile.decrypt_file(destTitleIdPath, *file, filepath, ngpfs, t) < 0)
          {

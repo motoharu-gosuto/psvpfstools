@@ -36,8 +36,10 @@ int execute(std::shared_ptr<ICryptoOperations> cryptops, std::shared_ptr<IF00DKe
 
    const std::map<std::uint32_t, sce_junction>& pageMap = pageMapper->get_pageMap();
    const std::set<sce_junction>& emptyFiles = pageMapper->get_emptyFiles();
+
+   PfsFilesystem pfs(cryptops, iF00D, std::cout, klicensee, titleIdPath);
    
-   if(decrypt_files(cryptops, iF00D, titleIdPath, destTitleIdPath, klicensee, header, files, dirs, unicv, pageMap, emptyFiles) < 0)
+   if(pfs.decrypt_files(destTitleIdPath, header, files, dirs, unicv, pageMap, emptyFiles) < 0)
       return -1;
 
    std::cout << "keystone sanity check..." << std::endl;
