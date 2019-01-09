@@ -423,45 +423,45 @@ int PfsFilesystem::decrypt_files(boost::filesystem::path destTitleIdPath)
    const std::map<std::uint32_t, sce_junction>& pageMap = pageMapper->get_pageMap();
    const std::set<sce_junction>& emptyFiles = pageMapper->get_emptyFiles();
 
-   std::cout << "Creating directories..." << std::endl;
+   m_output << "Creating directories..." << std::endl;
 
    for(auto& d : dirs)
    {
       if(!d.path().create_empty_directory(m_titleIdPath, destTitleIdPath))
       {
-         std::cout << "Failed to create: " << d.path() << std::endl;
+         m_output << "Failed to create: " << d.path() << std::endl;
          return -1;
       }
       else
       {
-         std::cout << "Created: " << d.path() << std::endl;
+         m_output << "Created: " << d.path() << std::endl;
       }
    }
 
-   std::cout << "Creating empty files..." << std::endl;
+   m_output << "Creating empty files..." << std::endl;
 
    for(auto& f : emptyFiles)
    {
       auto file = find_file_by_path(files, f);
       if(file == files.end())
       {
-         std::cout << "Ignored: " << f << std::endl;
+         m_output << "Ignored: " << f << std::endl;
       }
       else
       {
          if(!f.create_empty_file(m_titleIdPath, destTitleIdPath))
          {
-            std::cout << "Failed to create: " << f << std::endl;
+            m_output << "Failed to create: " << f << std::endl;
             return -1;
          }
          else
          {
-            std::cout << "Created: " << f << std::endl;
+            m_output << "Created: " << f << std::endl;
          }
       }
    }
 
-   std::cout << "Decrypting files..." << std::endl;
+   m_output << "Decrypting files..." << std::endl;
 
    for(auto& t : fdb->m_tables)
    {
@@ -473,7 +473,7 @@ int PfsFilesystem::decrypt_files(boost::filesystem::path destTitleIdPath)
       auto map_entry = pageMap.find(t->get_icv_salt());
       if(map_entry == pageMap.end())
       {
-         std::cout << "failed to find page " << t->get_icv_salt() << " in map" << std::endl;
+         m_output << "failed to find page " << t->get_icv_salt() << " in map" << std::endl;
          return -1;
       }
 
@@ -482,14 +482,14 @@ int PfsFilesystem::decrypt_files(boost::filesystem::path destTitleIdPath)
       auto file = find_file_by_path(files, filepath);
       if(file == files.end())
       {
-         std::cout << "failed to find file " << filepath << " in flat file list" << std::endl;
+         m_output << "failed to find file " << filepath << " in flat file list" << std::endl;
          return -1;
       }
 
       //directory and unexisting file are unexpected
       if(is_directory(file->file.m_info.header.type) || is_unexisting(file->file.m_info.header.type))
       {
-         std::cout << "Unexpected file type" << std::endl;
+         m_output << "Unexpected file type" << std::endl;
          return -1;
       }
       //copy unencrypted files
@@ -497,32 +497,32 @@ int PfsFilesystem::decrypt_files(boost::filesystem::path destTitleIdPath)
       {
          if(!filepath.copy_existing_file(m_titleIdPath, destTitleIdPath))
          {
-            std::cout << "Failed to copy: " << filepath << std::endl;
+            m_output << "Failed to copy: " << filepath << std::endl;
             return -1;
          }
          else
          {
-            std::cout << "Copied: " << filepath << std::endl;
+            m_output << "Copied: " << filepath << std::endl;
          }
       }
       //decrypt encrypted files
       else if(is_encrypted(file->file.m_info.header.type))
       {
-         PfsFile pfsFile(m_cryptops, m_iF00D, std::cout, m_klicensee, m_titleIdPath);
+         PfsFile pfsFile(m_cryptops, m_iF00D, m_output, m_klicensee, m_titleIdPath);
 
          if(pfsFile.decrypt_file(destTitleIdPath, *file, filepath, ngpfs, t) < 0)
          {
-            std::cout << "Failed to decrypt: " << filepath << std::endl;
+            m_output << "Failed to decrypt: " << filepath << std::endl;
             return -1;
          }
          else
          {
-            std::cout << "Decrypted: " << filepath << std::endl;
+            m_output << "Decrypted: " << filepath << std::endl;
          }
       }
       else
       {
-         std::cout << "Unexpected file type" << std::endl;
+         m_output << "Unexpected file type" << std::endl;
          return -1;
       }
    }   
