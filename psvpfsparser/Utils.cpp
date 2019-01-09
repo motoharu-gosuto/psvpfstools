@@ -119,6 +119,10 @@ sce_junction::sce_junction(const sce_junction& other)
 
 }
 
+//comparison is done as case insensitive
+//this is because virtual path in files.db may not exactly match to physical path
+//in real world - windows is case insensitive while linux is case sensitive
+//it seems that pfs assumes windows as its prior filesystem for tools
 bool sce_junction::is_equal(boost::filesystem::path p) const
 {
    std::string left = m_value.generic_string();
