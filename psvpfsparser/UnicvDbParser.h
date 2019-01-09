@@ -9,7 +9,7 @@ class UnicvDbParser
 private:
    boost::filesystem::path m_titleIdPath;
 
-   std::shared_ptr<sce_idb_base_t> m_fdb;
+   std::unique_ptr<sce_idb_base_t> m_fdb;
    std::ostream& m_output;
 
 public:
@@ -19,5 +19,5 @@ public:
    int parse();
 
 public:
-   const std::shared_ptr<sce_idb_base_t>& get_idatabase() const;
+   const std::unique_ptr<sce_idb_base_t>& get_idatabase() const;
 };

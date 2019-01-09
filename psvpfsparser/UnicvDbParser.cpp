@@ -40,7 +40,7 @@ int UnicvDbParser::parse()
       {
          m_output << "parsing  icv.db..." << std::endl;
 
-         m_fdb = std::make_shared<sce_icvdb_t>(m_output);
+         m_fdb = std::unique_ptr<sce_idb_base_t>(new sce_icvdb_t(m_output));
          if(!m_fdb->read(filepath2))
             return -1;
 
@@ -51,7 +51,7 @@ int UnicvDbParser::parse()
    {
       m_output << "parsing  unicv.db..." << std::endl;
 
-      m_fdb = std::make_shared<sce_irodb_t>(m_output);
+      m_fdb = std::unique_ptr<sce_idb_base_t>(new sce_irodb_t(m_output));
       if(!m_fdb->read(filepath))
          return -1;
 
@@ -59,7 +59,7 @@ int UnicvDbParser::parse()
    }
 }
 
-const std::shared_ptr<sce_idb_base_t>& UnicvDbParser::get_idatabase() const
+const std::unique_ptr<sce_idb_base_t>& UnicvDbParser::get_idatabase() const
 {
    return m_fdb;
 }
