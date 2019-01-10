@@ -19,8 +19,10 @@
 #include "MerkleTree.hpp"
 
 PfsFile::PfsFile(std::shared_ptr<ICryptoOperations> cryptops, std::shared_ptr<IF00DKeyEncryptor> iF00D, std::ostream& output, 
-                 const unsigned char* klicensee, boost::filesystem::path titleIdPath)
-   : m_cryptops(cryptops), m_iF00D(iF00D), m_output(output), m_titleIdPath(titleIdPath)
+                 const unsigned char* klicensee, boost::filesystem::path titleIdPath,
+                 const sce_ng_pfs_file_t& file, const sce_junction& filepath, const sce_ng_pfs_header_t& ngpfs, std::shared_ptr<sce_iftbl_base_t> table)
+   : m_cryptops(cryptops), m_iF00D(iF00D), m_output(output), m_titleIdPath(titleIdPath),
+     m_file(file), m_filepath(filepath), m_ngpfs(ngpfs), m_table(table)
 {
    memcpy(m_klicensee, klicensee, 0x10);
 }
@@ -36,7 +38,7 @@ int collect_leaf(std::shared_ptr<merkle_tree_node<icv> > node, void* ctx)
    return 0;
 }
 
-int PfsFile::init_crypt_ctx(CryptEngineWorkCtx* work_ctx, const sce_ng_pfs_header_t& ngpfs, const sce_ng_pfs_file_t& file, std::shared_ptr<sce_iftbl_base_t> table, sig_tbl_t& block, std::uint32_t sector_base, std::uint32_t tail_size, unsigned char* source)
+int PfsFile::init_crypt_ctx(CryptEngineWorkCtx* work_ctx, const sce_ng_pfs_header_t& ngpfs, const sce_ng_pfs_file_t& file, std::shared_ptr<sce_iftbl_base_t> table, sig_tbl_t& block, std::uint32_t sector_base, std::uint32_t tail_size, unsigned char* source) const
 {     
    memset(&m_data, 0, sizeof(CryptEngineData));
    m_data.klicensee = m_klicensee;
@@ -141,26 +143,26 @@ int PfsFile::init_crypt_ctx(CryptEngineWorkCtx* work_ctx, const sce_ng_pfs_heade
    return 0;
 }
 
-int PfsFile::decrypt_icv_file(boost::filesystem::path destination_root, const sce_ng_pfs_file_t& file, const sce_junction& filepath, const sce_ng_pfs_header_t& ngpfs, std::shared_ptr<sce_iftbl_base_t> table)
+int PfsFile::decrypt_icv_file(boost::filesystem::path destination_root) const
 {
    //create new file
 
    std::ofstream outputStream;
-   if(!filepath.create_empty_file(m_titleIdPath, destination_root, outputStream))
+   if(!m_filepath.create_empty_file(m_titleIdPath, destination_root, outputStream))
       return -1;
 
    //open encrypted file
 
    std::ifstream inputStream;
-   if(!filepath.open(inputStream))
+   if(!m_filepath.open(inputStream))
    {
-      m_output << "Failed to open " << filepath << std::endl;
+      m_output << "Failed to open " << m_filepath << std::endl;
       return -1;
    }
 
    //do decryption
 
-   std::uintmax_t fileSize = filepath.file_size();
+   std::uintmax_t fileSize = m_filepath.file_size();
 
    //in icv files there are more hashes than sectors due to merkle tree
    //that is why we have to use get_numHashes() method here
@@ -168,17 +170,17 @@ int PfsFile::decrypt_icv_file(boost::filesystem::path destination_root, const sc
    //we can use get_numSectors() there
 
    //if number of sectors is less than or same to number that fits into single signature page
-   if(table->get_header()->get_numHashes() <= table->get_header()->get_binTreeNumMaxAvail())
+   if(m_table->get_header()->get_numHashes() <= m_table->get_header()->get_binTreeNumMaxAvail())
    {
       std::vector<std::uint8_t> buffer(static_cast<std::vector<std::uint8_t>::size_type>(fileSize));
       inputStream.read((char*)buffer.data(), fileSize);
          
-      std::uint32_t tail_size = fileSize % table->get_header()->get_fileSectorSize();
+      std::uint32_t tail_size = fileSize % m_table->get_header()->get_fileSectorSize();
       if(tail_size == 0)
-         tail_size = table->get_header()->get_fileSectorSize();
+         tail_size = m_table->get_header()->get_fileSectorSize();
          
       CryptEngineWorkCtx work_ctx;
-      if(init_crypt_ctx(&work_ctx, ngpfs, file, table, table->m_blocks.front(), 0, tail_size, buffer.data()) < 0)
+      if(init_crypt_ctx(&work_ctx, m_ngpfs, m_file, m_table, m_table->m_blocks.front(), 0, tail_size, buffer.data()) < 0)
          return -1;
 
       pfs_decrypt(m_cryptops, m_iF00D, &work_ctx);
@@ -210,26 +212,26 @@ int PfsFile::decrypt_icv_file(boost::filesystem::path destination_root, const sc
    return 0;
 }
 
-int PfsFile::decrypt_unicv_file(boost::filesystem::path destination_root, const sce_ng_pfs_file_t& file, const sce_junction& filepath, const sce_ng_pfs_header_t& ngpfs, std::shared_ptr<sce_iftbl_base_t> table)
+int PfsFile::decrypt_unicv_file(boost::filesystem::path destination_root) const
 {
    //create new file
 
    std::ofstream outputStream;
-   if(!filepath.create_empty_file(m_titleIdPath, destination_root, outputStream))
+   if(!m_filepath.create_empty_file(m_titleIdPath, destination_root, outputStream))
       return -1;
 
    //open encrypted file
 
    std::ifstream inputStream;
-   if(!filepath.open(inputStream))
+   if(!m_filepath.open(inputStream))
    {
-      m_output << "Failed to open " << filepath << std::endl;
+      m_output << "Failed to open " << m_filepath << std::endl;
       return -1;
    }
 
    //do decryption
 
-   std::uintmax_t fileSize = filepath.file_size();
+   std::uintmax_t fileSize = m_filepath.file_size();
 
    //in unicv files - there is one hash per sector
    //that is why we can use get_numSectors() method here
@@ -237,17 +239,17 @@ int PfsFile::decrypt_unicv_file(boost::filesystem::path destination_root, const 
    //we have to use get_numHashes() there
 
    //if number of sectors is less than or same to number that fits into single signature page
-   if(table->get_header()->get_numSectors() <= table->get_header()->get_binTreeNumMaxAvail())
+   if(m_table->get_header()->get_numSectors() <= m_table->get_header()->get_binTreeNumMaxAvail())
    {
       std::vector<std::uint8_t> buffer(static_cast<std::vector<std::uint8_t>::size_type>(fileSize));
       inputStream.read((char*)buffer.data(), fileSize);
          
-      std::uint32_t tail_size = fileSize % table->get_header()->get_fileSectorSize();
+      std::uint32_t tail_size = fileSize % m_table->get_header()->get_fileSectorSize();
       if(tail_size == 0)
-         tail_size = table->get_header()->get_fileSectorSize();
+         tail_size = m_table->get_header()->get_fileSectorSize();
          
       CryptEngineWorkCtx work_ctx;
-      if(init_crypt_ctx(&work_ctx, ngpfs, file, table, table->m_blocks.front(), 0, tail_size, buffer.data()) < 0)
+      if(init_crypt_ctx(&work_ctx, m_ngpfs, m_file, m_table, m_table->m_blocks.front(), 0, tail_size, buffer.data()) < 0)
          return -1;
 
       pfs_decrypt(m_cryptops, m_iF00D, &work_ctx);
@@ -270,12 +272,12 @@ int PfsFile::decrypt_unicv_file(boost::filesystem::path destination_root, const 
       std::uint32_t sector_base = 0;
 
       //go through each block of sectors
-      for(auto& b : table->m_blocks)
+      for(auto& b : m_table->m_blocks)
       {
          //if number of sectors is less than number that fits into single signature page
-         if(b.get_header()->get_nSignatures() < table->get_header()->get_binTreeNumMaxAvail())
+         if(b.get_header()->get_nSignatures() < m_table->get_header()->get_binTreeNumMaxAvail())
          {
-            std::uint32_t full_block_size = table->get_header()->get_binTreeNumMaxAvail() * table->get_header()->get_fileSectorSize();
+            std::uint32_t full_block_size = m_table->get_header()->get_binTreeNumMaxAvail() * m_table->get_header()->get_fileSectorSize();
 
             if(bytes_left >= full_block_size)
             {
@@ -286,12 +288,12 @@ int PfsFile::decrypt_unicv_file(boost::filesystem::path destination_root, const 
             std::vector<std::uint8_t> buffer(static_cast<std::vector<std::uint8_t>::size_type>(bytes_left));
             inputStream.read((char*)buffer.data(), bytes_left);
 
-            std::uint32_t tail_size = bytes_left % table->get_header()->get_fileSectorSize();
+            std::uint32_t tail_size = bytes_left % m_table->get_header()->get_fileSectorSize();
             if(tail_size == 0)
-               tail_size = table->get_header()->get_fileSectorSize();
+               tail_size = m_table->get_header()->get_fileSectorSize();
          
             CryptEngineWorkCtx work_ctx;
-            if(init_crypt_ctx(&work_ctx, ngpfs, file, table, b, sector_base, tail_size, buffer.data()) < 0)
+            if(init_crypt_ctx(&work_ctx, m_ngpfs, m_file, m_table, b, sector_base, tail_size, buffer.data()) < 0)
                return -1;
 
             pfs_decrypt(m_cryptops, m_iF00D, &work_ctx);
@@ -308,7 +310,7 @@ int PfsFile::decrypt_unicv_file(boost::filesystem::path destination_root, const 
          }
          else
          {
-            std::uint32_t full_block_size = table->get_header()->get_binTreeNumMaxAvail() * table->get_header()->get_fileSectorSize();
+            std::uint32_t full_block_size = m_table->get_header()->get_binTreeNumMaxAvail() * m_table->get_header()->get_fileSectorSize();
 
             //if this is a last block and last sector is not fully filled
             if(bytes_left < full_block_size)
@@ -316,12 +318,12 @@ int PfsFile::decrypt_unicv_file(boost::filesystem::path destination_root, const 
                std::vector<std::uint8_t> buffer(static_cast<std::vector<std::uint8_t>::size_type>(bytes_left));
                inputStream.read((char*)buffer.data(), bytes_left);
 
-               std::uint32_t tail_size = bytes_left % table->get_header()->get_fileSectorSize();
+               std::uint32_t tail_size = bytes_left % m_table->get_header()->get_fileSectorSize();
                if(tail_size == 0)
-                  tail_size = table->get_header()->get_fileSectorSize();
+                  tail_size = m_table->get_header()->get_fileSectorSize();
 
                CryptEngineWorkCtx work_ctx;
-               if(init_crypt_ctx(&work_ctx, ngpfs, file, table, b, sector_base, tail_size, buffer.data()) < 0)
+               if(init_crypt_ctx(&work_ctx, m_ngpfs, m_file, m_table, b, sector_base, tail_size, buffer.data()) < 0)
                   return -1;
 
                pfs_decrypt(m_cryptops, m_iF00D, &work_ctx);
@@ -343,7 +345,7 @@ int PfsFile::decrypt_unicv_file(boost::filesystem::path destination_root, const 
                inputStream.read((char*)buffer.data(), full_block_size);
 
                CryptEngineWorkCtx work_ctx;
-               if(init_crypt_ctx(&work_ctx, ngpfs, file, table, b, sector_base, table->get_header()->get_fileSectorSize(), buffer.data()) < 0)
+               if(init_crypt_ctx(&work_ctx, m_ngpfs, m_file, m_table, b, sector_base, m_table->get_header()->get_fileSectorSize(), buffer.data()) < 0)
                   return -1;
 
                pfs_decrypt(m_cryptops, m_iF00D, &work_ctx);
@@ -359,7 +361,7 @@ int PfsFile::decrypt_unicv_file(boost::filesystem::path destination_root, const 
                }
 
                bytes_left = bytes_left - full_block_size;
-               sector_base = sector_base + table->get_header()->get_binTreeNumMaxAvail();
+               sector_base = sector_base + m_table->get_header()->get_binTreeNumMaxAvail();
             }
          }
       }
@@ -372,12 +374,12 @@ int PfsFile::decrypt_unicv_file(boost::filesystem::path destination_root, const 
    return 0;
 }
 
-int PfsFile::decrypt_file(boost::filesystem::path destination_root, const sce_ng_pfs_file_t& file, const sce_junction& filepath, const sce_ng_pfs_header_t& ngpfs, std::shared_ptr<sce_iftbl_base_t> table)
+int PfsFile::decrypt_file(boost::filesystem::path destination_root) const
 {
-   if(img_spec_to_is_unicv(ngpfs.image_spec))
-      return decrypt_unicv_file(destination_root, file, filepath, ngpfs, table);
+   if(img_spec_to_is_unicv(m_ngpfs.image_spec))
+      return decrypt_unicv_file(destination_root);
    else
-      return decrypt_icv_file(destination_root, file, filepath, ngpfs, table);
+      return decrypt_icv_file(destination_root);
 }
 
 
@@ -394,7 +396,7 @@ PfsFilesystem::PfsFilesystem(std::shared_ptr<ICryptoOperations> cryptops, std::s
    m_pageMapper = std::unique_ptr<PfsPageMapper>(new PfsPageMapper(cryptops, iF00D, output, klicensee, titleIdPath));
 }
 
-std::vector<sce_ng_pfs_file_t>::const_iterator PfsFilesystem::find_file_by_path(const std::vector<sce_ng_pfs_file_t>& files, const sce_junction& p)
+std::vector<sce_ng_pfs_file_t>::const_iterator PfsFilesystem::find_file_by_path(const std::vector<sce_ng_pfs_file_t>& files, const sce_junction& p) const
 {
    for(std::vector<sce_ng_pfs_file_t>::const_iterator it = files.begin(); it != files.end(); ++it)
    {
@@ -418,7 +420,7 @@ int PfsFilesystem::mount()
    return 0;
 }
 
-int PfsFilesystem::decrypt_files(boost::filesystem::path destTitleIdPath)
+int PfsFilesystem::decrypt_files(boost::filesystem::path destTitleIdPath) const
 {
    const sce_ng_pfs_header_t& ngpfs = m_filesDbParser->get_header();
    const std::vector<sce_ng_pfs_file_t>& files = m_filesDbParser->get_files();
@@ -514,9 +516,9 @@ int PfsFilesystem::decrypt_files(boost::filesystem::path destTitleIdPath)
       //decrypt encrypted files
       else if(is_encrypted(file->file.m_info.header.type))
       {
-         PfsFile pfsFile(m_cryptops, m_iF00D, m_output, m_klicensee, m_titleIdPath);
+         PfsFile pfsFile(m_cryptops, m_iF00D, m_output, m_klicensee, m_titleIdPath, *file, filepath, ngpfs, t);
 
-         if(pfsFile.decrypt_file(destTitleIdPath, *file, filepath, ngpfs, t) < 0)
+         if(pfsFile.decrypt_file(destTitleIdPath) < 0)
          {
             m_output << "Failed to decrypt: " << filepath << std::endl;
             return -1;
