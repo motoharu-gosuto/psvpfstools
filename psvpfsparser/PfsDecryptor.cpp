@@ -38,17 +38,17 @@ int collect_leaf(std::shared_ptr<merkle_tree_node<icv> > node, void* ctx)
    return 0;
 }
 
-int PfsFile::init_crypt_ctx(CryptEngineWorkCtx* work_ctx, const sce_ng_pfs_header_t& ngpfs, const sce_ng_pfs_file_t& file, std::shared_ptr<sce_iftbl_base_t> table, sig_tbl_t& block, std::uint32_t sector_base, std::uint32_t tail_size, unsigned char* source) const
+int PfsFile::init_crypt_ctx(CryptEngineWorkCtx* work_ctx, sig_tbl_t& block, std::uint32_t sector_base, std::uint32_t tail_size, unsigned char* source) const
 {     
    memset(&m_data, 0, sizeof(CryptEngineData));
    m_data.klicensee = m_klicensee;
-   m_data.files_salt = ngpfs.files_salt;
-   m_data.icv_salt = table->get_icv_salt();
-   m_data.mode_index = img_spec_to_mode_index(ngpfs.image_spec);
-   m_data.crypto_engine_flag = img_spec_to_crypto_engine_flag(ngpfs.image_spec) | CRYPTO_ENGINE_THROW_ERROR;
-   m_data.key_id = ngpfs.key_id;
-   m_data.fs_attr = file.file.m_info.get_original_type();
-   m_data.block_size = table->get_header()->get_fileSectorSize();
+   m_data.files_salt = m_ngpfs.files_salt;
+   m_data.icv_salt = m_table->get_icv_salt();
+   m_data.mode_index = img_spec_to_mode_index(m_ngpfs.image_spec);
+   m_data.crypto_engine_flag = img_spec_to_crypto_engine_flag(m_ngpfs.image_spec) | CRYPTO_ENGINE_THROW_ERROR;
+   m_data.key_id = m_ngpfs.key_id;
+   m_data.fs_attr = m_file.file.m_info.get_original_type();
+   m_data.block_size = m_table->get_header()->get_fileSectorSize();
 
    //--------------------------------
 
@@ -56,10 +56,10 @@ int PfsFile::init_crypt_ctx(CryptEngineWorkCtx* work_ctx, const sce_ng_pfs_heade
    memset(&drv_ctx, 0, sizeof(derive_keys_ctx));
 
    drv_ctx.db_type = settings_to_db_type(m_data.mode_index, m_data.fs_attr);
-   drv_ctx.icv_version = table->get_header()->get_version();
+   drv_ctx.icv_version = m_table->get_header()->get_version();
 
    if(is_gamedata(m_data.mode_index) && has_dbseed(drv_ctx.db_type, drv_ctx.icv_version))
-      memcpy(drv_ctx.dbseed, table->get_header()->get_dbseed(), 0x14);
+      memcpy(drv_ctx.dbseed, m_table->get_header()->get_dbseed(), 0x14);
    else
       memset(drv_ctx.dbseed, 0, 0x14);
 
@@ -77,7 +77,7 @@ int PfsFile::init_crypt_ctx(CryptEngineWorkCtx* work_ctx, const sce_ng_pfs_heade
    if(db_type_to_is_unicv(drv_ctx.db_type))
       m_sub_ctx.nBlocks = block.get_header()->get_nSignatures(); //for unicv - number of hashes is equal to number of sectors, so can use get_nSignatures
    else
-      m_sub_ctx.nBlocks = table->get_header()->get_numSectors(); //for icv - there are more hashes than sectors (because of merkle tree), so have to use get_numSectors
+      m_sub_ctx.nBlocks = m_table->get_header()->get_numSectors(); //for icv - there are more hashes than sectors (because of merkle tree), so have to use get_numSectors
 
    m_sub_ctx.sector_base = sector_base;
    m_sub_ctx.dest_offset = 0;
@@ -99,7 +99,7 @@ int PfsFile::init_crypt_ctx(CryptEngineWorkCtx* work_ctx, const sce_ng_pfs_heade
       //for icv files we need to restore natural order of hashes in hash table (which is the order of sectors in file)
 
       //create merkle tree for corresponding table
-      std::shared_ptr<merkle_tree<icv> > mkt = generate_merkle_tree<icv>(table->get_header()->get_numSectors());
+      std::shared_ptr<merkle_tree<icv> > mkt = generate_merkle_tree<icv>(m_table->get_header()->get_numSectors());
       index_merkle_tree(mkt);
 
       //collect leaves
@@ -180,7 +180,7 @@ int PfsFile::decrypt_icv_file(boost::filesystem::path destination_root) const
          tail_size = m_table->get_header()->get_fileSectorSize();
          
       CryptEngineWorkCtx work_ctx;
-      if(init_crypt_ctx(&work_ctx, m_ngpfs, m_file, m_table, m_table->m_blocks.front(), 0, tail_size, buffer.data()) < 0)
+      if(init_crypt_ctx(&work_ctx, m_table->m_blocks.front(), 0, tail_size, buffer.data()) < 0)
          return -1;
 
       pfs_decrypt(m_cryptops, m_iF00D, &work_ctx);
@@ -249,7 +249,7 @@ int PfsFile::decrypt_unicv_file(boost::filesystem::path destination_root) const
          tail_size = m_table->get_header()->get_fileSectorSize();
          
       CryptEngineWorkCtx work_ctx;
-      if(init_crypt_ctx(&work_ctx, m_ngpfs, m_file, m_table, m_table->m_blocks.front(), 0, tail_size, buffer.data()) < 0)
+      if(init_crypt_ctx(&work_ctx, m_table->m_blocks.front(), 0, tail_size, buffer.data()) < 0)
          return -1;
 
       pfs_decrypt(m_cryptops, m_iF00D, &work_ctx);
@@ -293,7 +293,7 @@ int PfsFile::decrypt_unicv_file(boost::filesystem::path destination_root) const
                tail_size = m_table->get_header()->get_fileSectorSize();
          
             CryptEngineWorkCtx work_ctx;
-            if(init_crypt_ctx(&work_ctx, m_ngpfs, m_file, m_table, b, sector_base, tail_size, buffer.data()) < 0)
+            if(init_crypt_ctx(&work_ctx, b, sector_base, tail_size, buffer.data()) < 0)
                return -1;
 
             pfs_decrypt(m_cryptops, m_iF00D, &work_ctx);
@@ -323,7 +323,7 @@ int PfsFile::decrypt_unicv_file(boost::filesystem::path destination_root) const
                   tail_size = m_table->get_header()->get_fileSectorSize();
 
                CryptEngineWorkCtx work_ctx;
-               if(init_crypt_ctx(&work_ctx, m_ngpfs, m_file, m_table, b, sector_base, tail_size, buffer.data()) < 0)
+               if(init_crypt_ctx(&work_ctx, b, sector_base, tail_size, buffer.data()) < 0)
                   return -1;
 
                pfs_decrypt(m_cryptops, m_iF00D, &work_ctx);
@@ -345,7 +345,7 @@ int PfsFile::decrypt_unicv_file(boost::filesystem::path destination_root) const
                inputStream.read((char*)buffer.data(), full_block_size);
 
                CryptEngineWorkCtx work_ctx;
-               if(init_crypt_ctx(&work_ctx, m_ngpfs, m_file, m_table, b, sector_base, m_table->get_header()->get_fileSectorSize(), buffer.data()) < 0)
+               if(init_crypt_ctx(&work_ctx, b, sector_base, m_table->get_header()->get_fileSectorSize(), buffer.data()) < 0)
                   return -1;
 
                pfs_decrypt(m_cryptops, m_iF00D, &work_ctx);
