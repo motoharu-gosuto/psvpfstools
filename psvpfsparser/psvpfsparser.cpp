@@ -10,9 +10,8 @@
 #include <libzRIF/zRIF/rif.h>
 #include <libzRIF/zRIF/licdec.h>
 
-#include "Utils.h"
+#include "PfsFilesystem.h"
 
-#include "PfsDecryptor.h"
 #include "F00DKeyEncryptorFactory.h"
 #include "CryptoOperationsFactory.h"
 #include "PsvPfsParserConfig.h"
