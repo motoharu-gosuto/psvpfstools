@@ -3,14 +3,27 @@ project (${PROJECT})
 
 message(${PROJECT})
 
-FILE (GLOB HEADER_FILES "../ICryptoOperations.h"
+FILE (GLOB F00D_FILES "../IF00DKeyEncryptor.h"
+                      "../F00DUrlKeyEncryptor.h"
+                      "../F00DUrlKeyEncryptor.cpp"
+                      "../F00DFileKeyEncryptor.h"
+                      "../F00DFileKeyEncryptor.cpp"
+                      "../F00DKeyEncryptorFactory.h"
+                      "../F00DKeyEncryptorFactory.cpp"
+                      "../F00DNativeKeyEncryptor.h"
+                      "../F00DNativeKeyEncryptor.cpp"
+                      )
+source_group ("F00D Files" FILES ${F00D_FILES})
+
+FILE (GLOB CRYPTO_FILES "../ICryptoOperations.h"
                         "../LibTomCryptCryptoOperations.h"
+                        "../LibTomCryptCryptoOperations.cpp"
                         "../CryptoOperationsFactory.h"
-                        "../IF00DKeyEncryptor.h"
-                        "../F00DUrlKeyEncryptor.h"
-                        "../F00DFileKeyEncryptor.h"
-                        "../F00DKeyEncryptorFactory.h"
-                        "../FilesDbParser.h"
+                        "../CryptoOperationsFactory.cpp"
+                      )
+source_group ("Crypto Files" FILES ${CRYPTO_FILES})
+
+FILE (GLOB HEADER_FILES "../FilesDbParser.h"
                         "../HashTree.h"
                         "../NodeIcvCalculator.h"
                         "../PfsCryptEngine.h"
@@ -34,15 +47,10 @@ FILE (GLOB HEADER_FILES "../ICryptoOperations.h"
                         "../PfsPageMapper.h"
                         "../PfsFilesystem.h"
                         "../PfsFile.h"
-                        "../F00DNativeKeyEncryptor.h")
+                        )
 source_group ("Header Files" FILES ${HEADER_FILES})
 
-FILE (GLOB SOURCE_FILES "../LibTomCryptCryptoOperations.cpp"
-                        "../CryptoOperationsFactory.cpp"
-                        "../F00DUrlKeyEncryptor.cpp"
-                        "../F00DFileKeyEncryptor.cpp"
-                        "../F00DKeyEncryptorFactory.cpp"
-                        "../FilesDbParser.cpp"
+FILE (GLOB SOURCE_FILES "../FilesDbParser.cpp"
                         "../HashTree.cpp"
                         "../NodeIcvCalculator.cpp"
                         "../PfsCryptEngine.cpp"
@@ -66,10 +74,10 @@ FILE (GLOB SOURCE_FILES "../LibTomCryptCryptoOperations.cpp"
                         "../PfsPageMapper.cpp"
                         "../PfsFilesystem.cpp"
                         "../PfsFile.cpp"
-                        "../F00DNativeKeyEncryptor.cpp")
+                        )
 source_group ("Source Files" FILES ${SOURCE_FILES})
 
-add_executable (${PROJECT} ${HEADER_FILES} ${SOURCE_FILES})
+add_executable (${PROJECT} ${HEADER_FILES} ${SOURCE_FILES} ${F00D_FILES} ${CRYPTO_FILES})
 set_property(TARGET ${PROJECT} PROPERTY FOLDER "executables")
 set(EXECUTABLE_OUTPUT_PATH "${CMAKE_SOURCE_DIR}/output/${CMAKE_BUILD_TYPE}")
 install(TARGETS ${PROJECT} RUNTIME DESTINATION bin)
