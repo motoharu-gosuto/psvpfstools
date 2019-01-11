@@ -69,10 +69,27 @@ int extract_klicensee(const PsvPfsParserConfig& cfg, std::shared_ptr<ICryptoOper
    return 0;
 }
 
+std::shared_ptr<IF00DKeyEncryptor> create_F00D_encryptor(const PsvPfsParserConfig& cfg, std::shared_ptr<ICryptoOperations> cryptops)
+{
+   std::shared_ptr<IF00DKeyEncryptor> iF00D;
+
+   switch(cfg.f00d_enc_type)
+   {
+      case F00DEncryptorTypes::file:
+         iF00D = F00DKeyEncryptorFactory::create(cfg.f00d_enc_type, cfg.f00d_arg); 
+      case F00DEncryptorTypes::native:
+         iF00D = F00DKeyEncryptorFactory::create(cfg.f00d_enc_type, cryptops); 
+      default:
+         return std::shared_ptr<IF00DKeyEncryptor>();
+   }
+
+   return iF00D;
+}
+
 int execute(const PsvPfsParserConfig& cfg)
 {
    std::shared_ptr<ICryptoOperations> cryptops = CryptoOperationsFactory::create(CryptoOperationsTypes::libtomcrypt);
-   std::shared_ptr<IF00DKeyEncryptor> iF00D = F00DKeyEncryptorFactory::create(cfg.f00d_enc_type, cfg.f00d_arg); 
+   std::shared_ptr<IF00DKeyEncryptor> iF00D = create_F00D_encryptor(cfg, cryptops);
 
    //trim slashes in source path
    
