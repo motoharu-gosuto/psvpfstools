@@ -19,9 +19,18 @@ public:
    int aes_ecb_encrypt(const unsigned char* src, unsigned char* dst, int size, const unsigned char* key, int key_size) const override;
    int aes_ecb_decrypt(const unsigned char* src, unsigned char* dst, int size, const unsigned char* key, int key_size) const override;
 
+   int des_encrypt(const unsigned char* src, unsigned char* dst, int size, const unsigned char* key, int key_size) const override;
+   int des_decrypt(const unsigned char* src, unsigned char* dst, int size, const unsigned char* key, int key_size) const override;
+
+   int des3_encrypt(const unsigned char* src, unsigned char* dst, int size, const unsigned char* key, int key_size) const override;
+   int des3_decrypt(const unsigned char* src, unsigned char* dst, int size, const unsigned char* key, int key_size) const override;
+
    int aes_cmac(const unsigned char* src, unsigned char* dst, int size, const unsigned char* key, int key_size) const override;
    
    int sha1(const unsigned char* src, unsigned char* dst, int size) const override;
+   int sha224(const unsigned char* src, unsigned char* dst, int size) const override;
+   int sha256(const unsigned char* src, unsigned char* dst, int size) const override;
+
    int hmac_sha1(const unsigned char* src, unsigned char* dst, int size, const unsigned char* key, int key_size) const override;
    int hmac_sha256(const unsigned char* src, unsigned char* dst, int size, const unsigned char* key, int key_size) const override;
 };

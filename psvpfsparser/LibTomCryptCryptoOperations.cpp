@@ -9,7 +9,13 @@ LibTomCryptCryptoOperations::LibTomCryptCryptoOperations()
 {
    register_cipher(&aes_desc);
 
+   register_cipher(&des_desc);
+
+   register_cipher(&des3_desc);
+
    register_hash(&sha1_desc);
+
+   register_hash(&sha224_desc);
 
    register_hash(&sha256_desc);
 }
@@ -18,7 +24,13 @@ LibTomCryptCryptoOperations::~LibTomCryptCryptoOperations()
 {
    unregister_cipher(&aes_desc);
 
+   unregister_cipher(&des_desc);
+
+   unregister_cipher(&des3_desc);
+
    unregister_hash(&sha1_desc);
+
+   unregister_hash(&sha224_desc);
 
    unregister_hash(&sha256_desc);
 }
@@ -152,6 +164,82 @@ int LibTomCryptCryptoOperations::aes_ecb_decrypt(const unsigned char* src, unsig
 
    return 0;
 }
+
+int LibTomCryptCryptoOperations::des_encrypt(const unsigned char* src, unsigned char* dst, int size, const unsigned char* key, int key_size) const
+{
+   int idx = find_cipher("des");
+   if(idx < 0)
+      return -1;
+
+   symmetric_ECB ecb;
+   if(ecb_start(idx, key, key_size / 8, 0, &ecb) != CRYPT_OK)
+      return -1;
+
+   if(ecb_encrypt(src, dst, size, &ecb) != CRYPT_OK)
+      return -1;
+
+   if(ecb_done(&ecb) != CRYPT_OK)
+      return -1;
+
+   return 0;
+}
+
+int LibTomCryptCryptoOperations::des_decrypt(const unsigned char* src, unsigned char* dst, int size, const unsigned char* key, int key_size) const
+{
+   int idx = find_cipher("des");
+   if(idx < 0)
+      return -1;
+
+   symmetric_ECB ecb;
+   if(ecb_start(idx, key, key_size / 8, 0, &ecb) != CRYPT_OK)
+      return -1;
+
+   if(ecb_decrypt(src, dst, size, &ecb) != CRYPT_OK)
+      return -1;
+
+   if(ecb_done(&ecb) != CRYPT_OK)
+      return -1;
+
+   return 0;
+}
+
+int LibTomCryptCryptoOperations::des3_encrypt(const unsigned char* src, unsigned char* dst, int size, const unsigned char* key, int key_size) const
+{
+   int idx = find_cipher("3des");
+   if(idx < 0)
+      return -1;
+
+   symmetric_ECB ecb;
+   if(ecb_start(idx, key, key_size / 8, 0, &ecb) != CRYPT_OK)
+      return -1;
+
+   if(ecb_encrypt(src, dst, size, &ecb) != CRYPT_OK)
+      return -1;
+
+   if(ecb_done(&ecb) != CRYPT_OK)
+      return -1;
+
+   return 0;
+}
+
+int LibTomCryptCryptoOperations::des3_decrypt(const unsigned char* src, unsigned char* dst, int size, const unsigned char* key, int key_size) const
+{
+   int idx = find_cipher("3des");
+   if(idx < 0)
+      return -1;
+
+   symmetric_ECB ecb;
+   if(ecb_start(idx, key, key_size / 8, 0, &ecb) != CRYPT_OK)
+      return -1;
+
+   if(ecb_decrypt(src, dst, size, &ecb) != CRYPT_OK)
+      return -1;
+
+   if(ecb_done(&ecb) != CRYPT_OK)
+      return -1;
+
+   return 0;
+}
    
 int LibTomCryptCryptoOperations::aes_cmac(const unsigned char* src, unsigned char* dst, int size, const unsigned char* key, int key_size) const
 {
@@ -187,6 +275,44 @@ int LibTomCryptCryptoOperations::sha1(const unsigned char* src, unsigned char* d
       return -1;
 
    if(sha1_done(&hs, dst) != CRYPT_OK)
+      return -1;
+
+   return 0;
+}
+
+int LibTomCryptCryptoOperations::sha224(const unsigned char* src, unsigned char* dst, int size) const
+{
+   int idx = find_hash("sha224");
+   if(idx < 0)
+      return -1;
+  
+   hash_state hs;
+   if(sha224_init(&hs) != CRYPT_OK)
+      return -1;
+
+   if(sha224_process(&hs, src, size) != CRYPT_OK)
+      return -1;
+
+   if(sha224_done(&hs, dst) != CRYPT_OK)
+      return -1;
+
+   return 0;
+}
+
+int LibTomCryptCryptoOperations::sha256(const unsigned char* src, unsigned char* dst, int size) const
+{
+   int idx = find_hash("sha1");
+   if(idx < 0)
+      return -1;
+  
+   hash_state hs;
+   if(sha256_init(&hs) != CRYPT_OK)
+      return -1;
+
+   if(sha256_process(&hs, src, size) != CRYPT_OK)
+      return -1;
+
+   if(sha256_done(&hs, dst) != CRYPT_OK)
       return -1;
 
    return 0;
