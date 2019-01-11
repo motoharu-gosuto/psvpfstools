@@ -33,7 +33,8 @@ FILE (GLOB HEADER_FILES "../ICryptoOperations.h"
                         "../FlagOperations.h"
                         "../PfsPageMapper.h"
                         "../PfsFilesystem.h"
-                        "../PfsFile.h")
+                        "../PfsFile.h"
+                        "../F00DNativeKeyEncryptor.h")
 source_group ("Header Files" FILES ${HEADER_FILES})
 
 FILE (GLOB SOURCE_FILES "../LibTomCryptCryptoOperations.cpp"
@@ -64,7 +65,8 @@ FILE (GLOB SOURCE_FILES "../LibTomCryptCryptoOperations.cpp"
                         "../FlagOperations.cpp"
                         "../PfsPageMapper.cpp"
                         "../PfsFilesystem.cpp"
-                        "../PfsFile.cpp")
+                        "../PfsFile.cpp"
+                        "../F00DNativeKeyEncryptor.cpp")
 source_group ("Source Files" FILES ${SOURCE_FILES})
 
 add_executable (${PROJECT} ${HEADER_FILES} ${SOURCE_FILES})
