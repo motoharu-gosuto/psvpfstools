@@ -143,10 +143,16 @@ int F00DFileKeyEncryptor::encrypt_key(const unsigned char* key, int key_size, un
 
 void F00DFileKeyEncryptor::print_cache(std::ostream& os, std::string sep) const
 {
-   /*
-   for(auto& item : m_keyCache)
+   os << "Number of items in cache: " << m_keyCache.size() << std::endl; 
+
+   //its not ok to print whole cache because it can be very long
+
+   int i = 0;
+   for (std::map<std::string, std::string>::const_iterator it = m_keyCache.begin(); it != m_keyCache.end(); ++it, i++)
    {
-      os << item.first << sep << item.second << std::endl;
+      if(i >= 10)
+         break;
+
+      os << it->first << sep << it->second << std::endl;
    }
-   */
 }

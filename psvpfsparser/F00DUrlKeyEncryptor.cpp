@@ -151,6 +151,10 @@ int F00DUrlKeyEncryptor::encrypt_key(unsigned const char* key, int key_size, uns
 
 void F00DUrlKeyEncryptor::print_cache(std::ostream& os, std::string sep) const
 {
+   os << "Number of items in cache: " << m_keyCache.size() << std::endl; 
+
+   //its ok to print whole cache since we only expect one item anyway
+
    for(auto& item : m_keyCache)
    {
       os << item.first << sep << item.second << std::endl;
