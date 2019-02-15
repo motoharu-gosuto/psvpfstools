@@ -1,6 +1,8 @@
 #include "LibTomCryptCryptoOperations.h"
 
+extern "C" {
 #include <tomcrypt.h>
+}
 
 #undef aes_ecb_encrypt
 #undef aes_ecb_decrypt
