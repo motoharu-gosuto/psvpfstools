@@ -256,7 +256,7 @@ bool sce_junction::copy_existing_file(boost::filesystem::path source_root, boost
    if(boost::filesystem::exists(new_path))
       boost::filesystem::remove(new_path);
    
-   boost::filesystem::copy(m_real.generic_string(), new_path);
+   boost::filesystem::copy_file(m_real.generic_string(), new_path);
 
    if(!boost::filesystem::exists(new_path))
    {
