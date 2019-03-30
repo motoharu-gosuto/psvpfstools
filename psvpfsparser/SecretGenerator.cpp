@@ -3,6 +3,7 @@
 #include <cstdint>
 #include <string>
 #include <stdexcept>
+#include <cstring>
 
 #include "PfsKeys.h"
 #include "IcvPrimitives.h"
@@ -31,7 +32,7 @@ int gen_secret(std::shared_ptr<ICryptoOperations> cryptops, unsigned char* combo
       icv_set_hmac_sw(cryptops, base, hmac_key1, (unsigned char*)saltin1, 8); // derive base with two salts
    }
 
-   memcpy(combo, base, 0x14); // calculated digest will be src data
+   std::memcpy(combo, base, 0x14); // calculated digest will be src data
 
    return 0;
 }
@@ -46,11 +47,11 @@ int generate_secret_np(std::shared_ptr<ICryptoOperations> cryptops, std::shared_
 
    gen_secret(cryptops, combo, files_salt, icv_salt);
 
-   memcpy(iv, iv0, 0x10); //initialize iv
+   std::memcpy(iv, iv0, 0x10); //initialize iv
 
    AESCBCEncryptWithKeygen_base(cryptops, iF00D, klicensee, iv, 0x14, combo, drvkey, key_id);
 
-   memcpy(secret, drvkey, 0x14); // copy derived key
+   std::memcpy(secret, drvkey, 0x14); // copy derived key
    
    return 0;
 }
@@ -73,7 +74,7 @@ int generate_secret(std::shared_ptr<ICryptoOperations> cryptops, unsigned char* 
 
    icv_contract(cryptops, drvkey, base0, base1); // calculate digest of combination of klicensee and salt digests
                
-   memcpy(secret, drvkey, 0x14); // copy derived key
+   std::memcpy(secret, drvkey, 0x14); // copy derived key
 
    return 0;
 }
@@ -86,7 +87,7 @@ int scePfsUtilGetSecret(std::shared_ptr<ICryptoOperations> cryptops, std::shared
    {
       throw std::runtime_error("Untested branch in scePfsUtilGetSecret");
 
-      memset(secret, 0, 0x14);
+      std::memset(secret, 0, 0x14);
       return 0;
    }
    else if(crypto_engine_flag & CRYPTO_ENGINE_CRYPTO_USE_KEYGEN)

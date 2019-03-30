@@ -7,6 +7,12 @@
 # LIBTOMCRYPT_INCLUDE_DIRS - The LIBTOMCRYPT include directories
 # LIBTOMCRYPT_LIBRARIES - The libraries needed to use LIBTOMCRYPT
 
+if(NOT "${LIBTOMCRYPT_INCLUDE_DIR}" AND NOT "${LIBTOMCRYPT_LIBRARY}")
+   # If neither helper variables are set, try to use PkgConfig.
+   find_package(PkgConfig)
+   pkg_check_modules(LIBTOMCRYPT libtomcrypt)
+endif()
+
 if(${LIBTOMCRYPT_INCLUDE_DIR})
    set(LIBTOMCRYPT_LIBRARIES ${LIBTOMCRYPT_LIBRARY})
 else()
