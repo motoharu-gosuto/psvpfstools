@@ -131,6 +131,13 @@ You have to set these environment variables for cmake:
 - LIBTOMCRYPT_INCLUDE_DIR=C:\libtomcrypt\build\include
 - LIBTOMCRYPT_LIBRARY=C:\libtomcrypt\build\lib\tomcrypt.lib
 
+#### Ubuntu (example)
+You can install libtomcrypt with apt-get:
+
+```bash
+apt-get install libtomcrypt1 libtomcrypt-dev
+```
+
 ### curl
 
 #### Windows (example)
