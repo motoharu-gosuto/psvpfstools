@@ -108,9 +108,6 @@ int parse_options(int argc, char* argv[], PsvPfsParserConfig& cfg)
 
       if(!f00d_url.empty())
       {
-         //cfg.f00d_enc_type = F00DEncryptorTypes::url;
-         //cfg.f00d_arg = f00d_url;
-
          std::cout << "Warning. Option " << F00D_URL_NAME << " is deprecated. Switching to native implementation of F00D" << std::endl;
 
          cfg.f00d_enc_type = F00DEncryptorTypes::native;

@@ -8,7 +8,6 @@
 
 enum class F00DEncryptorTypes
 {
-   url,
    file,
    native
 };

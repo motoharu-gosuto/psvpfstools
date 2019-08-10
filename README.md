@@ -131,31 +131,6 @@ You have to set these environment variables for cmake:
 - LIBTOMCRYPT_INCLUDE_DIR=C:\libtomcrypt\build\include
 - LIBTOMCRYPT_LIBRARY=C:\libtomcrypt\build\lib\tomcrypt.lib
 
-### curl
-
-#### Windows (example)
-- Direct installation: https://curl.haxx.se/download.html
-- Sources: https://github.com/curl/curl
-
-It is easier to build curl from sources if your are on Windows. By default - it does not have any additional dependencies.
-However it looks like Windows binary distribution built with mingw requires openssl binaries:
-- libssl-1_1.dll
-- libcrypto-1_1.dll
-
-You have to set these environment variables for cmake:
-- CURL_INCLUDE_DIR=C:\Program Files (x86)\CURL\include
-- CURL_LIBRARY=C:\Program Files (x86)\CURL\lib\libcurl_imp.lib
-#### Ubuntu (example)
-You can install curl library with apt-get: 
-
-```
-apt-get install libcurl4-gnutls-dev
-```
-or
-```
-apt-get install libcurl4-openssl-dev
-```
-
 ### boost
 
 #### Windows (example)
