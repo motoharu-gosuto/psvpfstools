@@ -1,5 +1,5 @@
 #include "IcvPrimitives.h"
-
+#include <cstring>
 #include "SceKernelUtilsForDriver.h"
 
 int icv_set_hmac_sw(std::shared_ptr<ICryptoOperations> cryptops, unsigned char *dst, const unsigned char *key, const unsigned char *src, int size)
