@@ -52,21 +52,21 @@ int F00DNativeKeyEncryptor::encrypt_key(const unsigned char* key, int key_size, 
       key_size != 0x100)
       return -1;
 
-   std::string keyStr = byte_array_to_string(key, key_size / 8);
+   std::uint32_t nbytes = key_size / 8;
+   std::string keyStr = byte_array_to_string(key, nbytes);
 
    auto kit = m_keyCache.find(keyStr);
    if(kit != m_keyCache.end())
    {
-      std::uint32_t nbytes = key_size / 8;
       string_to_byte_array(kit->second, nbytes, drv_key);
       return 0;
    }
    else
    {
-      if(kprx_auth_service_0x50001(key, key_size, drv_key, 0) < 0)
+      if(kprx_auth_service_0x50001(key, nbytes, drv_key, 0) < 0)
          return -1;
 
-      std::string drv_keyStr = byte_array_to_string(drv_key, key_size / 8);
+      std::string drv_keyStr = byte_array_to_string(drv_key, nbytes);
 
       m_keyCache.insert(std::make_pair(keyStr, drv_keyStr));
 

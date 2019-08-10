@@ -77,10 +77,12 @@ std::shared_ptr<IF00DKeyEncryptor> create_F00D_encryptor(const PsvPfsParserConfi
    {
       case F00DEncryptorTypes::file:
          iF00D = F00DKeyEncryptorFactory::create(cfg.f00d_enc_type, cfg.f00d_arg); 
+         break;
       case F00DEncryptorTypes::native:
          iF00D = F00DKeyEncryptorFactory::create(cfg.f00d_enc_type, cryptops); 
+         break;
       default:
-         return std::shared_ptr<IF00DKeyEncryptor>();
+         throw std::runtime_error("unexpected F00DEncryptorTypes value");
    }
 
    return iF00D;
