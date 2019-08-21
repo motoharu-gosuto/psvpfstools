@@ -65,34 +65,27 @@ void getFileListNoPfs(boost::filesystem::path root_path, std::set<boost::filesys
          const boost::filesystem::path cp = (*i);
 
          //skip paths that are not included in files.db
+         //i.nopush(true) will skip recursion into directory
 
          //skip pfs directory
-         if(boost::starts_with(cp, (root_path / boost::filesystem::path("sce_pfs"))))
+         if(cp.filename() == boost::filesystem::path("sce_pfs")) {
+            i.no_push(true);
             continue;
-
-         //skip packages
-         if(boost::starts_with(cp, (root_path / boost::filesystem::path("sce_sys") / boost::filesystem::path("package"))))
-            continue;
-
-         //skip pfs inside sce_pfs (for ADDCONT)
-         if(boost::ends_with(cp, boost::filesystem::path("sce_pfs")))
-            continue;
-
-         //skip pfs inside sce_pfs (for ADDCONT)
-         if(boost::ends_with(cp, boost::filesystem::path("sce_pfs") / boost::filesystem::path("files.db")))
-            continue;
-
-         //skip pfs inside sce_pfs (for ADDCONT)
-         if(boost::ends_with(cp, boost::filesystem::path("sce_pfs") / boost::filesystem::path("unicv.db")))
-            continue;
-
-         //skip pfs inside sce_sys (for ADDCONT)
-         if(boost::ends_with(cp, boost::filesystem::path("sce_sys")))
-         {
-            if(cp != root_path / boost::filesystem::path("sce_sys"))
-               continue;
          }
 
+         //skip packages
+         if(cp == (root_path / boost::filesystem::path("sce_sys") / boost::filesystem::path("package"))) {
+            i.no_push(true);
+            continue;
+         }
+
+         //skip pfs inside sce_sys (for ADDCONT)
+         if(boost::ends_with(cp, boost::filesystem::path("sce_sys")) &&
+               cp != root_path / boost::filesystem::path("sce_sys") &&
+               boost::filesystem::exists(cp / boost::filesystem::path("keystone"))) {
+            i.no_push(true);
+            continue;
+         }
 
          //add file or directory
          if(boost::filesystem::is_directory(cp))
