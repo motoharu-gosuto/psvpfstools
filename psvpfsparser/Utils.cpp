@@ -96,6 +96,11 @@ void getFileListNoPfs(boost::filesystem::path root_path, std::set<boost::filesys
    }
 }
 
+boost::filesystem::path source_path_to_dest_path(const boost::filesystem::path& source_root, const boost::filesystem::path& dest_root, const boost::filesystem::path& source_path) {
+   boost::filesystem::path dest_path = dest_root / boost::filesystem::relative(source_path, source_root);
+   return boost::filesystem::path(dest_path.generic_string());
+}
+
 //===
 
 
@@ -175,11 +180,7 @@ bool sce_junction::open(std::ifstream& in) const
 bool sce_junction::create_empty_directory(boost::filesystem::path source_root, boost::filesystem::path destination_root) const
 {
    //construct new path
-   std::string old_root = source_root.generic_string();
-   std::string new_root = destination_root.generic_string();
-   std::string old_path = m_real.generic_string();
-   boost::replace_all(old_path, old_root, new_root);
-   boost::filesystem::path new_path(old_path);
+   boost::filesystem::path new_path = source_path_to_dest_path(source_root, destination_root, m_real);
 
    //create all directories on the way
    
@@ -193,11 +194,7 @@ bool sce_junction::create_empty_directory(boost::filesystem::path source_root, b
 bool sce_junction::create_empty_file(boost::filesystem::path source_root, boost::filesystem::path destination_root, std::ofstream& outputStream) const
 {
    //construct new path
-   std::string old_root = source_root.generic_string();
-   std::string new_root = destination_root.generic_string();
-   std::string old_path = m_real.generic_string();
-   boost::replace_all(old_path, old_root, new_root);
-   boost::filesystem::path new_path(old_path);
+   boost::filesystem::path new_path = source_path_to_dest_path(source_root, destination_root, m_real);
    boost::filesystem::path new_directory = new_path;
    new_directory.remove_filename();
 
@@ -236,11 +233,7 @@ bool sce_junction::create_empty_file(boost::filesystem::path source_root, boost:
 bool sce_junction::copy_existing_file(boost::filesystem::path source_root, boost::filesystem::path destination_root) const
 {
    //construct new path
-   std::string old_root = source_root.generic_string();
-   std::string new_root = destination_root.generic_string();
-   std::string old_path = m_real.generic_string();
-   boost::replace_all(old_path, old_root, new_root);
-   boost::filesystem::path new_path(old_path);
+   boost::filesystem::path new_path = source_path_to_dest_path(source_root, destination_root, m_real);
    boost::filesystem::path new_directory = new_path;
    new_directory.remove_filename();
 
