@@ -47,7 +47,7 @@ struct sce_ng_pfs_header_t
    std::uint64_t tailSize; // size of data after this header
    std::uint64_t total_sz; // is 0
    std::uint8_t root_icv[0x14]; // 0x38 hmac-sha1 of (pageSize - 4) of page (pointed by root_icv_page_number) with secret derived from klicensee
-   std::uint8_t header_icv[0x14]; // 0x4C hmac-sha1 of 0x16 bytes of header with secret derived from klicensee
+   std::uint8_t header_icv[0x14]; // 0x4C hmac-sha1 of 0x160 bytes of header with secret derived from klicensee
    std::uint8_t rsa_sig0[0x100];
    std::uint8_t rsa_sig1[0x100];
    std::uint8_t padding[0x1A0];

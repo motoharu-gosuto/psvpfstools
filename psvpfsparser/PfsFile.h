@@ -40,7 +40,7 @@ public:
            const sce_ng_pfs_file_t& file, const sce_junction& filepath, const sce_ng_pfs_header_t& ngpfs, std::shared_ptr<sce_iftbl_base_t> table);
 
 private:
-   int init_crypt_ctx(CryptEngineWorkCtx* work_ctx, sig_tbl_t& block, std::uint32_t sector_base, std::uint32_t tail_size, unsigned char* source) const;
+   int init_crypt_ctx(CryptEngineWorkCtx* work_ctx, std::shared_ptr<sig_tbl_base_t> block, std::uint32_t sector_base, std::uint32_t tail_size, unsigned char* source) const;
 
    int decrypt_icv_file(boost::filesystem::path destination_root) const;
 

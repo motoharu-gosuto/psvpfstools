@@ -88,6 +88,23 @@ bool sig_tbl_header_base_t::validate(std::shared_ptr<sce_iftbl_base_t> fft, std:
       return false;
    }
 
+   return true;
+}
+
+bool sig_tbl_header_base_t::read(std::ifstream& inputStream, std::shared_ptr<sce_iftbl_base_t> fft, std::uint32_t sizeCheck)
+{
+   //read header
+   inputStream.read((char*)&m_header, sizeof(sig_tbl_header_t));
+
+   //validate header
+   return validate(fft, sizeCheck);
+}
+
+bool sig_tbl_header_normal_t::validate(std::shared_ptr<sce_iftbl_base_t> fft, std::uint32_t sizeCheck) const
+{
+   if (!sig_tbl_header_base_t::validate(fft, sizeCheck))
+      return false;
+
    //this check is usefull for validating file structure
    if(m_header.nSignatures != sizeCheck)
    {
@@ -98,23 +115,70 @@ bool sig_tbl_header_base_t::validate(std::shared_ptr<sce_iftbl_base_t> fft, std:
    return true;
 }
 
-bool sig_tbl_header_base_t::read(std::ifstream& inputStream, std::shared_ptr<sce_iftbl_base_t> fft, std::uint32_t sizeCheck, std::vector<icv>& signatures)
+bool sig_tbl_header_normal_t::validate_tail(std::shared_ptr<sce_iftbl_base_t> fft, const std::vector<std::uint8_t>& data) const
 {
-   //read header
-   inputStream.read((char*)&m_header, sizeof(sig_tbl_header_t));
-   
-   //validate header
-   if(!validate(fft, sizeCheck))
+   //validate tail data
+   if(!isZeroVector(data))
+   {
+      m_output << "Unexpected data instead of padding" << std::endl;
+      return false;
+   }
+
+   return true;
+}
+
+bool sig_tbl_header_merkle_t::read(std::ifstream& inputStream, std::shared_ptr<sce_iftbl_base_t> fft, std::uint32_t sizeCheck)
+{
+   // read the page order
+   inputStream.read((char*)(&m_page_height), sizeof(m_page_height));
+
+   char padding[12];
+   inputStream.read(padding, 12);
+   if(!isZeroVector(padding, padding + 12))
+   {
+      m_output << "Invalid zero vector" << std::endl;
+      return false;
+   }
+
+   return sig_tbl_header_base_t::read(inputStream, fft, sizeCheck);
+}
+
+bool sig_tbl_header_merkle_t::validate(std::shared_ptr<sce_iftbl_base_t> fft, std::uint32_t sizeCheck) const
+{
+   if (!sig_tbl_header_base_t::validate(fft, sizeCheck))
+      return false;
+
+   //check signature count
+   if (m_header.nSignatures > ICV_NUM_ENTRIES)
+   {
+      m_output << "Too many signatures in one block: " << m_header.nSignatures << std::endl;
+      return false;
+   }
+
+   return true;
+}
+
+bool sig_tbl_base_t::read(std::ifstream& inputStream, std::shared_ptr<sce_iftbl_base_t> fft, std::uint32_t sizeCheck)
+{
+   if (!m_header->read(inputStream, fft, sizeCheck))
       return false;
 
    //read signatures
-   for(std::uint32_t c = 0; c < m_header.nSignatures; c++)
+   for(std::uint32_t c = 0; c < m_header->get_nSignatures(); c++)
    {
-      signatures.push_back(icv());
-      icv& dte = signatures.back();
-      dte.m_data.resize(m_header.sigSize);
-      inputStream.read((char*)dte.m_data.data(), m_header.sigSize);
+      m_signatures.push_back(std::make_shared<icv>());
+      std::shared_ptr<icv> dte = m_signatures.back();
+      dte->m_data.resize(m_header->get_sigSize());
+      inputStream.read((char*)dte->m_data.data(), m_header->get_sigSize());
    }
+
+   return true;
+}
+
+bool sig_tbl_normal_t::read(std::ifstream& inputStream, std::shared_ptr<sce_iftbl_base_t> fft, std::uint32_t sizeCheck)
+{
+   if (!sig_tbl_base_t::read(inputStream, fft, sizeCheck))
+      return false;
 
    //calculate size of tail data - this data should be zero padding
    //instead of skipping it is validated here that it contains only zeroes
@@ -130,62 +194,61 @@ bool sig_tbl_header_base_t::read(std::ifstream& inputStream, std::shared_ptr<sce
    //inputStream.seekg(tail, std::ios::cur);
 
    //validate tail in specific class
-   return validate_tail(fft, data);
+   return m_header->validate_tail(fft, data);
 }
 
-
-bool sig_tbl_header_normal_t::validate_tail(std::shared_ptr<sce_iftbl_base_t> fft, const std::vector<std::uint8_t>& data) const
+std::shared_ptr<icv> sig_tbl_normal_t::get_icv_for_sector(std::uint32_t sector_idx) const
 {
-   //validate tail data
-   if(!isZeroVector(data))
-   {
-      m_output << "Unexpected data instead of padding" << std::endl;
+   return m_signatures.at(sector_idx);
+}
+
+bool sig_tbl_merkle_t::read(std::ifstream& inputStream, std::shared_ptr<sce_iftbl_base_t> fft, std::uint32_t sizeCheck)
+{
+   if (!sig_tbl_base_t::read(inputStream, fft, sizeCheck))
       return false;
-   }
 
-   return true;
-}
+   // seek to the end of the signatures
+   inputStream.seekg((m_header->get_sigSize()) * (ICV_NUM_ENTRIES - m_header->get_nSignatures()), std::ios::cur);
 
-bool sig_tbl_header_merkle_t::read(std::ifstream& inputStream, std::shared_ptr<sce_iftbl_base_t> fft, std::uint32_t sizeCheck, std::vector<icv>& signatures)
-{
-   //read weird 0x10 byte zero header which makes the data not being aligned on page boder
-   unsigned char zero_header[0x10];
-   inputStream.read((char*)zero_header, 0x10);
-   if(!isZeroVector(zero_header, zero_header + 0x10))
+   // read chunk page indices
+   for (std::uint32_t i = 0; i < m_header->get_nSectors(); i++)
    {
-      m_output << "Invalid zero vector" << std::endl;
-      return false;
-   }
-
-   return sig_tbl_header_base_t::read(inputStream, fft, sizeCheck, signatures);
-}
-
-bool sig_tbl_header_merkle_t::validate_tail(std::shared_ptr<sce_iftbl_base_t> fft, const std::vector<std::uint8_t>& data) const
-{
-   std::vector<std::uint8_t> data_copy(data);
-
-   uint32_t* unk_value_base = (uint32_t*)(data_copy.data() + (data_copy.size() - 0x5C));
-
-   //there should be one 0xFFFFFFFF value per sector
-   for(std::uint32_t i = 0; i < fft->get_header()->get_numSectors(); i++)
-   {
-      if(*(unk_value_base + i) != 0xFFFFFFFF)
-      {
-         m_output << "Unexpected value in signature table tail" << std::endl;
+      std::uint32_t idx;
+      inputStream.read((char*)(&idx), sizeof(idx));
+      if (get_page_height() == 0 && idx != 0xFFFFFFFF) {
+         std::cout << "Invalid page idx for leaf page: " << idx << std::endl;
          return false;
       }
 
-      *(unk_value_base + i) = 0; //clear that value
+      m_child_pages_idx.push_back(idx);
    }
 
-   //after 0xFFFFFFFF values are cleared - everything should be zeroes (including all other data)
-   if(!isZeroVector(data_copy))
-   {
-      m_output << "Invalid zero vector" << std::endl;
-      return false;
-   }
+   // seek to the end of the page
+   inputStream.seekg(4 * (ICV_MAX_SECTORS_PER_PAGE - m_child_pages_idx.size()), std::ios::cur);
 
    return true;
+}
+
+std::shared_ptr<icv> sig_tbl_merkle_t::get_icv_for_sector(std::uint32_t sector_idx) const
+{
+   std::uint32_t sig_idx = sector_idx * 2;
+
+   while (2 * sig_idx + 1 < m_signatures.size())
+   {
+      sig_idx = 2 * sig_idx + 1;
+   }
+
+   return m_signatures.at(sig_idx);
+}
+
+std::uint32_t sig_tbl_merkle_t::get_child_page_idx_for_sig_idx(std::uint32_t sig_idx) const
+{
+   while (sig_idx % 2 != 0)
+   {
+      sig_idx = (sig_idx - 1) / 2;
+   }
+   std::uint32_t child_pages_idx_idx = sig_idx / 2;
+   return m_child_pages_idx[child_pages_idx_idx];
 }
 
 //===========
@@ -289,12 +352,6 @@ bool sce_icvdb_header_proxy_t::validate() const
       return false;
    }
 
-   if(m_header.padding != 0)
-   {
-      m_output << "Unexpected padding" << std::endl;
-      return false;
-   }
-
    return true;
 }
 
@@ -353,12 +410,12 @@ bool sce_inull_header_proxy_t::read(std::ifstream& inputStream)
 
 //===========
 
-std::shared_ptr<sig_tbl_header_base_t> magic_to_sig_tbl(std::string type, std::ostream& output)
+std::shared_ptr<sig_tbl_base_t> magic_to_sig_tbl(std::string type, std::ostream& output)
 {
    if(type == FT_MAGIC_WORD)
-      return std::make_shared<sig_tbl_header_normal_t>(output);
+      return std::make_shared<sig_tbl_normal_t>(std::make_shared<sig_tbl_header_normal_t>(output));
    else if(type == CV_DB_MAGIC_WORD)
-      return std::make_shared<sig_tbl_header_merkle_t>(output);
+      return std::make_shared<sig_tbl_merkle_t>(std::make_shared<sig_tbl_header_merkle_t>(output));
    else if(type == NULL_MAGIC_WORD)
       throw std::runtime_error("wrong magic");
    else
@@ -407,11 +464,11 @@ bool sce_iftbl_base_t::read(std::ifstream& inputStream, std::uint64_t& index, st
 bool sce_iftbl_base_t::read_block(std::ifstream& inputStream, std::uint64_t& index, std::uint32_t sizeCheck)
 {
    //create new signature block
-   m_blocks.push_back(sig_tbl_t(magic_to_sig_tbl(m_header->get_magic(), m_output)));
-   sig_tbl_t& fdt = m_blocks.back();
+   m_blocks.push_back(magic_to_sig_tbl(m_header->get_magic(), m_output));
+   std::shared_ptr<sig_tbl_base_t> fdt = m_blocks.back();
 
    //read and valiate signature block
-   if(!fdt.read(inputStream, shared_from_this(), sizeCheck))
+   if(!fdt->read(inputStream, shared_from_this(), sizeCheck))
       return false;
 
    index++;
@@ -448,6 +505,20 @@ bool sce_iftbl_cvdb_proxy_t::read(std::ifstream& inputStream, std::uint64_t& ind
 
    m_page = off2page(currentBlockPos, m_header->get_pageSize());
 
+   return true;
+}
+
+
+std::uint32_t sce_iftbl_proxy_t::get_icv_salt() const
+{
+   return m_page; // unicv.db uses page number as salt
+}
+
+bool sce_iftbl_proxy_t::read(std::ifstream& inputStream, std::uint64_t& index, std::uint32_t icv_salt)
+{
+   if(!sce_iftbl_cvdb_proxy_t::read(inputStream, index, icv_salt))
+      return false;
+
    //check if there are any data blocks after current entry
    if(m_header->get_numSectors() == 0)
       return true;
@@ -481,12 +552,11 @@ bool sce_iftbl_cvdb_proxy_t::read(std::ifstream& inputStream, std::uint64_t& ind
    }
 }
 
-
-std::uint32_t sce_iftbl_proxy_t::get_icv_salt() const
+std::shared_ptr<icv> sce_iftbl_proxy_t::get_icv_for_sector(std::uint32_t sector_idx) const
 {
-   return m_page; // unicv.db uses page number as salt
+   std::uint32_t page_idx = sector_idx / FTBL_MAX_SECTORS_PER_PAGE;
+   return m_blocks.at(page_idx)->get_icv_for_sector(sector_idx % FTBL_MAX_SECTORS_PER_PAGE);
 }
-
 
 std::uint32_t sce_icvdb_proxy_t::get_icv_salt() const
 {
@@ -496,9 +566,33 @@ std::uint32_t sce_icvdb_proxy_t::get_icv_salt() const
 bool sce_icvdb_proxy_t::read(std::ifstream& inputStream, std::uint64_t& index, std::uint32_t icv_salt)
 {
    m_icv_salt = icv_salt;
-   return sce_iftbl_cvdb_proxy_t::read(inputStream, index, icv_salt);
+   if(!sce_iftbl_cvdb_proxy_t::read(inputStream, index, icv_salt))
+      return false;
+
+   for (std::uint32_t i = 0; i < m_header->get_numPages(); i++) {
+      if(!read_block(inputStream, index, 0))
+         return false;
+   }
+
+   return m_header->post_validate(m_blocks);
 }
 
+std::shared_ptr<icv> sce_icvdb_proxy_t::get_icv_for_sector(std::uint32_t sector_idx) const
+{
+   std::uint32_t page_idx = 0;
+   auto page = std::dynamic_pointer_cast<sig_tbl_merkle_t>(m_blocks.at(page_idx));
+   while (sector_idx > ICV_MAX_SECTORS_PER_PAGE || page->get_page_height() > 0)
+   {
+      if (page->get_page_height() == 0)
+      {
+         sector_idx -= ICV_MAX_SECTORS_PER_PAGE;
+      }
+      page_idx++;
+      page = std::dynamic_pointer_cast<sig_tbl_merkle_t>(m_blocks.at(page_idx));
+   }
+
+   return m_blocks.at(page_idx)->get_icv_for_sector(sector_idx);
+}
 
 std::uint32_t sce_inull_proxy_t::get_icv_salt() const
 {

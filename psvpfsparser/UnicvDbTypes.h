@@ -33,6 +33,8 @@
 #define NULL_EXPECTED_VERSION 1
 
 #define ICV_NUM_ENTRIES 0x2D
+#define ICV_MAX_SECTORS_PER_PAGE ((ICV_NUM_ENTRIES + 1) / 2)
+#define FTBL_MAX_SECTORS_PER_PAGE 0x32
 
 #pragma pack(push, 1)
 
@@ -99,9 +101,9 @@ struct sce_iftbl_header_t
    std::uint8_t magic[8]; //SCEIFTBL
    std::uint32_t version; // this is probably version? value is always 2
    std::uint32_t pageSize; //expected 0x400
-   std::uint32_t binTreeNumMaxAvail; // this is probably max number of sectors in a single sig_tbl_t. expected value is 0x32
-   std::uint32_t nSectors; //this shows how many sectors of data in total will follow this block. one sig_tbl_t can contain 0x32 sectors at max
-                     //multiple sig_tbl_t group into single file
+   std::uint32_t binTreeNumMaxAvail; // this is probably max number of sectors in a single sig_tbl_normal_t. expected value is 0x32
+   std::uint32_t nSectors; //this shows how many sectors of data in total will follow this block. one sig_tbl_normal_t can contain 0x32 sectors at max
+                     //multiple sig_tbl_normal_t group into single file
 
    //This is sector size for files.db
    std::uint32_t fileSectorSize; // expected 0x8000
@@ -119,10 +121,10 @@ struct sce_icvdb_header_t
    std::uint32_t version; // this is probably version? value is always 2
    std::uint32_t fileSectorSize;
    std::uint32_t pageSize; //expected 0x400
-   std::uint32_t padding;
+   std::uint32_t root_page_idx; // index of the root page
    std::uint32_t unk0; //0xFFFFFFFF
    std::uint32_t unk1; //0xFFFFFFFF
-   std::uint64_t dataSize; // from next chunk maybe? or block size
+   std::uint64_t dataSize; // total size of all data pages; a multiple of pageSize
    std::uint32_t nSectors;
    std::uint8_t merkleTreeRoot[20];
 };
@@ -197,10 +199,12 @@ public:
       return m_header.padding;
    }
 
-public:
-   bool validate(std::shared_ptr<sce_iftbl_base_t> fft, std::uint32_t sizeCheck) const;
+   virtual std::uint32_t get_nSectors() const = 0;
 
-   virtual bool read(std::ifstream& inputStream, std::shared_ptr<sce_iftbl_base_t> fft, std::uint32_t sizeCheck, std::vector<icv>& signatures);
+public:
+   virtual bool validate(std::shared_ptr<sce_iftbl_base_t> fft, std::uint32_t sizeCheck) const;
+
+   virtual bool read(std::ifstream& inputStream, std::shared_ptr<sce_iftbl_base_t> fft, std::uint32_t sizeCheck);
 
    virtual bool validate_tail(std::shared_ptr<sce_iftbl_base_t> fft, const std::vector<std::uint8_t>& data) const = 0;
 };
@@ -213,22 +217,69 @@ public:
    {
    }
 
+   std::uint32_t get_nSectors() const override
+   {
+      return get_nSignatures();
+   }
+
 public:
+   bool validate(std::shared_ptr<sce_iftbl_base_t> fft, std::uint32_t sizeCheck) const override;
    bool validate_tail(std::shared_ptr<sce_iftbl_base_t> fft, const std::vector<std::uint8_t>& data) const override;
 };
 
 class sig_tbl_header_merkle_t : public sig_tbl_header_base_t
 {
+private:
+   std::uint32_t m_page_height; // height from leaf pages
+
 public:
    sig_tbl_header_merkle_t(std::ostream& output)
-      : sig_tbl_header_base_t(output)
+      : sig_tbl_header_base_t(output), m_page_height(-1)
    {
    }
 
-public:
-   bool read(std::ifstream& inputStream, std::shared_ptr<sce_iftbl_base_t> fft, std::uint32_t sizeCheck, std::vector<icv>& signatures) override;
+   std::uint32_t get_nSectors() const override
+   {
+      return (get_nSignatures() + 1) / 2;
+   }
 
-   bool validate_tail(std::shared_ptr<sce_iftbl_base_t> fft, const std::vector<std::uint8_t>& data) const override;
+public:
+   bool read(std::ifstream& inputStream, std::shared_ptr<sce_iftbl_base_t> fft, std::uint32_t sizeCheck) override;
+
+   bool validate(std::shared_ptr<sce_iftbl_base_t> fft, std::uint32_t sizeCheck) const override;
+
+   bool validate_tail(std::shared_ptr<sce_iftbl_base_t> fft, const std::vector<std::uint8_t>& data) const override
+   {
+      return true;
+   }
+
+   std::uint32_t get_page_height() const
+   {
+      return m_page_height;
+   }
+};
+
+class sig_tbl_base_t
+{
+protected:
+   std::shared_ptr<sig_tbl_header_base_t> m_header;
+
+public:
+   sig_tbl_base_t(std::shared_ptr<sig_tbl_header_base_t> header)
+      : m_header(header) {}
+
+   std::vector<std::shared_ptr<icv> > m_signatures;
+
+   std::shared_ptr<sig_tbl_header_base_t> get_header() const
+   {
+      return m_header;
+   }
+
+   virtual bool read(std::ifstream& inputStream, std::shared_ptr<sce_iftbl_base_t> fft, std::uint32_t sizeCheck);
+   virtual std::shared_ptr<icv> get_icv_for_sector(std::uint32_t sector_idx) const
+   {
+      throw std::runtime_error("Unimplemented");
+   }
 };
 
 //this is a signature table structure - it contains header and list of signatures
@@ -236,29 +287,37 @@ public:
 //signature table that is used to verify file hashes
 //it can hold 0x32 signatures at max
 //each signature corresponds to block in a real file. block should have size fileSectorSize (0x8000)
-class sig_tbl_t
+class sig_tbl_normal_t : public sig_tbl_base_t
+{
+public:
+   sig_tbl_normal_t(std::shared_ptr<sig_tbl_header_base_t> header)
+      : sig_tbl_base_t(header) {}
+
+public:
+   bool read(std::ifstream& inputStream, std::shared_ptr<sce_iftbl_base_t> fft, std::uint32_t sizeCheck) override;
+   std::shared_ptr<icv> get_icv_for_sector(std::uint32_t sector_idx) const override;
+};
+
+class sig_tbl_merkle_t : public sig_tbl_base_t
 {
 private:
-   std::shared_ptr<sig_tbl_header_base_t> m_header;
+   std::vector<std::uint32_t> m_child_pages_idx; // merkel tree child page idx for pages of height > 0
 
 public:
-   sig_tbl_t(std::shared_ptr<sig_tbl_header_base_t> header)
-      : m_header(header)
+   sig_tbl_merkle_t(std::shared_ptr<sig_tbl_header_base_t> header)
+      : sig_tbl_base_t(header)
    {
    }
 
-public:
-   std::vector<icv> m_signatures;
+   bool read(std::ifstream& inputStream, std::shared_ptr<sce_iftbl_base_t> fft, std::uint32_t sizeCheck) override;
+   std::shared_ptr<icv> get_icv_for_sector(std::uint32_t sector_idx) const override;
 
-   std::shared_ptr<sig_tbl_header_base_t> get_header() const
+   bool get_page_height() const
    {
-      return m_header;
+      return std::dynamic_pointer_cast<sig_tbl_header_merkle_t>(m_header)->get_page_height();
    }
 
-   bool read(std::ifstream& inputStream, std::shared_ptr<sce_iftbl_base_t> fft, std::uint32_t sizeCheck)
-   {
-      return m_header->read(inputStream, fft, sizeCheck, m_signatures);
-   }
+   std::uint32_t get_child_page_idx_for_sig_idx(std::uint32_t sig_idx) const;
 };
 
 //=================================================
@@ -287,12 +346,14 @@ public:
 
    virtual std::string get_magic() const = 0;
 
+   virtual std::uint32_t get_numPages() const = 0;
+
 public:
    virtual bool validate() const = 0;
 
    virtual bool read(std::ifstream& inputStream) = 0;
 
-   virtual bool post_validate(const std::vector<sig_tbl_t>& blocks) const = 0;
+   virtual bool post_validate(const std::vector<std::shared_ptr<sig_tbl_base_t> >& blocks) const = 0;
 };
 
 class sce_iftbl_header_proxy_t : public sce_iftbl_header_base_t
@@ -350,12 +411,18 @@ public:
       return std::string((char*)m_header.magic, 8);
    }
 
+   std::uint32_t get_numPages() const override
+   {
+      return (get_numHashes() / get_binTreeNumMaxAvail()) +
+         (get_numHashes() % get_binTreeNumMaxAvail() == 0 ? 0 : 1);
+   }
+
 public:
    bool validate() const override;
 
    bool read(std::ifstream& inputStream) override;
 
-   bool post_validate(const std::vector<sig_tbl_t>& blocks) const override
+   bool post_validate(const std::vector<std::shared_ptr<sig_tbl_base_t> >& blocks) const override
    {
       return true;
    }
@@ -419,14 +486,24 @@ public:
       return std::string((char*)m_header.magic, 8);
    }
 
+   std::uint32_t get_numPages() const override
+   {
+      return m_header.dataSize / m_header.pageSize;
+   }
+
+   std::uint32_t get_root_page_idx() const
+   {
+      return m_header.root_page_idx;
+   }
+
 public:
    bool validate() const override;
 
    bool read(std::ifstream& inputStream) override;
 
-   bool post_validate(const std::vector<sig_tbl_t>& blocks) const override
+   bool post_validate(const std::vector<std::shared_ptr<sig_tbl_base_t> >& blocks) const override
    {
-      const unsigned char* rootSig = blocks.front().m_signatures.front().m_data.data();
+      const unsigned char* rootSig = blocks[get_root_page_idx()]->m_signatures.front()->m_data.data();
       if(memcmp(rootSig, m_header.merkleTreeRoot, 0x14) != 0)
       {
          m_output << "Root icv is invalid" << std::endl;
@@ -491,12 +568,17 @@ public:
       return std::string((char*)m_header.magic, 8);
    }
 
+   std::uint32_t get_numPages() const override
+   {
+      return 0;
+   }
+
 public:
    bool validate() const override;
 
    bool read(std::ifstream& inputStream) override;
 
-   bool post_validate(const std::vector<sig_tbl_t>& blocks) const override
+   bool post_validate(const std::vector<std::shared_ptr<sig_tbl_base_t> >& blocks) const override
    {
       return true;
    }
@@ -514,7 +596,7 @@ protected:
    std::uint32_t m_page;
 
 public:
-   std::vector<sig_tbl_t> m_blocks;
+   std::vector<std::shared_ptr<sig_tbl_base_t> > m_blocks;
 
 protected:
    std::ostream& m_output;
@@ -557,10 +639,9 @@ public:
 
 public:
    bool read(std::ifstream& inputStream, std::uint64_t& index, std::uint32_t icv_salt) override;
+   virtual std::shared_ptr<icv> get_icv_for_sector(std::uint32_t sector_idx) const = 0;
 };
 
-//for now these types do not implement any additional logic that is different from base classes
-//however clear separation in 3 different types is essential
 class sce_iftbl_proxy_t : public sce_iftbl_cvdb_proxy_t
 {
 public:
@@ -571,6 +652,8 @@ public:
 
 public:
    std::uint32_t get_icv_salt() const override;
+   bool read(std::ifstream& inputStream, std::uint64_t& index, std::uint32_t icv_salt) override;
+   std::shared_ptr<icv> get_icv_for_sector(std::uint32_t sector_idx) const override;
 };
 
 class sce_icvdb_proxy_t : public sce_iftbl_cvdb_proxy_t
@@ -589,6 +672,7 @@ public:
 
 public:
    bool read(std::ifstream& inputStream, std::uint64_t& index, std::uint32_t icv_salt) override;
+   std::shared_ptr<icv> get_icv_for_sector(std::uint32_t sector_idx) const override;
 };
 
 class sce_inull_proxy_t : public sce_iftbl_base_t
@@ -668,7 +752,7 @@ public:
 
 #pragma pack(pop)
 
-std::shared_ptr<sig_tbl_header_base_t> magic_to_sig_tbl(std::string type, std::ostream& output);
+std::shared_ptr<sig_tbl_base_t> magic_to_sig_tbl(std::string type, std::ostream& output);
 
 std::shared_ptr<sce_iftbl_header_base_t> magic_to_ftbl_header(std::string type, std::ostream& output);
 

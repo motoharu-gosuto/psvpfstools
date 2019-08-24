@@ -1,6 +1,5 @@
 #include "PfsFile.h"
 
-#include "MerkleTree.hpp"
 #include "PfsKeyGenerator.h"
 
 PfsFile::PfsFile(std::shared_ptr<ICryptoOperations> cryptops, std::shared_ptr<IF00DKeyEncryptor> iF00D, std::ostream& output, 
@@ -12,18 +11,7 @@ PfsFile::PfsFile(std::shared_ptr<ICryptoOperations> cryptops, std::shared_ptr<IF
    memcpy(m_klicensee, klicensee, 0x10);
 }
 
-//this is a tree walker function and it should not be a part of the class
-int collect_leaf(std::shared_ptr<merkle_tree_node<icv> > node, void* ctx)
-{
-   if(!node->isLeaf())
-      return 0;
-
-   std::vector<std::shared_ptr<merkle_tree_node<icv> > >* leaves = (std::vector<std::shared_ptr<merkle_tree_node<icv> > >*)ctx;
-   leaves->push_back(node);
-   return 0;
-}
-
-int PfsFile::init_crypt_ctx(CryptEngineWorkCtx* work_ctx, sig_tbl_t& block, std::uint32_t sector_base, std::uint32_t tail_size, unsigned char* source) const
+int PfsFile::init_crypt_ctx(CryptEngineWorkCtx* work_ctx, std::shared_ptr<sig_tbl_base_t> block, std::uint32_t sector_base, std::uint32_t tail_size, unsigned char* source) const
 {     
    memset(&m_data, 0, sizeof(CryptEngineData));
    m_data.klicensee = m_klicensee;
@@ -58,62 +46,19 @@ int PfsFile::init_crypt_ctx(CryptEngineWorkCtx* work_ctx, sig_tbl_t& block, std:
    m_sub_ctx.work_buffer_ofst = (unsigned char*)0;
    m_sub_ctx.nBlocksOffset = 0;
    m_sub_ctx.nBlocksTail = 0;
-
-   if(db_type_to_is_unicv(drv_ctx.db_type))
-      m_sub_ctx.nBlocks = block.get_header()->get_nSignatures(); //for unicv - number of hashes is equal to number of sectors, so can use get_nSignatures
-   else
-      m_sub_ctx.nBlocks = m_table->get_header()->get_numSectors(); //for icv - there are more hashes than sectors (because of merkle tree), so have to use get_numSectors
+   m_sub_ctx.nBlocks = block->get_header()->get_nSectors();
 
    m_sub_ctx.sector_base = sector_base;
    m_sub_ctx.dest_offset = 0;
    m_sub_ctx.tail_size = tail_size;
 
-   if(db_type_to_is_unicv(drv_ctx.db_type))
+   m_signatureTable.clear();
+   m_signatureTable.resize(block->get_header()->get_nSectors() * block->get_header()->get_sigSize());
+   std::uint32_t signatureTableOffset = 0;
+   for (std::uint32_t i = 0; i < block->get_header()->get_nSectors(); i++)
    {
-      m_signatureTable.clear();
-      m_signatureTable.resize(block.m_signatures.size() * block.get_header()->get_sigSize());
-      std::uint32_t signatureTableOffset = 0;
-      for(auto& s :  block.m_signatures)
-      {
-         memcpy(m_signatureTable.data() + signatureTableOffset, s.m_data.data(), block.get_header()->get_sigSize());
-         signatureTableOffset += block.get_header()->get_sigSize();
-      }
-   }
-   else
-   {
-      //for icv files we need to restore natural order of hashes in hash table (which is the order of sectors in file)
-
-      //create merkle tree for corresponding table
-      std::shared_ptr<merkle_tree<icv> > mkt = generate_merkle_tree<icv>(m_table->get_header()->get_numSectors());
-      index_merkle_tree(mkt);
-
-      //collect leaves
-      std::vector<std::shared_ptr<merkle_tree_node<icv> > > leaves;
-      walk_tree(mkt, collect_leaf, &leaves);
-
-      if(mkt->nLeaves != leaves.size())
-      {
-         m_output << "Invalid number of leaves collected" << std::endl;
-         return -1;
-      }
-
-      std::map<std::uint32_t, icv> naturalHashTable;
-
-      //skip first chunk of hashes that corresponds to nodes of merkle tree (we only need to go through leaves)
-      for(std::uint32_t i = mkt->nNodes - mkt->nLeaves, j = 0; i < block.m_signatures.size(); i++, j++)
-      {
-         naturalHashTable.insert(std::make_pair(leaves[j]->m_index, block.m_signatures[i]));
-      }
-
-      m_signatureTable.clear();
-      m_signatureTable.resize(naturalHashTable.size() * block.get_header()->get_sigSize());
-
-      std::uint32_t signatureTableOffset = 0;
-      for(auto& s :  naturalHashTable)
-      {
-         memcpy(m_signatureTable.data() + signatureTableOffset, s.second.m_data.data(), block.get_header()->get_sigSize());
-         signatureTableOffset += block.get_header()->get_sigSize();
-      }
+      memcpy(m_signatureTable.data() + signatureTableOffset, block->get_icv_for_sector(i)->m_data.data(), block->get_header()->get_sigSize());
+      signatureTableOffset += block->get_header()->get_sigSize();
    }
 
    m_sub_ctx.signature_table = m_signatureTable.data();
@@ -147,29 +92,32 @@ int PfsFile::decrypt_icv_file(boost::filesystem::path destination_root) const
 
    //do decryption
 
+   std::uintmax_t bytes_left = m_filepath.file_size();
+   std::uint32_t sector_base = 0;
+
    // icv.db pfs files are padded to the nearest sector boundary
    // so we need to get the real size from files.db
-   std::uintmax_t realfileSize = m_file.file.m_info.header.size;
-
-   std::uintmax_t fileSize = m_filepath.file_size();
+   std::uint32_t real_bytes_left = m_file.file.m_info.header.size;
 
    //in icv files there are more hashes than sectors due to merkle tree
-   //that is why we have to use get_numHashes() method here
    //this is different from unicv where it has one has per sector
-   //we can use get_numSectors() there
 
-   //if number of sectors is less than or same to number that fits into single signature page
-   if(m_table->get_header()->get_numHashes() <= m_table->get_header()->get_binTreeNumMaxAvail())
+   // go through each block of sectors
+   for (std::shared_ptr<sig_tbl_base_t> b : m_table->m_blocks)
    {
-      std::vector<std::uint8_t> buffer(static_cast<std::vector<std::uint8_t>::size_type>(fileSize));
-      inputStream.read((char*)buffer.data(), fileSize);
-         
-      std::uint32_t tail_size = fileSize % m_table->get_header()->get_fileSectorSize();
-      if(tail_size == 0)
-         tail_size = m_table->get_header()->get_fileSectorSize();
-         
+      std::shared_ptr<sig_tbl_merkle_t> block = std::dynamic_pointer_cast<sig_tbl_merkle_t>(b);
+
+      // skip non-leaf pages
+      if (block->get_page_height() > 0)
+         continue;
+
+      std::uint32_t num_sectors = block->get_header()->get_nSectors();
+      std::uintmax_t read_size = num_sectors * m_table->get_header()->get_fileSectorSize();
+      std::vector<std::uint8_t> buffer(read_size);
+      inputStream.read((char*)buffer.data(), read_size);
+
       CryptEngineWorkCtx work_ctx;
-      if(init_crypt_ctx(&work_ctx, m_table->m_blocks.front(), 0, tail_size, buffer.data()) < 0)
+      if(init_crypt_ctx(&work_ctx, block, sector_base, m_table->get_header()->get_fileSectorSize(), buffer.data()) < 0)
          return -1;
 
       pfs_decrypt(m_cryptops, m_iF00D, &work_ctx);
@@ -181,16 +129,35 @@ int PfsFile::decrypt_icv_file(boost::filesystem::path destination_root) const
       }
       else
       {
-         outputStream.write((char*)buffer.data(), realfileSize);
+         if (real_bytes_left == 0)
+         {
+            m_output << "Encrypted file is larger than expected" << std::endl;
+            return -1;
+         }
+         else if (read_size <= real_bytes_left)
+         {
+            outputStream.write((char*)buffer.data(), read_size);
+            real_bytes_left -= read_size;
+         }
+         else
+         {
+            outputStream.write((char*)buffer.data(), real_bytes_left);
+            real_bytes_left = 0;
+         }
       }
+
+      bytes_left = bytes_left - read_size;
+      sector_base = sector_base + num_sectors;
    }
-   else
+
+   if (bytes_left != 0)
    {
-      //I do not think that icv file supports more than one signature page
-      //meaning that size is limited to 23 sectors
-      //lets keep things simple for now
-      //if it supports more than one signature page - different places in the code will have to be fixed
-      m_output << "Maximum number of hashes in icv file is exceeded" << std::endl;
+      m_output << "Wrong number of bytes left: " << bytes_left << std::endl;
+      return -1;
+   }
+   else if (real_bytes_left != 0)
+   {
+      m_output << "Wrong number of real bytes left: " << real_bytes_left << std::endl;
       return -1;
    }
 
@@ -224,8 +191,6 @@ int PfsFile::decrypt_unicv_file(boost::filesystem::path destination_root) const
 
    //in unicv files - there is one hash per sector
    //that is why we can use get_numSectors() method here
-   //this is different from icv where it has more hashes than sectors due to merkle tree
-   //we have to use get_numHashes() there
 
    //if number of sectors is less than or same to number that fits into single signature page
    if(m_table->get_header()->get_numSectors() <= m_table->get_header()->get_binTreeNumMaxAvail())
@@ -264,7 +229,7 @@ int PfsFile::decrypt_unicv_file(boost::filesystem::path destination_root) const
       for(auto& b : m_table->m_blocks)
       {
          //if number of sectors is less than number that fits into single signature page
-         if(b.get_header()->get_nSignatures() < m_table->get_header()->get_binTreeNumMaxAvail())
+         if(b->get_header()->get_nSignatures() < m_table->get_header()->get_binTreeNumMaxAvail())
          {
             std::uint32_t full_block_size = m_table->get_header()->get_binTreeNumMaxAvail() * m_table->get_header()->get_fileSectorSize();
 
