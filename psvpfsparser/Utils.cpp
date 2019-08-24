@@ -257,6 +257,19 @@ bool sce_junction::copy_existing_file(boost::filesystem::path source_root, boost
    return true;
 }
 
+
+bool sce_junction::copy_existing_file(boost::filesystem::path source_root, boost::filesystem::path destination_root, std::uintmax_t size) const
+{
+   if (!copy_existing_file(source_root, destination_root))
+      return false;
+
+   // trim size
+   boost::filesystem::path new_path = source_path_to_dest_path(source_root, destination_root, m_real);
+   boost::filesystem::resize_file(new_path, size);
+
+   return true;
+}
+
 std::ostream& operator<<(std::ostream& os, const sce_junction& p)
 {  
    os << p.m_value.generic_string();  
