@@ -52,184 +52,67 @@ std::shared_ptr<sce_junction> PfsPageMapper::brutforce_hashes(const std::unique_
    return std::shared_ptr<sce_junction>();
 }
 
-//this is a tree walker function and it should not be a part of the class
-int find_zero_sector_index(std::shared_ptr<merkle_tree_node<icv> > node, void* ctx)
+// verify one merkle tree
+int PfsPageMapper::validate_merkle_tree(const std::shared_ptr<sce_iftbl_base_t> ftbl, const std::uint32_t page_idx, const std::uint32_t sig_idx, unsigned char* secret) const
 {
-   std::pair<std::uint32_t, std::uint32_t>* ctx_pair = (std::pair<std::uint32_t, std::uint32_t>*)ctx;
+   std::shared_ptr<sig_tbl_merkle_t> page = std::dynamic_pointer_cast<sig_tbl_merkle_t>(ftbl->m_blocks.at(page_idx));
 
-   if(node->isLeaf())
+   // is a leaf
+   if (2 * sig_idx + 1 >= page->m_signatures.size())
    {
-      if(node->m_index == 0)
-      {
-         ctx_pair->second = ctx_pair->first; //save global counter to result
-         return -1;
-      }
-      else
-      {
-         ctx_pair->first++; //increase global counter
-         return 0;
-      }
+      std::uint32_t child_page_idx = page->get_child_page_idx_for_sig_idx(sig_idx);
+      // is a page of height > 0
+      if (child_page_idx != 0xFFFFFFFF)
+         return validate_merkle_tree(ftbl, child_page_idx, 0, secret);
+      return 0;
    }
+
+   // not a leaf
    else
    {
-      ctx_pair->first++; //increase global counter
-      return 0;
-   }
-}
+      int ret;
+      std::uint32_t left_child_idx = 2 * sig_idx + 1;
+      std::uint32_t right_child_idx = left_child_idx + 1;
 
-//this is a tree walker function and it should not be a part of the class
-int assign_hash(std::shared_ptr<merkle_tree_node<icv> > node, void* ctx)
-{
-   if(!node->isLeaf())
-      return 0;
+      // validate left and right childs
+      ret = validate_merkle_tree(ftbl, page_idx, left_child_idx, secret);
+      if (ret < 0)
+         return ret;
+      ret = validate_merkle_tree(ftbl, page_idx, right_child_idx, secret);
+      if (ret < 0)
+         return ret;
 
-   std::map<std::uint32_t, icv>* sectorHashMap = (std::map<std::uint32_t, icv>*)ctx;
+      // validate combined digest
+      unsigned char result[0x14];
+      unsigned char combined[0x28];
+      memcpy(combined, page->m_signatures.at(left_child_idx)->m_data.data(), 0x14);
+      memcpy(combined + 0x14, page->m_signatures.at(right_child_idx)->m_data.data(), 0x14);
+      m_cryptops->hmac_sha1(combined, result, 0x28, secret, 0x14);
 
-   auto item = sectorHashMap->find(node->m_index);
-   if(item == sectorHashMap->end())
-      throw std::runtime_error("Missing sector hash");
-      
-   node->m_context.m_data.assign(item->second.m_data.begin(), item->second.m_data.end());
-
-   return 0;
-}
-
-//this is a tree walker function and it should not be a part of the class
-int combine_hash(std::shared_ptr<merkle_tree_node<icv> > result, std::shared_ptr<merkle_tree_node<icv> > left, std::shared_ptr<merkle_tree_node<icv> > right, void* ctx)
-{
-   unsigned char bytes28[0x28] = {0};
-   memcpy(bytes28, left->m_context.m_data.data(), 0x14);
-   memcpy(bytes28 + 0x14, right->m_context.m_data.data(), 0x14);
-
-   std::pair<std::shared_ptr<ICryptoOperations>, unsigned char*>* ctx_cast = (std::pair<std::shared_ptr<ICryptoOperations>, unsigned char*>*)ctx;
-   
-   std::shared_ptr<ICryptoOperations> cryptops = ctx_cast->first;
-   unsigned char* secret = ctx_cast->second;
-
-   result->m_context.m_data.resize(0x14);
-   cryptops->hmac_sha1(bytes28, result->m_context.m_data.data(), 0x28, secret, 0x14);
-
-   return 0;
-}
-
-//this is a tree walker function and it should not be a part of the class
-int collect_hash(std::shared_ptr<merkle_tree_node<icv> > node, void* ctx)
-{
-   std::vector<icv>* hashTable = (std::vector<icv>*)ctx;
-   hashTable->push_back(node->m_context);
-   return 0;
-}
-
-int PfsPageMapper::compare_hash_tables(const std::vector<icv>& left, const std::vector<icv>& right)
-{
-   if(left.size() != right.size())
-      return -1;
-   
-   for(std::size_t i = 0; i < left.size(); i++)
-   {
-      if(memcmp(left[i].m_data.data(), right[i].m_data.data(), 0x14) != 0)
+      if (memcmp(result, page->m_signatures.at(sig_idx)->m_data.data(), 0x14) != 0)
          return -1;
+      return 0;
    }
-   
-   return 0;
 }
 
-//pageMap - relates icv salt (icv filename) to junction (real file in filesystem)
-//merkleTrees - relates icv table entry (icv file) to merkle tree of real file
-//idea is to find icv table entry by icv filename - this way we can relate junction to merkle tree
-//then we can read the file and hash it into merkle tree
-//then merkle tree is collected into hash table
-//then hash table is compared to the hash table from icv table entry
-int PfsPageMapper::validate_merkle_trees(const std::unique_ptr<FilesDbParser>& filesDbParser, std::vector<std::pair<std::shared_ptr<sce_iftbl_base_t>, std::shared_ptr<merkle_tree<icv> > > >& merkleTrees)
+// verify the merkle trees top down from the root page
+int PfsPageMapper::validate_merkle_trees(const std::unique_ptr<sce_idb_base_t>& idb, const std::uint32_t files_salt, const std::uint16_t img_spec) const
 {
-   const sce_ng_pfs_header_t& ngpfs = filesDbParser->get_header();
-
    m_output << "Validating merkle trees..." << std::endl;
 
-   for(auto entry : merkleTrees)
+   for (auto ftbl : idb->m_tables)
    {
-      //get table
-      std::shared_ptr<sce_iftbl_base_t> table = entry.first;
+      // skip null tables
+      if (ftbl->get_header()->get_numSectors() == 0)
+         continue;
 
-      //calculate secret
       unsigned char secret[0x14];
-      scePfsUtilGetSecret(m_cryptops, m_iF00D, secret, m_klicensee, ngpfs.files_salt, img_spec_to_crypto_engine_flag(ngpfs.image_spec), table->get_icv_salt(), 0);
+      scePfsUtilGetSecret(m_cryptops, m_iF00D, secret, m_klicensee, files_salt, img_spec_to_crypto_engine_flag(img_spec), ftbl->get_icv_salt(), 0);
 
-      //find junction
-      auto junctionIt = m_pageMap.find(table->get_icv_salt());
-      if(junctionIt == m_pageMap.end())
-      {
-         m_output << "Table item not found in page map" << std::endl;
-         return -1;
-      }
-      
-      const sce_junction& junction = junctionIt->second;
-
-      //read junction into sector map
-      std::ifstream inputStream;
-      junction.open(inputStream);
-
-      std::uint32_t sectorSize = table->get_header()->get_fileSectorSize();
-      std::uintmax_t fileSize = junction.file_size(); 
-
-      std::uint32_t nSectors = static_cast<std::uint32_t>(fileSize / sectorSize);
-      std::uint32_t tailSize = fileSize % sectorSize;
-
-      std::map<std::uint32_t, icv> sectorHashMap;
-
-      std::vector<std::uint8_t> raw_data(sectorSize);
-      for(std::uint32_t i = 0; i < nSectors; i++)
-      {
-         auto currentItem = sectorHashMap.insert(std::make_pair(i, icv()));
-         icv& currentIcv = currentItem.first->second;
-
-         inputStream.read((char*)raw_data.data(), sectorSize);
-
-         currentIcv.m_data.resize(0x14);
-         m_cryptops->hmac_sha1(raw_data.data(), currentIcv.m_data.data(), sectorSize, secret, 0x14);
-      }
-
-      if(tailSize > 0)
-      {
-         auto currentItem = sectorHashMap.insert(std::make_pair(nSectors, icv()));
-         icv& currentIcv = currentItem.first->second;
-
-         inputStream.read((char*)raw_data.data(), tailSize);
-
-         currentIcv.m_data.resize(0x14);
-         m_cryptops->hmac_sha1(raw_data.data(), currentIcv.m_data.data(), tailSize, secret, 0x14);
-      }
-
-      try
-      {
-         //get merkle tree (it should already be indexed)
-         std::shared_ptr<merkle_tree<icv> > mkt = entry.second;
-
-         //assign hashes to leaves
-         walk_tree(mkt, assign_hash, &sectorHashMap);
-
-         //calculate node hashes
-         auto combine_ctx = std::make_pair(m_cryptops, secret);
-         bottom_top_walk_combine(mkt, combine_hash, &combine_ctx);
-
-         //collect hashes into table
-         std::vector<icv> hashTable;
-         walk_tree(mkt, collect_hash, &hashTable);
-
-         //compare tables
-         if(compare_hash_tables(hashTable, table->m_blocks.front().m_signatures) < 0)
-         {
-            m_output << "Merkle tree is invalid in file " << junction << std::endl;
-            return -1;
-         }
-
-         m_output << "File: " << std::hex << table->get_icv_salt() << " [OK]" << std::endl;
-      }
-      catch(std::runtime_error& e)
-      {
-         m_output << e.what() << std::endl;
-         return -1;
-      }  
+      std::uint32_t page_idx = std::dynamic_pointer_cast<sce_icvdb_header_proxy_t>(ftbl->get_header())->get_root_page_idx();
+      int ret = validate_merkle_tree(ftbl, page_idx, 0, secret);
+      if (ret < 0)
+         return ret;
    }
 
    return 0;
@@ -311,8 +194,6 @@ int PfsPageMapper::bruteforce_map(const std::unique_ptr<FilesDbParser>& filesDbP
       }
    }
 
-   std::vector<std::pair<std::shared_ptr<sce_iftbl_base_t>, std::shared_ptr<merkle_tree<icv> > > > merkleTrees;
-
    //brutforce each sce_iftbl_t record
    for(auto& t : unicv->m_tables)
    {
@@ -325,41 +206,17 @@ int PfsPageMapper::bruteforce_map(const std::unique_ptr<FilesDbParser>& filesDbP
 
          std::shared_ptr<sce_junction> found_path;
 
-         if(img_spec_to_is_unicv(ngpfs.image_spec))
-         {
-            //in unicv - hash table has same order as sectors in a file
-            const unsigned char* zeroSectorIcv = t->m_blocks.front().m_signatures.front().m_data.data();
+         const unsigned char* zeroSectorIcv = std::dynamic_pointer_cast<sce_iftbl_cvdb_proxy_t>(t)->get_icv_for_sector(0)->m_data.data();
 
+         try
+         {
             //try to find match by hash of zero sector
-            found_path = brutforce_hashes(filesDbParser, fileDatas, secret, zeroSectorIcv); 
+            found_path = brutforce_hashes(filesDbParser, fileDatas, secret, zeroSectorIcv);
          }
-         else
+         catch(std::runtime_error& e)
          {
-            try
-            {
-               //create merkle tree for corresponding table
-               std::shared_ptr<merkle_tree<icv> > mkt = generate_merkle_tree<icv>(t->get_header()->get_numSectors());
-               index_merkle_tree(mkt);
-
-               //save merkle tree
-               merkleTrees.push_back(std::make_pair(t, mkt));
-
-               //use merkle tree to find index of zero sector in hash table
-               std::pair<std::uint32_t, std::uint32_t> ctx;
-               walk_tree(mkt, find_zero_sector_index, &ctx);
-
-               //in icv - hash table is ordered according to merkle tree structure
-               //that is why it is required to walk through the tree to find zero sector hash in hash table
-               const unsigned char* zeroSectorIcv = t->m_blocks.front().m_signatures.at(ctx.second).m_data.data();
-
-               //try to find match by hash of zero sector
-               found_path = brutforce_hashes(filesDbParser, fileDatas, secret, zeroSectorIcv);
-            }
-            catch(std::runtime_error& e)
-            {
-               m_output << e.what() << std::endl;
-               return -1;
-            } 
+            m_output << e.what() << std::endl;
+            return -1;
          }
 
          if(found_path)
@@ -378,8 +235,11 @@ int PfsPageMapper::bruteforce_map(const std::unique_ptr<FilesDbParser>& filesDbP
    //in icv - additional step checks that hash table corresponds to merkle tree
    if(!img_spec_to_is_unicv(ngpfs.image_spec))
    {
-      if(validate_merkle_trees(filesDbParser, merkleTrees) < 0)
+      if(validate_merkle_trees(unicv, ngpfs.files_salt, ngpfs.image_spec) < 0)
+      {
+         m_output << "Merkle tree is invalid." << std::endl;
          return -1;
+      }
    }
 
    if(files.size() != (m_pageMap.size() + m_emptyFiles.size()))

@@ -13,7 +13,7 @@
 #include "ICryptoOperations.h"
 
 #include "Utils.h"
-#include "MerkleTree.hpp"
+#include "UnicvDbTypes.h"
 
 class FilesDbParser;
 class UnicvDbParser;
@@ -40,9 +40,10 @@ public:
 private:
    std::shared_ptr<sce_junction> brutforce_hashes(const std::unique_ptr<FilesDbParser>& filesDbParser, std::map<sce_junction, std::vector<std::uint8_t>>& fileDatas, const unsigned char* secret, const unsigned char* signature) const;
 
-   int compare_hash_tables(const std::vector<icv>& left, const std::vector<icv>& right);
+   int compare_hash_tables(const std::vector<icv>& left, const std::vector<std::shared_ptr<icv> >& right);
 
-   int validate_merkle_trees(const std::unique_ptr<FilesDbParser>& filesDbParser, std::vector<std::pair<std::shared_ptr<sce_iftbl_base_t>, std::shared_ptr<merkle_tree<icv> > > >& merkleTrees);
+   int validate_merkle_trees(const std::unique_ptr<sce_idb_base_t>& idb, const std::uint32_t files_salt, const std::uint16_t img_spec) const;
+   int validate_merkle_tree(const std::shared_ptr<sce_iftbl_base_t> ftbl, const std::uint32_t page_idx, const std::uint32_t sig_idx, unsigned char* secret) const;
 
 public:
    int bruteforce_map(const std::unique_ptr<FilesDbParser>& filesDbParser, const std::unique_ptr<UnicvDbParser>& unicvDbParser);
