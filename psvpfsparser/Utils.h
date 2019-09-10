@@ -76,6 +76,9 @@ public:
    //copy file in destination root using path from this junction
    bool copy_existing_file(boost::filesystem::path source_root, boost::filesystem::path destination_root) const;
 
+   //copy file with specific size in destination root using path from this junction
+   bool copy_existing_file(boost::filesystem::path source_root, boost::filesystem::path destination_root, std::uintmax_t size) const;
+
 public:
    //this operator should only be used for printing to console!
    friend std::ostream& operator<<(std::ostream& os, const sce_junction& p);  

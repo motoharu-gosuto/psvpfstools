@@ -3,6 +3,7 @@
 #include <cstdint>
 #include <string>
 #include <stdexcept>
+#include <cstring>
 
 #include "PfsKeys.h"
 #include "IcvPrimitives.h"

@@ -100,12 +100,7 @@ int parse_options(int argc, char* argv[], PsvPfsParserConfig& cfg)
          f00d_cache = vm[F00D_CACHE_NAME].as<std::string>();
       }
 
-      if(f00d_url.empty() && f00d_cache.empty())
-      {
-         std::cout << "Missing option --" << F00D_URL_NAME << " or --" << F00D_CACHE_NAME << std::endl;
-         return -1;
-      }
-      else if(!f00d_url.empty() && !f00d_cache.empty())
+      if(!f00d_url.empty() && !f00d_cache.empty())
       {
          std::cout << "Can not use both --" << F00D_URL_NAME << " and --" << F00D_CACHE_NAME << std::endl;
          return -1;
@@ -113,9 +108,6 @@ int parse_options(int argc, char* argv[], PsvPfsParserConfig& cfg)
 
       if(!f00d_url.empty())
       {
-         //cfg.f00d_enc_type = F00DEncryptorTypes::url;
-         //cfg.f00d_arg = f00d_url;
-
          std::cout << "Warning. Option " << F00D_URL_NAME << " is deprecated. Switching to native implementation of F00D" << std::endl;
 
          cfg.f00d_enc_type = F00DEncryptorTypes::native;

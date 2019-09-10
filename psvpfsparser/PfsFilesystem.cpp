@@ -122,7 +122,7 @@ int PfsFilesystem::decrypt_files(boost::filesystem::path destTitleIdPath) const
       //copy unencrypted files
       else if(is_unencrypted(file->file.m_info.header.type))
       {
-         if(!filepath.copy_existing_file(m_titleIdPath, destTitleIdPath))
+         if(!filepath.copy_existing_file(m_titleIdPath, destTitleIdPath, file->file.m_info.header.size))
          {
             m_output << "Failed to copy: " << filepath << std::endl;
             return -1;

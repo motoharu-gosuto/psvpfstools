@@ -43,7 +43,7 @@ struct sce_ng_pfs_header_t
    std::uint32_t bt_order; // order value of the binary tree - derived from btree_order
    std::uint32_t root_icv_page_number; // derived from off2pgn or btree_top
    std::uint32_t files_salt; // first salt value used for key derrivation
-   std::uint64_t unk6; // is 0xFFFFFFFFFFFFFFFF
+   std::uint64_t unk6; // is 0xFFFFFFFFFFFFFFFF or rarely may have other unknown value
    std::uint64_t tailSize; // size of data after this header
    std::uint64_t total_sz; // is 0
    std::uint8_t root_icv[0x14]; // 0x38 hmac-sha1 of (pageSize - 4) of page (pointed by root_icv_page_number) with secret derived from klicensee
