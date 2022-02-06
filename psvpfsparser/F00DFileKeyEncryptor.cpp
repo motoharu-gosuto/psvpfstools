@@ -97,7 +97,7 @@ int F00DFileKeyEncryptor::load_cache_json_file()
          m_keyCache.emplace(key, value);
       }
    }
-   catch(std::exception e)
+   catch(std::exception& e)
    {
       return -1;
    }

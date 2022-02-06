@@ -449,7 +449,7 @@ bool constructFileMatrix(std::vector<sce_ng_pfs_block_t>& blocks, std::map<std::
             else
             {
                //empty files should be allowed!
-               std::cout << "[EMPTY] File " << fileName << " index " << child << " of type " << std::hex << block.m_infos[i].header.type << std::endl;
+               std::cout << "[EMPTY] File " << fileName << " index " << child << " of type " << std::hex << static_cast<std::uint16_t>(block.m_infos[i].header.type) << std::endl;
             }
          }
          else

@@ -83,7 +83,7 @@ set(LIBTOMCRYPT_INCLUDE_DIR "$ENV{LIBTOMCRYPT_INCLUDE_DIR}")
 set(LIBTOMCRYPT_LIBRARY "$ENV{LIBTOMCRYPT_LIBRARY}")
 endif()
 
-find_package(LIBTOMCRYPT REQUIRED)
+find_package(LibTomCrypt REQUIRED)
 
 if(LIBTOMCRYPT_FOUND)
 message("Found libtomcrypt library")

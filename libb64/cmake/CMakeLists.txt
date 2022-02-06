@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 2.8.1)
+cmake_minimum_required(VERSION 3.6.0)
 
 set (PROJECT libb64)
 project (${PROJECT})

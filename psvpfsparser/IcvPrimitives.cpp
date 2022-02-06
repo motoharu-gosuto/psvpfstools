@@ -1,3 +1,5 @@
+#include <cstring>
+
 #include "IcvPrimitives.h"
 
 #include "SceKernelUtilsForDriver.h"
@@ -18,8 +20,8 @@ int icv_contract(std::shared_ptr<ICryptoOperations> cryptops, unsigned char *res
 {
    unsigned char combo[0x28] = {0};
 
-   memcpy(combo, left_hash, 0x14);
-   memcpy(combo + 0x14, right_hash, 0x14);
+   std::memcpy(combo, left_hash, 0x14);
+   std::memcpy(combo + 0x14, right_hash, 0x14);
 
    SceKernelUtilsForDriver_sceSha1DigestForDriver(cryptops, combo, 0x28, result);
    return 0;

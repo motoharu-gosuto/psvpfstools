@@ -1,8 +1,9 @@
 #pragma once
 
 #include <cstdint>
-#include <vector>
 #include <iostream>
+#include <memory>
+#include <vector>
 
 #include <boost/filesystem.hpp>
 
